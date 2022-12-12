@@ -24,9 +24,9 @@ export default function IndexPage() {
     return <LoggedOutScreen />;
   }
   return (
-    <div className="w-full h-full bg-black">
-      <div className="flex h-12 text-white">
-        <div className="flex-grow font-bold m-2">Visuals</div>
+    <div className="w-full h-full bg-black" style={{ background: "black" }}>
+      <div className="flex w-full h-12 items-center text-white">
+        <div className="flex-grow font-bold ">Visuals</div>
         <div className="flex items-center ">
           <img
             className="rounded-2xl w-6 mr-2"

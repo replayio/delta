@@ -50,6 +50,7 @@ const uploadImages = async (images) => {
 
 const uploadImage = async (image, run) => {
   let res;
+
   try {
     res = await fetch("http://localhost:3000/api/uploadImage", {
       method: "POST",
@@ -66,15 +67,14 @@ const uploadImage = async (image, run) => {
       return body;
     }
     const body = await res.json();
-    console.log(JSON.stringify(body, null, 2));
     return body;
   } catch (e) {
-    console.error("erro", e, body);
+    console.error("erro", e, JSON.stringify(body));
   }
 };
 
 const allFiles = getFiles("./test/fixtures");
-const firstFive = allFiles.slice(5, 100);
+const firstFive = allFiles.slice(105, 109);
 const images = firstFive.map((file) => ({
   file,
   content: fs.readFileSync(file, { encoding: "base64" }),

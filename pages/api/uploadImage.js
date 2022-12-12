@@ -10,7 +10,25 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
+async function upsertRunRecord(run, userId) {
+  let runRecord;
+
+  let runResponse = await supabase
+    .from("runs")
+    .upsert([{ run_id: run, user_id: userId }]);
+
+  if (runResponse.error?.code == "23505") {
+    runResponse = await supabase.from("runs").select("*").eq("run_id", run);
+    runRecord = runResponse.data[0];
+  } else {
+    runRecord = runResponse[0];
+  }
+
+  return runRecord;
+}
+
 export default async function handler(req, res) {
+  let runResponse;
   try {
     const { image, run } = req.body;
 
@@ -22,17 +40,32 @@ export default async function handler(req, res) {
       }
     );
 
-    const { data, error } = await supabase.storage
+    const runRecord = await upsertRunRecord(run, userId);
+
+    const uploadResponse = await supabase.storage
       .from("snapshots")
       .upload(
         `${userId}/${run}/${image.file}`,
         Buffer.from(image.content, "base64")
       );
 
-    res.status(200).json({
-      data,
-      error,
-    });
+    const insertResponse = await supabase.from("snapshots").insert([
+      {
+        user_id: userId,
+        file: image.file,
+        run_id: runRecord.id,
+        path: uploadResponse.data?.Key || "",
+        status: uploadResponse.error
+          ? uploadResponse.error?.statusCode === "409"
+            ? "duplicate"
+            : uploadResponse.error?.statusCode
+          : "uploaded",
+      },
+    ]);
+
+    console.log("insertResponse", insertResponse);
+
+    res.status(200).json({ ...uploadResponse, runResponse });
   } catch (e) {
     res.status(200).json({ error: e.message });
   }

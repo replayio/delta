@@ -1,16 +1,42 @@
+@tailwind base;
+
+/* Write your own custom base styles here */
+
+/* Start purging... */
+@tailwind components;
+/* Stop purging. */
+
+/* Write your own custom component styles here */
+.btn-black {
+  @apply border border-black bg-black text-white font-bold py-2 px-4 rounded text-center;
+}
+.btn-black:hover {
+  @apply transition duration-150 bg-white text-black;
+}
+.btn-black-outline {
+  @apply border border-black text-black py-2 px-4 rounded font-bold text-center;
+}
+.btn-black-outline:hover {
+  @apply transition duration-150 bg-black text-white;
+}
+
+/* Start purging... */
+@tailwind utilities;
+/* Stop purging. */
+
+/* Your own custom utilities */
+
 html,
-body {
+body,
+#__next {
+  height: 100vh;
+  min-height: 100vh;
   padding: 0;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-* {
-  box-sizing: border-box;
+h1 {
+  font-size: 4rem;
+  font-weight: bold;
+  display: block;
 }

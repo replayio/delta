@@ -21,9 +21,14 @@ export default async function handler(req, res) {
 
     console.log(actionResponse);
 
-    res.status(200).json(actionResponse);
+    if (actionResponse.error) {
+      res.status(500).json({ error: actionResponse.error });
+      return;
+    }
+
+    return res.status(200).json({ data: actionResponse.data[0] });
   } catch (e) {
-    console.error("erro", e);
+    console.error("error", e);
     res.status(500).json({ error: e });
   }
 }

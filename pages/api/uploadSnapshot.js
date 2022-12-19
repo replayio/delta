@@ -26,6 +26,16 @@ async function uploadImage(image, projectId, sha) {
     });
 }
 
+async function getImageFromMain(image, projectId) {
+  return await supabase
+    .from("Snapshots")
+    .select("*")
+    .eq("file", image.file)
+    .eq("project_id", projectId)
+    .eq("branch", "main")
+    .first();
+}
+
 export default async function handler(req, res) {
   const { image, actionId } = req.body;
 
@@ -35,6 +45,8 @@ export default async function handler(req, res) {
     const projectId = await fetchProjectId(actionId);
     const sha = createHash("sha256").update(image.content).digest("hex");
     const uploadResponse = await uploadImage(image, projectId, sha);
+
+    const mainImage = await getImageFromMain(image, projectId);
 
     console.log(uploadResponse);
     const status = uploadResponse.data?.path
@@ -53,7 +65,7 @@ export default async function handler(req, res) {
 
     console.log(snapshotResponse);
 
-    res.status(200).json({});
+    res.status(200).json(snapshotResponse);
   } catch (e) {
     console.error("erro", e);
     res.status(500).json({ error: e });

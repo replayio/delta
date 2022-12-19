@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     const sha = createHash("sha256").update(image.content).digest("hex");
     const uploadResponse = await uploadImage(image, projectId, sha);
 
-    const mainImage = await getImageFromMain(image, projectId);
+    // const mainImage = await getImageFromMain(image, projectId);
 
     console.log(uploadResponse);
     const status = uploadResponse.data?.path

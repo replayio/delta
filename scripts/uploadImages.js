@@ -57,8 +57,8 @@ async function uploadImage(file, actionId) {
   // const actionId = "701d18b8-6f38-4d2e-9159-312e0be2190e";
   const actionId = "c2ebfb45-f642-432c-934f-26c8ce3da209";
   // const actionId = "555c9968-4ad1-4601-806a-0bde6522e55b";
-  for (const file of files.slice(0, 30)) {
+  for (const file of files.slice(0, 1)) {
     const res = await uploadImage(file, actionId);
+    console.log(res);
   }
-  //   console.log(res);
 })();

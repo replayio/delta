@@ -16,7 +16,8 @@ export function useFetchSnapshots(branch) {
   } = useSWR(encodeURI(`/api/getSnapshotsForBranch?branch=main`), fetcher);
 
   const snapshots = useMemo(() => {
-    return data?.snapshots.map((snapshot) => {
+    if (!data || !mainData) return null;
+    return data.snapshots.map((snapshot) => {
       const mainSnapshot = mainData.snapshots.find(
         (mainSnapshot) => mainSnapshot.file === snapshot.file
       );
@@ -31,5 +32,6 @@ export function useFetchSnapshots(branch) {
   if (isLoading || mainLoading) return { isLoading: true };
   if (error || mainError) return { error: error || mainError };
 
+  console.log(`snapshots`, snapshots);
   return { data: snapshots };
 }

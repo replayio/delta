@@ -1,21 +1,45 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Snapshot } from "../components/Snapshot";
 import { SnapshotRow } from "../components/SnapshotRow";
 import { useFetchSnapshots } from "../hooks/useFetchSnapshots";
 import { getSnapshotStatus } from "../utils/snapshots";
+import useSWR from "swr";
+import uniq from "lodash/uniq";
+import sortBy from "lodash/sortBy";
+import Dropdown from "../components/Dropdown";
 
-const branch = "visuals";
+const fetcher = (...args) => fetch(...args).then((res) => res.json());
+
+const projectId = "dcb5df26-b418-4fe2-9bdf-5a838e604ec4";
 
 export default function Home() {
   const [selectedSnapshotIndex, setSelectedSnapshot] = useState(0);
   const [theme, setTheme] = useState("light");
   const [mode, setMode] = useState();
+  const [branch, setBranch] = useState("visuals");
+
+  const actionsQuery = useSWR(
+    encodeURI(`/api/getActions?projectId=${projectId}`),
+    fetcher
+  );
 
   const { data, error, isLoading } = useFetchSnapshots(branch);
 
-  if (isLoading) return <div>loading...</div>;
-  if (error) return <div>error</div>;
-  console.log({ selectedSnapshot });
+  // const branches = actionsQuery.data.data;
+  const branches = useMemo(
+    () =>
+      actionsQuery.data &&
+      sortBy(
+        uniq(
+          actionsQuery.data.map((action) => action.branch)
+          // (b) => b
+        )
+      ),
+    [actionsQuery.data]
+  );
+
+  if (isLoading || actionsQuery.isLoading) return <div>loading...</div>;
+  if (error || actionsQuery.error) return <div>error</div>;
 
   const newSnapshots = data?.filter(
     (snapshot) => getSnapshotStatus(snapshot) === "new"
@@ -40,21 +64,28 @@ export default function Home() {
       : data;
 
   const selectedSnapshot = snapshots?.[selectedSnapshotIndex];
+
+  console.log({ actions: actionsQuery.data });
+  console.log({ selectedSnapshot });
+  console.log({ branches });
+
   return (
-    <div
-      className={`${theme == "dark" ? "bg-slate-900" : "bg-white"} h-full p-4`}
-    >
+    <div className={`${theme == "dark" ? "bg-slate-900" : "bg-white"} h-full`}>
       <div className="flex text-black justify-between border-b-2 mb-1 border-b-slate-100 ">
-        <div className="flex">
-          <h1 className="text-lg">Visuals</h1>
+        <div className="flex items-center py-2">
+          <h1 className="pl-4 text-lg">Visuals</h1>
           <div className="ml-1 mr-1"> / </div>
-          <div className="bolder text-lg">visuals</div>
+          <Dropdown
+            onChange={(val) => setBranch(val)}
+            selected={branch}
+            options={branches}
+          />
         </div>
         {/* <div onClick={() => setTheme(theme == "dark" ? "light" : "dark")}>
           {theme == "dark" ? "dark" : "light"}
         </div> */}
       </div>
-      <div className="flex h-full overflow-hidden">
+      <div className="flex h-full overflow-hidden pl-4">
         <div className="flex flex-col">
           <div className="flex flex-col mb-4">
             <div

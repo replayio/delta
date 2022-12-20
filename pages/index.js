@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/router";
+
 import { Snapshot } from "../components/Snapshot";
 import { SnapshotRow } from "../components/SnapshotRow";
 import { useFetchSnapshots } from "../hooks/useFetchSnapshots";
@@ -16,14 +18,24 @@ export default function Home() {
   const [selectedSnapshotIndex, setSelectedSnapshot] = useState(0);
   const [theme, setTheme] = useState("light");
   const [mode, setMode] = useState();
-  const [branch, setBranch] = useState("visuals");
+  const router = useRouter();
+  const [branch, setBranch] = useState("main");
+
+  useEffect(() => setBranch(router.query.branch), [router.query.branch]);
 
   const actionsQuery = useSWR(
     encodeURI(`/api/getActions?projectId=${projectId}`),
     fetcher
   );
 
-  const { data, error, isLoading } = useFetchSnapshots(branch);
+  const projectQuery = useSWR(
+    encodeURI(`/api/getProject?projectId=${projectId}`),
+    fetcher
+  );
+
+  console.log("projectQuery", projectQuery.data);
+
+  const { data, error, isLoading } = useFetchSnapshots(branch, projectQuery);
 
   // const branches = actionsQuery.data.data;
   const branches = useMemo(
@@ -123,10 +135,8 @@ export default function Home() {
             ))}
           </div>
         </div>
-        <div className="flex flex-grow justify-center items-center">
-          <div className="" style={{ height: "600px" }}>
-            {selectedSnapshot && <Snapshot snapshot={selectedSnapshot} />}
-          </div>
+        <div className="flex  flex-col flex-grow items-center overflow-hidden">
+          {selectedSnapshot && <Snapshot snapshot={selectedSnapshot} />}
         </div>
       </div>
     </div>

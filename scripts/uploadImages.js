@@ -1,5 +1,6 @@
 const fs = require("fs");
 const fetch = require("node-fetch");
+const chunk = require("lodash/chunk");
 
 function getFiles(dir) {
   // Use the fs.readdirSync() method to get a list of files in the directory
@@ -31,7 +32,7 @@ async function uploadImage(file, actionId) {
   let res;
 
   try {
-    res = await fetch("http://localhost:3000/api/uploadSnapshot", {
+    res = await fetch("http://localhost:3001/api/uploadSnapshot", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -53,12 +54,16 @@ async function uploadImage(file, actionId) {
 }
 
 (async () => {
-  files = getFiles("./test/fixtures/");
+  const allFiles = getFiles("./playwright/visuals");
   // const actionId = "701d18b8-6f38-4d2e-9159-312e0be2190e";
-  const actionId = "c2ebfb45-f642-432c-934f-26c8ce3da209";
+  // const actionId = "c2ebfb45-f642-432c-934f-26c8ce3da209";
   // const actionId = "555c9968-4ad1-4601-806a-0bde6522e55b";
-  for (const file of files.slice(0, 1)) {
-    const res = await uploadImage(file, actionId);
-    console.log(res);
+  // const actionId = "a7947f53-17e2-4d9a-881e-15334c9bb16a";
+  const actionId = "7876ff8d-5165-4b02-9069-321f117b1111";
+  for (const files of chunk(allFiles, 20)) {
+    const res = await Promise.all(
+      files.map((file) => uploadImage(file, actionId))
+    );
+    console.log(JSON.stringify(res));
   }
 })();

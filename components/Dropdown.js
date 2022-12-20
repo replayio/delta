@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/20/solid";
+import Link from "next/link";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -12,10 +13,10 @@ export default function Dropdown({ selected, options, onChange }) {
       <div>
         <Menu.Button
           onChange={onChange}
-          className="inline-flex w-full justify-center rounded-md  px-4 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 "
+          className="inline-flex w-full justify-center rounded-md items-center py-2 text-lg  text-gray-600 focus:outline-none focus:ring-2 "
         >
           {selected}
-          <ChevronDownIcon className="-mr-1 ml-2 h-5 w-5" aria-hidden="true" />
+          <ChevronDownIcon className=" h-5 w-5" aria-hidden="true" />
         </Menu.Button>
       </div>
 
@@ -28,16 +29,16 @@ export default function Dropdown({ selected, options, onChange }) {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items className="absolute left-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+        <Menu.Items className="absolute left-0 z-10 mt-2 w-56 flex flex-col truncate origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
           {options.map((option) => (
             <Menu.Item key={option}>
               {({ active }) => (
                 <a
-                  href="#"
-                  onClick={() => onChange(option)}
+                  href={`/?branch=${option}`}
+                  //   onClick={() => onChange(option)}
                   className={classNames(
                     active ? "bg-gray-100 text-gray-900" : "text-gray-700",
-                    "block px-4 py-2 text-sm"
+                    "block px-4 py-2 text-sm  "
                   )}
                 >
                   {option}

@@ -6,92 +6,61 @@ const jwt = require("jsonwebtoken");
 
 dotenv.config({ path: "./.env.local" });
 
-const token = jwt.sign(
-  {
-    iat: Date.now() - 60,
-    // # JWT expiration time (10 minute maximum)
-    exp: Date.now() + 10 * 60,
-    // # GitHub App's identifier
-    iss: 222164,
-  },
-  process.env.PEM,
-  { algorithm: "RS256" }
-);
+let token = "ghs_kZ1CuFPClgpn292epL0JFfJXyadMSZ4CZcoH";
+
+// const token = jwt.sign(
+//   {
+//     iat: Date.now() - 60,
+//     // # JWT expiration time (10 minute maximum)
+//     exp: Date.now() + 10 * 60,
+//     // # GitHub App's identifier
+//     iss: 222164,
+//   },
+//   process.env.PEM,
+//   { algorithm: "RS256" }
+// );
 
 const octokit = new Octokit({
   auth: token,
-  //   authStrategy: createAppAuth,
-  //   auth: {
-  //     appId: 222164,
-  //     privateKey: process.env.PEM,
-  //     installationId: 1,
-  //   },
 });
-// console.log(process.env.PEM)
-// 0()
 
-// const octokit = new Octokit({
-//   auth: process.env.GITHUB_PERSONAL_TOKEN,
-// });
-
-async function octo2UpdateCheck({ owner, repo, runId }, conclusion) {
-  const update = {
-    status: "completed",
-    conclusion,
-    completed_at: new Date(),
-  };
-
-  return octokit.checks.update({
-    owner,
-    repo,
-    check_run_id: runId,
-    ...update,
-  });
-}
-
-async function octoUpdateCheck(
-  { owner, repo, runId },
-  conclusion,
-  { title, summary }
-) {
-  await octokit.request(`PATCH /repos/${owner}/${repo}/check-runs/${runId}`, {
+async function createCheck(owner, repo) {
+  return octokit.request(`POST /repos/${owner}/${repo}/check-runs`, {
     owner: owner,
     repo: repo,
-    check_run_id: runId,
-    conclusion,
+    name: "Visuals",
+    head_sha: "c412f1a4b953c940964e0913a3fefbcca6c25096",
+    status: "in_progress",
+    conclusion: "failure",
+    details_url: "https://replay-visuals.vercel.app/?branch=visuals5",
+    started_at: new Date().toISOString(),
     output: {
-      title,
-      summary,
+      title: "3 of 15 snapshots changed",
+      summary: "yo yo",
+      //   text: "yo yo",
     },
   });
 }
 
-async function updateCheck({ owner, repo, runId }, conclusion, title, summary) {
-  let res;
-
-  try {
-    res = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/check-runs/${runId}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ conclusion, output: { title, summary } }),
-      }
-    );
-
-    // const json = await body.json();
-    if (res.status !== 200) {
-      const body = await res.text();
-      console.log(res.status, body);
-      return body;
+async function updateCheck(owner, repo, checkRunId) {
+  return octokit.request(
+    `PATCH /repos/${owner}/${repo}/check-runs/${checkRunId}`,
+    {
+      owner,
+      repo,
+      check_run_id: checkRunId,
+      name: "Visuals",
+      head_sha: "c412f1a4b953c940964e0913a3fefbcca6c25096",
+      status: "completed",
+      conclusion: "success",
+      completed_at: new Date().toISOString(),
+      output: {
+        title: "5 of 15 snapshots changed",
+        summary: "...",
+        text: "...",
+      },
     }
-    const body = await res.json();
-    return body;
-  } catch (e) {
-    console.error("error", e);
-  }
+  );
 }
 
 (async () => {
@@ -101,12 +70,8 @@ async function updateCheck({ owner, repo, runId }, conclusion, title, summary) {
   const conclusion = "failed";
   const title = "Visual changes";
   const summary = "3 of 15 snapshots changed";
+  const checkRunId = 10239571970;
 
-  //   const res = await octoUpdateCheck({ owner, repo, runId }, conclusion, {
-  //     title,
-  //     summary,
-  //   });
-
-  const res = await octo2UpdateCheck({ owner, repo, runId }, conclusion);
-  console.log(res);
+  const updateRes = await updateCheck(owner, repo, checkRunId);
+  console.log(updateRes);
 })();

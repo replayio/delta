@@ -38,7 +38,7 @@ payload = {
   iat: Time.now.to_i - 60,
   # JWT expiration time (10 minute maximum)
   exp: Time.now.to_i + (10 * 60),
-  # GitHub App's identifier
+
   iss: 222164
 }
 

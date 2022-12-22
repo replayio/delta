@@ -10,10 +10,10 @@ function createJWT(appId, pem) {
   return jwt.sign(
     {
       iss: appId,
-      iat: secondsFromEpoch - 60,
       // 10 * 60 sometimes responds with 401
       // {"message":"'Expiration time' claim ('exp') is too far in the future","documentation_url":"https://docs.github.com/rest"}
       exp: secondsFromEpoch + 9 * 60,
+      iat: secondsFromEpoch - 60,
     },
     pem,
     { algorithm: "RS256" }
@@ -51,19 +51,19 @@ async function createToken(installationId, jwt) {
   }
 }
 
-export default async function handler(_, res) {
+// Follows the steps here:
+// https://docs.github.com/en/developers/apps/building-github-apps/authenticating-with-github-apps
+(async () => {
   try {
     const appId = 274973;
     const installationId = 32444723;
     const pem = process.env.PEM;
 
     const jwt = createJWT(appId, pem);
-    console.log("getToken::jwt", jwt);
     const tokenRes = await createToken(installationId, jwt);
-    console.log("getToken::token", tokenRes);
-    res.status(200).json(tokenRes);
+    console.log(tokenRes);
   } catch (e) {
     console.error("error", e);
     res.status(500).json({ error: e });
   }
-}
+})();

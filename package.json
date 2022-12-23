@@ -11,6 +11,7 @@
   "dependencies": {
     "@headlessui/react": "^1.7.7",
     "@heroicons/react": "^2.0.13",
+    "@octokit/app": "^13.1.0",
     "@octokit/auth-app": "^4.0.7",
     "@octokit/rest": "^19.0.5",
     "@supabase/supabase-js": "^1.28.0",

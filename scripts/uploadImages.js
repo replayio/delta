@@ -32,7 +32,7 @@ async function uploadImage(file, actionId) {
   let res;
 
   try {
-    res = await fetch("http://localhost:3001/api/uploadSnapshot", {
+    res = await fetch("http://localhost:3000/api/uploadSnapshot", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -54,7 +54,7 @@ async function uploadImage(file, actionId) {
 }
 
 (async () => {
-  const allFiles = getFiles("./playwright/visuals");
+  const allFiles = getFiles("./playwright/visuals").slice(0, 100);
   // const actionId = "701d18b8-6f38-4d2e-9159-312e0be2190e";
   // const actionId = "c2ebfb45-f642-432c-934f-26c8ce3da209";
   // const actionId = "555c9968-4ad1-4601-806a-0bde6522e55b";
@@ -64,6 +64,22 @@ async function uploadImage(file, actionId) {
     const res = await Promise.all(
       files.map((file) => uploadImage(file, actionId))
     );
-    console.log(JSON.stringify(res));
+
+    console.log(
+      JSON.stringify(
+        res.map((r) => r?.data[0]),
+        null,
+        2
+      )
+    );
+    console.log("---");
+
+    console.log(
+      JSON.stringify(
+        res.map((r) => r?.error),
+        null,
+        2
+      )
+    );
   }
 })();

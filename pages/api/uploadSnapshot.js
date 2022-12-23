@@ -1,40 +1,12 @@
 const { createHash } = require("crypto");
-import { createClient } from "@supabase/supabase-js";
-import dotenv from "dotenv";
-dotenv.config({ path: "./.env.local" });
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
-
-async function fetchProjectId(actionId) {
-  const actionRecord = await supabase
-    .from("Actions")
-    .select("*")
-    .eq("id", actionId);
-  console.log(actionRecord);
-  const projectId = actionRecord.data[0].project_id;
-  return projectId;
-}
-
-async function uploadImage(image, projectId, sha) {
-  return await supabase.storage
-    .from("snapshots")
-    .upload(`${projectId}/${sha}.png`, Buffer.from(image.content, "base64"), {
-      contentType: "image/png",
-    });
-}
-
-async function getImageFromMain(image, projectId) {
-  return await supabase
-    .from("Snapshots")
-    .select("*")
-    .eq("file", image.file)
-    .eq("project_id", projectId)
-    .eq("branch", "main")
-    .limit(1);
-}
+import { diffImages } from "../../lib/diff";
+import {
+  getImageFromMain,
+  fetchSnapshot,
+  uploadImage,
+  insertSnapshot,
+  fetchProjectId,
+} from "../../lib/supabase";
 
 export default async function handler(req, res) {
   const { image, actionId } = req.body;
@@ -47,22 +19,27 @@ export default async function handler(req, res) {
     const uploadResponse = await uploadImage(image, projectId, sha);
 
     const mainImage = await getImageFromMain(image, projectId);
-    console.log("mainImage", mainImage);
+    const { data: mainSnapshot } = await fetchSnapshot(mainImage.path);
 
-    console.log(uploadResponse);
+    const { changed } = diffImages(
+      Buffer.from(image.content, "base64"),
+      Buffer.from(mainSnapshot, "base64")
+    );
+
+    console.log("mainSnapshot", mainSnapshot.slice(0, 100));
+
     const status = uploadResponse.data?.path
       ? "Uploaded"
       : uploadResponse.error?.error;
 
-    const snapshotResponse = await supabase.from("Snapshots").insert([
-      {
-        sha,
-        action_id: actionId,
-        path: `${projectId}/${sha}.png`,
-        file: image.file,
-        status,
-      },
-    ]);
+    const snapshotResponse = await insertSnapshot(
+      sha,
+      actionId,
+      projectId,
+      image,
+      status,
+      changed
+    );
 
     console.log(snapshotResponse);
 

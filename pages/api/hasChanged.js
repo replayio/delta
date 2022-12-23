@@ -29,6 +29,21 @@ export default async function handler(req, res) {
     encodeURI(`/api/getSnapshotsForBranch/?branch=${primaryBranch}`)
   );
 
+  const snapshots = branchSnapshots.snapshots
+    .map((snapshot) => {
+      const mainSnapshot = primaryBranchSnapshots.snapshots.find(
+        (mainSnapshot) => mainSnapshot.file === snapshot.file
+      );
+
+      return {
+        ...snapshot,
+        sameSha:
+          mainSnapshot && snapshot.sha === mainSnapshot.sha ? true : false,
+        mainSnapshot,
+      };
+    })
+    .filter((snapshot) => !snapshot.sameSha);
+
   console.log("hello-event", primaryBranch);
-  res.status(200).json({ branchSnapshots, primaryBranchSnapshots });
+  res.status(200).json({ snapshots, branchSnapshots, primaryBranchSnapshots });
 }

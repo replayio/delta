@@ -1,50 +1,124 @@
-const fetch = require("node-fetch");
-const dotenv = require("dotenv");
+import createClient from "../../lib/initServerSupabase";
+import { createCheck, updateCheck } from "../../lib/github";
 
-dotenv.config({ path: "./.env.local" });
-const HOST = process.env.HOST;
+const supabase = createClient();
 
-async function post(path, body) {
-  const res = await fetch(`${HOST}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (res.status === 200) {
-    return res.json();
-  }
-
-  return { status: res.status, error: await res.text() };
-}
-
-// Perform some processing or logic based on the event type and payload
 export default async function handler(req, res) {
-  console.log("github-event (1)");
   const { payload } = req.body;
   const eventType = req.headers["x-github-event"];
+  const project = await getProjectFromRepo(
+    payload.repository.name,
+    payload.organization.login
+  );
 
-  console.log("github-event (2)", eventType, Object.keys(payload));
+  if (!project) {
+    return skip(
+      `no project found for ${payload.repository.name} and ${payload.organization.login}`
+    );
+  }
 
-  if (eventType == "workflow_job") {
-    if (payload.action === "queued") {
-      console.log("github-event (3) creating a check");
-      const createRes = await post("/api/createCheck", payload);
-      console.log("github-event (4) created a check", createRes);
-      res.status(200).json(createRes);
-      return;
+  const response = (status, data, error) => {
+    console.log(
+      `github-event ${eventType} status:${status} project:${project.id}`,
+      json
+    );
+    res.status(status).json(status == 200 ? data : error);
+  };
+
+  const skip = (reason) => {
+    console.log(`github-event ${eventType} skip project:${project.id}`, reason);
+    res.status(500).json({ skip: reason });
+  };
+
+  console.log(`github-event ${eventType} start`, payload);
+
+  switch (eventType) {
+    case "pull_request": {
+      if (payload.action === "opened") {
+        return response(
+          await supabase.from("Branches").upsert({
+            name: payload.pull_request.head.ref,
+            project_id: project.id,
+            pr_url: payload.pull_request.url,
+            pr_title: payload.pull_request.title,
+            pr_number: payload.number,
+            status: "open",
+          })
+        );
+      } else if (payload.action === "closed") {
+        return response(
+          await supabase.from("Branches").update({
+            name: payload.pull_request.head.ref,
+            project_id: project.id,
+            status: "closed",
+          })
+        );
+      }
     }
-    if (payload.action === "completed") {
-      console.log("github-event (3) updating a check");
-      const updateRes = await post("/api/updateCheck", payload);
-      console.log("github-event (3) updated a check", updateRes);
-      res.status(200).json(updateRes);
-      return;
+
+    case "workflow_job": {
+      if (payload.action === "queued") {
+        if (
+          !payload.workflow_job.workflow_name.startsWith("Playwright Snapshot")
+        ) {
+          return skip(`workflow is ${workflow_name}`);
+        }
+
+        const { branch } = await getBranchFromProject(
+          project.id,
+          payload.workflow_job.head_branch
+        );
+
+        if (!branch) {
+          return skip(`branch ${payload.workflow_job.head_branch} not found`);
+        }
+
+        const check = await createCheck(
+          payload.organization.login,
+          payload.repository.name,
+          {
+            head_sha,
+            title: "Tests are running",
+            status: "in_progress",
+            conclusion: "neutral",
+            text: "",
+            summary: "",
+          }
+        );
+
+        const action = await supabase.from("Actions").insert({
+          project_id: project.id,
+          run_id: payload.workflow_job.run_id,
+          branch_id: branch.id,
+          head_sha: payload.workflow_job.head_sha,
+          actor: payload.sender.login,
+          branch,
+          metadata,
+        });
+
+        return response({ status: 200, data: { check, action } });
+      } else if (payload.action === "completed") {
+        // TODO: check to see if the branch is different or not
+        const isDifferent = false;
+
+        return response(
+          await updateCheck(
+            payload.organization.login,
+            payload.repository.name,
+            {
+              head_sha: payload.workflow_job.head_sha,
+              title: "1 of 15 snapshots are different",
+              summary: "",
+              conclusion: isDifferent ? "failed" : "completed",
+              status: "completed",
+              text: "",
+            }
+          )
+        );
+      }
     }
   }
 
-  console.log("skip this event");
-  res.status(400).json();
+  console.log(`github-event ${eventType} skip`);
+  return res.status(500).json({ skip: true });
 }

@@ -1,8 +1,8 @@
-import { fetchSnapshot } from "../../lib/supabase";
+import { downloadSnapshot } from "../../lib/supabase-storage";
 
 export default async function handler(req, res) {
   const { path } = req.query;
-  const { data, error } = await fetchSnapshot(path, res);
+  const { data, error } = await downloadSnapshot(path, res);
 
   if (error) {
     return res.status(500).json({ error });

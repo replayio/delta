@@ -1,34 +1,55 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Replay Delta
 
-## Getting Started
+## Resources
 
-First, run the development server:
+- **Local Development** `yarn; yarn dev`
+- **Frontend** Next.js
+- **APIs** Next.js [APIs](https://github.com/replayio/visuals/tree/main/pages/api)
+- **Database** Supabase [Table Editor](https://app.supabase.com/project/cqerexxkkntrurcacozk/editor)
+- **Storage** Supabase [Snapshots](https://app.supabase.com/project/cqerexxkkntrurcacozk/storage/buckets/snapshots)
+- **Authentication** Supabase
+- **Logs** [LogTail](https://logtail.com/team/129603/tail?rf=1671873260000&s=216756)
+- **GitHub App** [Visuals App](https://github.com/organizations/replayio/settings/apps/replay-visuals)
 
-```bash
-npm run dev
-# or
-yarn dev
-```
+## Concepts
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Snapshot - metadata about an image
+- Action - 1.1. w/ a GitHub Action
+- Branch - 1.1 w/ a GitHub Branch
+- Project - your basic team, workspace, etc...
+- GitHub Event - a GitHub webhook event
+- Check Run - a GitHub check that we create to update the status
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+## Flows
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
+1. PR Opens
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+- We create a branch
 
-## Learn More
+2. PR Closes
 
-To learn more about Next.js, take a look at the following resources:
+- We mark the branch closed
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Action is run on main
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+- We create an action
+- We upload all the snapshots
+- We update all of the open branches
 
-## Deploy on Vercel
+3. Action is run on a branch
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- We create an action
+- We create a check if needed
+- We upload all the snapshots
+- We update the current branch
+- We update the check
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+4. User views a branch
+
+- We fetch the status for the branch
+- We fetch the snapshots for the latest branch
+- We show the before / after for the selected snapshot
+
+---
+
+- We want to move DevTools APIs to GH Event handlers

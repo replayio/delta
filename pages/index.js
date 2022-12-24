@@ -89,8 +89,10 @@ export default function Home() {
     <div className={`${theme == "dark" ? "bg-slate-900" : "bg-white"} h-full`}>
       <div className="flex text-black justify-between border-b-2 mb-1 border-b-slate-100 ">
         <div className="flex items-center py-2 pl-4">
-          <Image width={16} height={16} src="/logo.svg" alt="Replay logo" />
-          <h1 className="pl-2 text-lg">Visuals</h1>
+          <div style={{ transform: "rotate(-90deg)" }}>
+            <Image width={16} height={16} src="/logo.svg" alt="Replay logo" />
+          </div>
+          <h1 className="pl-2 text-lg">Delta</h1>
           <div className="ml-1 mr-1"> / </div>
           <Dropdown
             onChange={(val) => setBranch(val)}

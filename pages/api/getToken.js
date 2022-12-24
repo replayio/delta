@@ -6,7 +6,6 @@ dotenv.config({ path: "./.env.local" });
 
 export default async function handler(_, res) {
   try {
-    const pem = process.env.PEM;
     const appId = 274973;
     const owner = "replayio";
     const repo = "devtools";

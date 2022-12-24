@@ -11,13 +11,11 @@ export default async function handler(req, res) {
   const { projectId, branch, metadata } = req.body;
 
   try {
-    const actionResponse = await supabase.from("Actions").insert([
-      {
-        project_id: projectId,
-        branch,
-        metadata,
-      },
-    ]);
+    const actionResponse = await supabase.from("Actions").insert({
+      project_id: projectId,
+      branch,
+      metadata,
+    });
 
     console.log(actionResponse);
 

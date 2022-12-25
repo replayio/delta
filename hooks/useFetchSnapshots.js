@@ -4,22 +4,28 @@ import { useMemo } from "react";
 const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
 export function useFetchSnapshots(branch, projectQuery) {
-  const { data, error, isLoading } = useSWR(
-    encodeURI(`/api/getSnapshotsForBranch?branch=${branch}`),
-    fetcher
+  const selectedKey = encodeURI(
+    projectQuery.isLoading || projectQuery.error
+      ? null
+      : `/api/getSnapshotsForBranch?branch=${branch}&project_id=${projectQuery.data.id}`
   );
+  console.log("selectedKey", selectedKey);
+  const { data, error, isLoading } = useSWR(selectedKey, fetcher);
 
-  const primaryBranch = projectQuery.data?.primary_branch || "main";
-  console.log("primaryBranch", primaryBranch, projectQuery.data);
+  const primaryBranch = projectQuery.data?.primary_branch;
+  const primaryKey =
+    projectQuery.isLoading || projectQuery.error
+      ? null
+      : encodeURI(
+          `/api/getSnapshotsForBranch?branch=${primaryBranch}&project_id=${projectQuery.data.id}`
+        );
 
+  console.log("primaryKey", primaryKey);
   const {
     data: mainData,
     error: mainError,
     isLoading: mainLoading,
-  } = useSWR(
-    encodeURI(`/api/getSnapshotsForBranch?branch=${primaryBranch}`),
-    fetcher
-  );
+  } = useSWR(primaryKey, fetcher);
 
   console.log({ data, mainData });
   const snapshots = useMemo(() => {

@@ -20,6 +20,12 @@
 - GitHub Event - a GitHub webhook event
 - Check Run - a GitHub check that we create to update the status
 
+Table relationships
+
+- Branches belong to a project
+- Actions belong to a branch
+- Snapshots belong to an action
+
 ## Flows
 
 1. PR Opens

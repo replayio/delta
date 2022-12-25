@@ -37,7 +37,8 @@ export default function Home() {
     fetcher
   );
 
-  console.log("projectQuery", projectQuery.data);
+  console.log("projectQuery", projectQuery?.data);
+  console.log("actionsQuery", actionsQuery?.data);
 
   const { data, error, isLoading } = useFetchSnapshots(branch, projectQuery);
 

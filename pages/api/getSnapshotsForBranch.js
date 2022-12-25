@@ -1,32 +1,18 @@
-import { createClient } from "@supabase/supabase-js";
-import dotenv from "dotenv";
-dotenv.config({ path: "./.env.local" });
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
+import { getSnapshotsFromBranch } from "../../lib/supabase";
 
 export default async function handler(req, res) {
   const { branch, project_id } = req.query;
 
-  const { action, error } = await getAction(project_id, branch);
-
-  if (error) {
-    console.log(error);
-    res.status(500).json({ error });
+  if (!branch || !project_id) {
+    return res.status(500).json({ error: "missing branch or project_id" });
   }
 
-  const snapshots = await supabase
-    .from("Snapshots")
-    .select("*")
-    .eq("action_id", actionId);
+  const { snapshots } = await getSnapshotsFromBranch(project_id, branch);
 
   if (snapshots.error) {
-    console.log(snapshots.error);
+    console.log("getSnapshotsForBranch error", snapshots.error);
     res.status(500).json({ error: snapshots.error });
   }
 
-  //   console.log(snapshots);
-  res.status(200).json({ branch, actionId, snapshots: snapshots.data });
+  res.status(200).json({ snapshots });
 }

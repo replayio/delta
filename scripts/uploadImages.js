@@ -25,7 +25,7 @@ function getFiles(dir) {
   return allFiles;
 }
 
-async function uploadImage(file, actionId) {
+async function uploadImage(file, projectId, branch) {
   const content = fs.readFileSync(file, { encoding: "base64" });
   const image = { content, file };
 
@@ -37,7 +37,7 @@ async function uploadImage(file, actionId) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ image, actionId }),
+      body: JSON.stringify({ image, projectId, branch }),
     });
 
     // const json = await body.json();
@@ -54,15 +54,13 @@ async function uploadImage(file, actionId) {
 }
 
 (async () => {
-  const allFiles = getFiles("./playwright/visuals").slice(0, 100);
-  // const actionId = "701d18b8-6f38-4d2e-9159-312e0be2190e";
-  // const actionId = "c2ebfb45-f642-432c-934f-26c8ce3da209";
-  // const actionId = "555c9968-4ad1-4601-806a-0bde6522e55b";
-  // const actionId = "a7947f53-17e2-4d9a-881e-15334c9bb16a";
-  const actionId = "7876ff8d-5165-4b02-9069-321f117b1111";
+  const allFiles = getFiles("./playwright/visuals").slice(0, 10);
+  const projectId = "dcb5df26-b418-4fe2-9bdf-5a838e604ec4";
+  const branch = "test";
+
   for (const files of chunk(allFiles, 20)) {
     const res = await Promise.all(
-      files.map((file) => uploadImage(file, actionId))
+      files.map((file) => uploadImage(file, projectId, branch))
     );
 
     console.log(

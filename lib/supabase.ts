@@ -61,7 +61,7 @@ export async function insertSnapshot(
   image,
   status,
   primary_changed,
-  action_changed
+  action_changed = false
 ) {
   const { branch } = await getBranchFromProject(projectId, branchName);
   const { action } = await getAction(branch.id);

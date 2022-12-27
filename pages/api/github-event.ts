@@ -6,14 +6,15 @@ import { getProjectFromRepo, getBranchFromProject } from "../../lib/supabase";
 const supabase = createClient();
 
 export default async function handler(req, res) {
-  const { payload } = req.body;
+  const payload = req.body;
   const eventType = req.headers["x-github-event"];
-  console.log(`github-event ${eventType} start`, req.body, payload);
+  console.log(`github-event ${eventType} start`, Object.keys(payload));
 
   const project = await getProjectFromRepo(
     payload.repository.name,
     payload.organization.login
   );
+
   console.log("project", project);
 
   const skip = (reason) => {

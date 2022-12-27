@@ -33,6 +33,6 @@ async function testEvent(req) {
 
 (async () => {
   const workflowPayload = fixtures["pull_request.opened2"];
-  const res = await testEvent({ payload: workflowPayload });
+  const res = await testEvent(workflowPayload);
   console.log(res);
 })();

@@ -1,7 +1,7 @@
-const PNG = require("pngjs").PNG;
-const pixelmatch = require("pixelmatch");
+import { PNG } from "pngjs";
+import pixelmatch from "pixelmatch";
 
-function diffImages(img1, img2) {
+export function diffImages(img1, img2) {
   try {
     const png1 = PNG.sync.read(img1);
     const png2 = PNG.sync.read(img2);
@@ -30,8 +30,6 @@ function diffImages(img1, img2) {
   }
 }
 
-function diffBase64Images(img1, img2) {
+export function diffBase64Images(img1, img2) {
   return diffImages(Buffer.from(img1, "base64"), Buffer.from(img2, "base64"));
 }
-
-module.exports = { diffImages, diffBase64Images };

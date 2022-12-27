@@ -20,7 +20,7 @@ async function diffWithPrimaryBranch(image, projectId) {
     return false;
   }
 
-  const { data: primarySnapshot } = await downloadSnapshot(primaryImage.path);
+  const { data: primarySnapshot } = await downloadSnapshot(snapshot.path);
   const { changed } = diffBase64Images(image.content, primarySnapshot);
 
   return changed;
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       image,
       projectId
     );
-    const status = snapshot?.path ? "Uploaded" : snapshotError?.error;
+    const status = snapshot?.path ? "Uploaded" : snapshotError;
     const primary_changed = await diffWithPrimaryBranch(image, projectId);
 
     const snapshotResponse = await insertSnapshot(

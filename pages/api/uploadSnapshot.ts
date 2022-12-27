@@ -31,11 +31,15 @@ async function diffWithPrimaryBranch(image, projectId) {
 
 export default async function handler(req, res) {
   const { image, projectId, branch: branchName } = req.body;
-
+  console.log("uploadSnapshot start (1)", branchName, image.file);
   try {
     const snapshot = await uploadSnapshot(image, projectId);
+    console.log("uploadSnapshot (2) ", branchName, image.file);
     const status: string = snapshot.error ? snapshot.error : "Uploaded";
+    console.log("uploadSnapshot (3) ", branchName, image.file, status);
+
     const primary_changed = await diffWithPrimaryBranch(image, projectId);
+    console.log("uploadSnapshot (4) ", branchName, image.file, status);
 
     const snapshotResponse = await insertSnapshot(
       branchName,
@@ -45,6 +49,9 @@ export default async function handler(req, res) {
       primary_changed
     );
 
+    console.log("uploadSnapshot (5) ", branchName, image.file, status);
+
+    console.log("uploadSnapshot finished ", branchName, image.file);
     res.status(200).json(snapshotResponse);
   } catch (e) {
     console.error("uploadSnapshot error", e);

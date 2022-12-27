@@ -1,58 +1,90 @@
+import {
+  PostgrestResponse,
+  PostgrestSingleResponse,
+} from "@supabase/supabase-js";
 import createClient from "./initServerSupabase";
 const { createHash } = require("crypto");
 
 const supabase = createClient();
 
-export async function getProjectIdFromActionId(actionId) {
-  const actionRecord = await supabase
-    .from("Actions")
-    .select("*")
-    .eq("id", actionId);
-  console.log(actionRecord);
-  const projectId = actionRecord.data[0].project_id;
-  return projectId;
-}
+export type Project = {
+  id: string;
+  repo: string;
+  organization: string;
+  created_at: string;
+  primary_branch: string;
+};
 
-export async function getSnapshotFromBranch(image, projectId, branchName) {
-  const { branch } = await getBranchFromProject(projectId, branchName);
+export type Branch = {
+  id: string;
+  name: string;
+  project_id: string;
+  pr_url?: string;
+  pr_title?: string;
+  created_at: string;
+};
 
-  if (!branch) {
-    return { error: "Branch not found" };
+export type Action = {
+  id: string;
+  branch_id: string;
+  created_at: string;
+  run_id: string;
+  head_sha: string;
+  actor: string;
+};
+
+export type Snapshot = {
+  id: string;
+  sha: string;
+  action_id: string;
+  path: string;
+  file: string;
+  status: string;
+  action_changed: boolean;
+  primary_changed: boolean;
+  created_at: string;
+};
+
+type ResponseError = {
+  error: string;
+  data: null;
+};
+
+const createError = (error: string): ResponseError => ({ error, data: null });
+
+export async function getSnapshotFromBranch(
+  image: { file: string; content: string },
+  projectId: string,
+  branchName: string
+): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
+  const branch = await getBranchFromProject(projectId, branchName);
+
+  if (branch.error) {
+    return createError("Branch not found");
   }
 
-  const response = await supabase
+  return supabase
     .from("Snapshots")
     .select("*, Actions(branch_id)")
     .eq("file", image.file)
-    .eq("Actions.branch_id", branch.id)
-    .limit(1);
-
-  if (response.error) {
-    console.log("getSnapshotFromBranch error", response.error);
-    return { error: response.error };
-  }
-
-  return { snapshot: response.data?.[0] };
+    .eq("Actions.branch_id", branch.data.id)
+    .single();
 }
 
-export async function getSnapshotsFromBranch(projectId, branchName) {
-  const { branch } = await getBranchFromProject(projectId, branchName);
+export async function getSnapshotsFromBranch(
+  projectId,
+  branchName
+): Promise<ResponseError | PostgrestResponse<Snapshot>> {
+  const branch = await getBranchFromProject(projectId, branchName);
 
-  if (!branch) {
-    return { error: "Branch not found" };
+  if (branch.error) {
+    return createError("Branch not found");
   }
 
-  const response = await supabase
+  return supabase
     .from("Snapshots")
     .select("*, Actions(branch_id)")
-    .eq("Actions.branch_id", branch.id);
-
-  if (response.error) {
-    console.log("getSnapshotFromBranch error", response.error);
-    return { error: response.error };
-  }
-
-  return { snapshots: response.data };
+    .eq("Actions.branch_id", branch.data.id);
 }
 
 export async function insertSnapshot(
@@ -62,80 +94,80 @@ export async function insertSnapshot(
   status,
   primary_changed,
   action_changed = false
-) {
-  const { branch } = await getBranchFromProject(projectId, branchName);
-  const { action } = await getAction(branch.id);
+): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
+  const branch = await getBranchFromProject(projectId, branchName);
+  if (branch.error) {
+    return createError("Branch not found");
+  }
+  const action = await getActionFromBranch(branch.data.id);
+  if (action.error) {
+    return createError("Action not found");
+  }
+
   const sha = createHash("sha256").update(image.content).digest("hex");
 
-  return supabase.from("Snapshots").insert({
-    sha,
-    action_id: action.id,
-    path: `${projectId}/${sha}.png`,
-    file: image.file,
-    status,
-    action_changed,
-    primary_changed,
-  });
+  return supabase
+    .from("Snapshots")
+    .insert({
+      sha,
+      action_id: action.data.id,
+      path: `${projectId}/${sha}.png`,
+      file: image.file,
+      status,
+      action_changed,
+      primary_changed,
+    })
+    .single();
 }
 
-export async function getProject(projectId) {
-  const projectResponse = await supabase
+export async function getProject(
+  projectId
+): Promise<PostgrestSingleResponse<Project>> {
+  return supabase
     .from("Projects")
     .select("*")
     .eq("id", projectId)
     .order("created_at", { ascending: false })
-    .limit(1);
-
-  if (projectResponse.error) {
-    console.log("getProject error", projectResponse.error);
-    return { error: projectResponse.error };
-  }
-
-  return { project: projectResponse.data[0] };
+    .single();
 }
 
-export async function getProjectFromRepo(repository, organization) {
-  const projectResponse = await supabase
+export async function getProjectFromRepo(
+  repository: string,
+  organization: string
+): Promise<PostgrestSingleResponse<Project>> {
+  return supabase
     .from("Projects")
     .select("*")
     .eq("organization", organization)
     .eq("repository", repository)
-    .limit(1);
-
-  if (projectResponse.error) {
-    console.log("error", projectResponse.error);
-    return { error: projectResponse.error };
-  }
-
-  return projectResponse.data[0];
+    .single();
 }
 
-export async function getBranchFromProject(projectId, branch) {
-  const res = await supabase
+export async function getBranchFromProject(
+  projectId: string,
+  branch: string
+): Promise<PostgrestSingleResponse<Branch>> {
+  return supabase
     .from("Branches")
     .select("*")
     .eq("project_id", projectId)
     .eq("name", branch)
-    .limit(1);
-
-  if (res.error) {
-    return { error: res.error };
-  }
-
-  return { branch: res.data[0] };
+    .single();
 }
 
-export async function getAction(branch_id) {
-  const resp = await supabase
+export async function getActionFromBranch(
+  branch_id: string
+): Promise<PostgrestSingleResponse<Action>> {
+  return supabase
     .from("Actions")
     .select("*")
     .eq("branch_id", branch_id)
     .order("created_at", { ascending: false })
-    .limit(1);
+    .single();
+}
 
-  if (resp.error) {
-    return { error: resp.error };
-  }
-
-  return { action: resp.data[0] };
+export async function getAction(
+  actionId: string
+): Promise<PostgrestSingleResponse<Action>> {
+  return supabase.from("Actions").select("*").eq("id", actionId).single();
 }

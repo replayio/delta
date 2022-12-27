@@ -8,21 +8,24 @@ import {
 import { downloadSnapshot, uploadSnapshot } from "../../lib/supabase-storage";
 
 async function diffWithPrimaryBranch(image, projectId) {
-  const { project } = await getProject(projectId);
+  const project = await getProject(projectId);
 
-  const { snapshot } = await getSnapshotFromBranch(
+  const snapshot = await getSnapshotFromBranch(
     image,
     projectId,
-    project.primary_branch
+    project.data.primary_branch
   );
 
-  if (!snapshot) {
+  if (snapshot.error) {
     return false;
   }
 
-  const { data: primarySnapshot } = await downloadSnapshot(snapshot.path);
-  const { changed } = diffBase64Images(image.content, primarySnapshot);
+  const primarySnapshot = await downloadSnapshot(snapshot.data.path);
+  if (primarySnapshot.error) {
+    return false;
+  }
 
+  const { changed } = diffBase64Images(image.content, primarySnapshot.data);
   return changed;
 }
 
@@ -30,11 +33,8 @@ export default async function handler(req, res) {
   const { image, projectId, branch: branchName } = req.body;
 
   try {
-    const { snapshot, error: snapshotError } = await uploadSnapshot(
-      image,
-      projectId
-    );
-    const status = snapshot?.path ? "Uploaded" : snapshotError;
+    const snapshot = await uploadSnapshot(image, projectId);
+    const status: string = snapshot.error ? snapshot.error : "Uploaded";
     const primary_changed = await diffWithPrimaryBranch(image, projectId);
 
     const snapshotResponse = await insertSnapshot(
@@ -45,7 +45,6 @@ export default async function handler(req, res) {
       primary_changed
     );
 
-    console.log(snapshotResponse);
     res.status(200).json(snapshotResponse);
   } catch (e) {
     console.error("uploadSnapshot error", e);

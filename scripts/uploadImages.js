@@ -54,7 +54,7 @@ async function uploadImage(file, projectId, branch) {
 }
 
 (async () => {
-  const allFiles = getFiles("./playwright/visuals").slice(0, 10);
+  const allFiles = getFiles("./playwright/visuals").slice(10, 20);
   const projectId = "dcb5df26-b418-4fe2-9bdf-5a838e604ec4";
   const branch = "test";
 
@@ -65,7 +65,7 @@ async function uploadImage(file, projectId, branch) {
 
     console.log(
       JSON.stringify(
-        res.map((r) => r?.data[0]),
+        res.map((r) => r?.data),
         null,
         2
       )

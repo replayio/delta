@@ -7,12 +7,11 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "missing branch or project_id" });
   }
 
-  const { snapshots } = await getSnapshotsFromBranch(project_id, branch);
+  const snapshots = await getSnapshotsFromBranch(project_id, branch);
 
   if (snapshots.error) {
-    console.log("getSnapshotsForBranch error", snapshots.error);
     res.status(500).json({ error: snapshots.error });
   }
 
-  res.status(200).json({ snapshots });
+  res.status(200).json(snapshots.data);
 }

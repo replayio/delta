@@ -9,7 +9,7 @@ const supabase = createClient();
 
 export type Project = {
   id: string;
-  repo: string;
+  repository: string;
   organization: string;
   created_at: string;
   primary_branch: string;
@@ -21,7 +21,9 @@ export type Branch = {
   project_id: string;
   pr_url?: string;
   pr_title?: string;
+  pr_number?: string;
   created_at: string;
+  status: string;
 };
 
 export type Action = {

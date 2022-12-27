@@ -12,7 +12,7 @@ async function testEvent(req) {
       headers: {
         "Content-Type": "application/json",
         "User-Agent": "GitHub-Hookshot/2179efe",
-        "X-GitHub-Event": "workflow_job",
+        "X-GitHub-Event": "pull_request",
         "X-GitHub-Delivery": "f0799a30-8227-11ed-86fa-53c4b61f18df",
         "X-GitHub-Hook-ID": "393511247",
         "X-GitHub-Hook-Installation-Target-ID": "274973",
@@ -21,21 +21,18 @@ async function testEvent(req) {
       body: JSON.stringify(req),
     });
 
-    // const json = await body.json();
-    if (res.status !== 200) {
-      const body = await res.text();
-      console.log(res.status, body);
-      return body;
+    if (res.status > 299) {
+      return res.text();
     }
-    const body = await res.json();
-    return body;
+
+    return res.json();
   } catch (e) {
     console.error("error", e);
   }
 }
 
 (async () => {
-  const workflowPayload = fixtures.queued_workflow;
+  const workflowPayload = fixtures["pull_request.opened2"];
   const res = await testEvent({ payload: workflowPayload });
   console.log(res);
 })();

@@ -30,11 +30,11 @@ Table relationships
 
 1. PR Opens
 
-- We create a branch
+- [ ] We create a branch
 
 2. PR Closes
 
-- We mark the branch closed
+- [ ] We mark the branch closed
 
 3. Action is run on main
 

@@ -1,6 +1,8 @@
 import createClient from "../../lib/initServerSupabase";
 import { createCheck, updateCheck } from "../../lib/github";
 
+import { getProjectFromRepo, getBranchFromProject } from "../../lib/supabase";
+
 const supabase = createClient();
 
 export default async function handler(req, res) {
@@ -11,23 +13,28 @@ export default async function handler(req, res) {
     payload.organization.login
   );
 
-  if (!project) {
+  console.log("project", project);
+
+  const skip = (reason) => {
+    console.log(
+      `github-event ${eventType} skip project:${payload.repository.name}`,
+      reason
+    );
+    res.status(500).json({ skip: reason });
+  };
+
+  if (project.error) {
     return skip(
       `no project found for ${payload.repository.name} and ${payload.organization.login}`
     );
   }
 
-  const response = (status, data, error) => {
+  const response = ({ data, status, error }) => {
     console.log(
-      `github-event ${eventType} status:${status} project:${project.id}`,
-      json
+      `github-event ${eventType} status:${status} project:${project.data.id}`,
+      data
     );
-    res.status(status).json(status == 200 ? data : error);
-  };
-
-  const skip = (reason) => {
-    console.log(`github-event ${eventType} skip project:${project.id}`, reason);
-    res.status(500).json({ skip: reason });
+    res.status(status).json([200, 201].includes(status) ? data : error);
   };
 
   console.log(`github-event ${eventType} start`, payload);
@@ -36,20 +43,23 @@ export default async function handler(req, res) {
     case "pull_request": {
       if (payload.action === "opened") {
         return response(
-          await supabase.from("Branches").upsert({
-            name: payload.pull_request.head.ref,
-            project_id: project.id,
-            pr_url: payload.pull_request.url,
-            pr_title: payload.pull_request.title,
-            pr_number: payload.number,
-            status: "open",
-          })
+          await supabase
+            .from("Branches")
+            .upsert({
+              name: payload.pull_request.head.ref,
+              project_id: project.data.id,
+              pr_url: payload.pull_request.url,
+              pr_title: payload.pull_request.title,
+              pr_number: payload.number,
+              status: "open",
+            })
+            .single()
         );
       } else if (payload.action === "closed") {
         return response(
           await supabase.from("Branches").update({
             name: payload.pull_request.head.ref,
-            project_id: project.id,
+            project_id: project.data.id,
             status: "closed",
           })
         );
@@ -61,15 +71,15 @@ export default async function handler(req, res) {
         if (
           !payload.workflow_job.workflow_name.startsWith("Playwright Snapshot")
         ) {
-          return skip(`workflow is ${workflow_name}`);
+          return skip(`workflow is ${payload.workflow_job.workflow_name}`);
         }
 
-        const { branch } = await getBranchFromProject(
-          project.id,
+        const branch = await getBranchFromProject(
+          project.data.id,
           payload.workflow_job.head_branch
         );
 
-        if (!branch) {
+        if (branch.error) {
           return skip(`branch ${payload.workflow_job.head_branch} not found`);
         }
 
@@ -77,7 +87,7 @@ export default async function handler(req, res) {
           payload.organization.login,
           payload.repository.name,
           {
-            head_sha,
+            head_sha: payload.workflow_job.head_sha,
             title: "Tests are running",
             status: "in_progress",
             conclusion: "neutral",
@@ -86,15 +96,16 @@ export default async function handler(req, res) {
           }
         );
 
-        const action = await supabase.from("Actions").insert({
-          project_id: project.id,
-          run_id: payload.workflow_job.run_id,
-          branch_id: branch.id,
-          head_sha: payload.workflow_job.head_sha,
-          actor: payload.sender.login,
-          branch,
-          metadata,
-        });
+        const action = await supabase
+          .from("Actions")
+          .insert({
+            project_id: project.data.id,
+            run_id: payload.workflow_job.run_id,
+            branch_id: branch.data.id,
+            head_sha: payload.workflow_job.head_sha,
+            actor: payload.sender.login,
+          })
+          .single();
 
         return response({ status: 200, data: { check, action } });
       } else if (payload.action === "completed") {

@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     );
   }
 
-  const response = ({ data, status, error }) => {
+  const response = ({ data, status, error = null }) => {
     console.log(
       `github-event ${eventType} status:${status} project:${project.data.id}`,
       data

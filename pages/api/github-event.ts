@@ -8,7 +8,7 @@ const supabase = createClient();
 export default async function handler(req, res) {
   const { payload } = req.body;
   const eventType = req.headers["x-github-event"];
-  console.log(`github-event ${eventType} start`, payload);
+  console.log(`github-event ${eventType} start`, req.body, payload);
 
   const project = await getProjectFromRepo(
     payload.repository.name,

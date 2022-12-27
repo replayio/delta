@@ -8,11 +8,12 @@ const supabase = createClient();
 export default async function handler(req, res) {
   const { payload } = req.body;
   const eventType = req.headers["x-github-event"];
+  console.log(`github-event ${eventType} start`, payload);
+
   const project = await getProjectFromRepo(
     payload.repository.name,
     payload.organization.login
   );
-
   console.log("project", project);
 
   const skip = (reason) => {
@@ -36,8 +37,6 @@ export default async function handler(req, res) {
     );
     res.status(status).json([200, 201].includes(status) ? data : error);
   };
-
-  console.log(`github-event ${eventType} start`, payload);
 
   switch (eventType) {
     case "pull_request": {

@@ -23,6 +23,7 @@ export type Branch = {
   pr_title?: string;
   pr_number?: string;
   created_at: string;
+  check_id: string;
   status: string;
 };
 
@@ -154,6 +155,13 @@ export async function getBranchFromProject(
     .select("*")
     .eq("project_id", projectId)
     .eq("name", branch)
+    .single();
+}
+
+export async function updateBranch(branch: Branch, data: Partial<Branch>) {
+  return supabase
+    .from("Branches")
+    .update({ id: branch.id, ...data })
     .single();
 }
 

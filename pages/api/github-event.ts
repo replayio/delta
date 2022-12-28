@@ -1,7 +1,11 @@
 import createClient from "../../lib/initServerSupabase";
 import { createCheck, updateCheck } from "../../lib/github";
 
-import { getProjectFromRepo, getBranchFromProject } from "../../lib/supabase";
+import {
+  getProjectFromRepo,
+  getBranchFromProject,
+  updateBranch,
+} from "../../lib/supabase";
 
 const supabase = createClient();
 
@@ -123,6 +127,15 @@ export default async function handler(req, res) {
           }
         );
 
+        const checkId = check.data.id;
+        log("created check", checkId, check);
+
+        const updatedBranch = updateBranch(branch.data, {
+          check_id: checkId,
+        });
+
+        log("updated branch", updatedBranch);
+
         log("inserting check", {
           project_id: project.data.id,
           run_id: payload.workflow_job.run_id,
@@ -143,6 +156,15 @@ export default async function handler(req, res) {
 
         return response({ status: 200, data: { check, action } });
       } else if (payload.action === "completed") {
+        const branch = await getBranchFromProject(
+          project.data.id,
+          payload.workflow_job.head_branch
+        );
+
+        if (branch.error) {
+          return skip(`branch ${payload.workflow_job.head_branch} not found`);
+        }
+
         // TODO: check to see if the branch is different or not
         const isDifferent = false;
 
@@ -150,6 +172,7 @@ export default async function handler(req, res) {
           await updateCheck(
             payload.organization.login,
             payload.repository.name,
+            branch.data.check_id,
             {
               head_sha: payload.workflow_job.head_sha,
               title: "1 of 15 snapshots are different",

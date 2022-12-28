@@ -8,7 +8,7 @@ const supabase = createClient();
 export default async function handler(req, res) {
   const payload = req.body;
   const eventType = req.headers["x-github-event"];
-  console.log(`github-event ${eventType} start`);
+  let i = 1;
 
   const project = await getProjectFromRepo(
     payload.repository.name,
@@ -17,25 +17,34 @@ export default async function handler(req, res) {
 
   const skip = (reason) => {
     console.log(
-      `github-event ${eventType} skip project:${payload.repository.name}`,
+      `github-event ${eventType}.${payload.action} skip project:${payload.repository.name}`,
       reason
     );
     res.status(500).json({ skip: reason });
   };
+
+  const response = ({ data, status, error = null }) => {
+    console.log(
+      `github-event ${eventType}.${payload.action} status:${status} project:${project.data.id}`,
+      data
+    );
+    res.status(status).json([200, 201].includes(status) ? data : error);
+  };
+
+  const log = (...args) => {
+    console.log(
+      `github-event ${eventType}.${payload.action} (${i++})`,
+      ...args
+    );
+  };
+
+  log(`start`);
 
   if (project.error) {
     return skip(
       `no project found for ${payload.repository.name} and ${payload.organization.login}`
     );
   }
-
-  const response = ({ data, status, error = null }) => {
-    console.log(
-      `github-event ${eventType} status:${status} project:${project.data.id}`,
-      data
-    );
-    res.status(status).json([200, 201].includes(status) ? data : error);
-  };
 
   switch (eventType) {
     case "pull_request": {
@@ -66,18 +75,15 @@ export default async function handler(req, res) {
 
     case "workflow_job": {
       if (payload.action === "queued") {
-        console.log(
-          `github-event ${eventType} (2)`,
-          payload.workflow_job.workflow_name
-        );
+        log(payload.workflow_job.workflow_name);
         if (
           !payload.workflow_job.workflow_name.startsWith("Playwright Snapshot")
         ) {
           return skip(`workflow is ${payload.workflow_job.workflow_name}`);
         }
 
-        console.log(
-          `github-event ${eventType} (3)`,
+        log(
+          "getting branch",
           project.data.id,
           payload.workflow_job.head_branch
         );
@@ -91,8 +97,8 @@ export default async function handler(req, res) {
           return skip(`branch ${payload.workflow_job.head_branch} not found`);
         }
 
-        console.log(
-          `github-event ${eventType} (4)`,
+        log(
+          "creating check",
           payload.organization.login,
           payload.repository.name,
           {
@@ -117,7 +123,7 @@ export default async function handler(req, res) {
           }
         );
 
-        console.log(`github-event ${eventType} (5)`, {
+        log("inserting check", {
           project_id: project.data.id,
           run_id: payload.workflow_job.run_id,
           branch_id: branch.data.id,
@@ -128,7 +134,6 @@ export default async function handler(req, res) {
         const action = await supabase
           .from("Actions")
           .insert({
-            project_id: project.data.id,
             run_id: payload.workflow_job.run_id,
             branch_id: branch.data.id,
             head_sha: payload.workflow_job.head_sha,

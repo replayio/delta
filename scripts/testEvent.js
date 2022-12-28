@@ -3,7 +3,7 @@ const fetch = require("node-fetch");
 const fixtures = require("../test/fixtures/github");
 dotenv.config({ path: "./.env.local" });
 
-async function testEvent(req) {
+async function testEvent(eventType, req) {
   let res;
 
   try {
@@ -12,7 +12,7 @@ async function testEvent(req) {
       headers: {
         "Content-Type": "application/json",
         "User-Agent": "GitHub-Hookshot/2179efe",
-        "X-GitHub-Event": "pull_request",
+        "X-GitHub-Event": eventType,
         "X-GitHub-Delivery": "f0799a30-8227-11ed-86fa-53c4b61f18df",
         "X-GitHub-Hook-ID": "393511247",
         "X-GitHub-Hook-Installation-Target-ID": "274973",
@@ -32,7 +32,9 @@ async function testEvent(req) {
 }
 
 (async () => {
-  const workflowPayload = fixtures["pull_request.opened2"];
-  const res = await testEvent(workflowPayload);
+  const action = "workflow_job.queued";
+  const payload = fixtures[action];
+  const eventType = action.split(".")[0];
+  const res = await testEvent(eventType, payload);
   console.log(res);
 })();

@@ -20,7 +20,9 @@
     "**/*.ts",
     "**/*.tsx",
     "pages/**/*.ts",
-    "pages/api/github-event.ts"
+    "pages/api/github-event.ts",
+    "pages/project/[short].jsx",
+    "pages/project/[short].jsx"
   ],
   "exclude": ["node_modules"]
 }

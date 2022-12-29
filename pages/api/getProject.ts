@@ -1,8 +1,10 @@
-import { getProject } from "../../lib/supabase";
+import { getProject, getProjectByShort } from "../../lib/supabase";
 
 export default async function handler(req, res) {
-  const { projectId } = req.query;
-  const project = await getProject(projectId);
+  const { projectId, projectShort } = req.query;
+  const project = await (projectId
+    ? getProject(projectId)
+    : getProjectByShort(projectShort));
 
   if (project.error) {
     res.status(500).json(project.error);

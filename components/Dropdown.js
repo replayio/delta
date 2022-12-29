@@ -7,7 +7,7 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-export default function Dropdown({ selected, options, onChange }) {
+export default function Dropdown({ selected, options, onChange, project }) {
   return (
     <Menu as="div" className="relative inline-block text-left">
       <div>
@@ -34,7 +34,7 @@ export default function Dropdown({ selected, options, onChange }) {
             <Menu.Item key={option}>
               {({ active }) => (
                 <a
-                  href={`/?branch=${option}`}
+                  href={`/project/${project.short}/?branch=${option}`}
                   //   onClick={() => onChange(option)}
                   className={classNames(
                     active ? "bg-gray-100 text-gray-900" : "text-gray-700",

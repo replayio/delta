@@ -154,6 +154,26 @@ export async function getProject(
     .single();
 }
 
+export async function getProjectByShort(
+  projectShort: string
+): Promise<PostgrestSingleResponse<Project>> {
+  return supabase
+    .from("Projects")
+    .select("*")
+    .eq("short", projectShort)
+    .single();
+}
+
+export async function getPublicProjects(): Promise<
+  PostgrestResponse<Project[]>
+> {
+  return supabase
+    .from("Projects")
+    .select("*")
+    .eq("public", true)
+    .order("created_at", { ascending: false });
+}
+
 export async function getProjectFromRepo(
   repository: string,
   organization: string

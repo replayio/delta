@@ -101,66 +101,73 @@ export default async function handler(req, res) {
           return skip(`branch ${payload.workflow_job.head_branch} not found`);
         }
 
-        log(
-          "creating check",
-          payload.organization.login,
-          payload.repository.name,
-          {
-            head_sha: payload.workflow_job.head_sha,
-            title: "Tests are running",
-            status: "in_progress",
-            conclusion: "neutral",
-            text: "",
-            summary: "",
-          }
-        );
-        const check = await createCheck(
-          payload.organization.login,
-          payload.repository.name,
-          {
-            head_sha: payload.workflow_job.head_sha,
-            title: "Tests are running",
-            status: "in_progress",
-            conclusion: "neutral",
-            text: "",
-            summary: "",
-          }
-        );
+        let checkId = branch.data.check_id;
+        let newCheck;
+        if (!checkId) {
+          log(
+            "creating check",
+            payload.organization.login,
+            payload.repository.name,
+            {
+              head_sha: payload.workflow_job.head_sha,
+              title: "Tests are running",
+              status: "in_progress",
+              conclusion: "neutral",
+              text: "",
+              summary: "",
+            }
+          );
+          const check = await createCheck(
+            payload.organization.login,
+            payload.repository.name,
+            {
+              head_sha: payload.workflow_job.head_sha,
+              title: "Tests are running",
+              status: "in_progress",
+              conclusion: "neutral",
+              text: "",
+              summary: "",
+            }
+          );
+          log(
+            "created check",
+            checkId,
+            check.status == 201 ? check.data : check
+          );
+          checkId = check.data.id;
+          newCheck = check.data;
 
-        const checkId = check.data.id;
-        log("created check", checkId, check.status == 201 ? check.data : check);
+          const updatedBranch = await updateBranch(branch.data, {
+            check_id: checkId,
+          });
 
-        const updatedBranch = await updateBranch(branch.data, {
-          check_id: checkId,
-        });
+          log(
+            "updated branch",
+            updatedBranch.status == 201
+              ? updatedBranch.data
+              : updatedBranch.error
+          );
+        }
 
-        log(
-          "updated branch",
-          updatedBranch.status == 201 ? updatedBranch.data : updatedBranch.error
-        );
-
-        log("inserting check", {
-          project_id: project.data.id,
+        const insertActionArgs = {
           run_id: payload.workflow_job.run_id,
           branch_id: branch.data.id,
           head_sha: payload.workflow_job.head_sha,
           actor: payload.sender.login,
-        });
+        };
+
+        log("insert action", insertActionArgs);
 
         const action = await supabase
           .from("Actions")
-          .insert({
-            run_id: payload.workflow_job.run_id,
-            branch_id: branch.data.id,
-            head_sha: payload.workflow_job.head_sha,
-            actor: payload.sender.login,
-          })
+          .insert(insertActionArgs)
           .single();
 
         return response({
           status: 200,
           data: {
-            check: check.status == 201 ? check.data : check,
+            checkId,
+            newCheck,
             action: action.status == 201 ? action.data : action.error,
           },
         });

@@ -7,10 +7,11 @@ function SnapshotImage({ snapshot }) {
     encodeURI(`/api/downloadSnapshot?path=${snapshot?.path}`),
     fetcher
   );
+  console.log(`>>> snapshot`, data, error);
 
   if (isLoading) return <div>...</div>;
 
-  return <img src={`data:image/png;base64,${data?.image}`} />;
+  return <img src={`data:image/png;base64,${data}`} />;
 }
 
 export function Snapshot({ snapshot }) {

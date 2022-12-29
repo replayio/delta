@@ -30,8 +30,8 @@ export function useFetchSnapshots(branch, projectQuery) {
   console.log({ data, mainData });
   const snapshots = useMemo(() => {
     if (!data || !mainData) return null;
-    return data.snapshots.map((snapshot) => {
-      const mainSnapshot = mainData.snapshots.find(
+    return data.map((snapshot) => {
+      const mainSnapshot = mainData.find(
         (mainSnapshot) => mainSnapshot.file === snapshot.file
       );
 

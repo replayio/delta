@@ -75,8 +75,8 @@ export async function getSnapshotFromBranch(
 }
 
 export async function getSnapshotsFromBranch(
-  projectId,
-  branchName
+  projectId: string,
+  branchName: string
 ): Promise<ResponseError | PostgrestResponse<Snapshot>> {
   const branch = await getBranchFromProject(projectId, branchName);
 
@@ -84,10 +84,30 @@ export async function getSnapshotsFromBranch(
     return createError("Branch not found");
   }
 
-  return supabase
-    .from("Snapshots")
-    .select("*, Actions(branch_id)")
-    .eq("Actions.branch_id", branch.data.id);
+  const actions = await getActionsFromBranch(branch.data.id);
+
+  if (actions.error) {
+    return createError("Action not found");
+  }
+
+  for (const action of actions.data) {
+    console.log(
+      `getSnapshotsFromBranch(${projectId}, ${branchName})`,
+      action.id
+    );
+
+    const snapshots = await supabase
+      .from("Snapshots")
+      .select("*")
+      .eq("action_id", action.id);
+
+    if (snapshots.error) {
+      continue;
+    }
+    if (snapshots.data.length > 0) {
+      return snapshots;
+    }
+  }
 }
 
 export async function insertSnapshot(
@@ -174,6 +194,16 @@ export async function getActionFromBranch(
     .eq("branch_id", branch_id)
     .order("created_at", { ascending: false })
     .single();
+}
+
+export async function getActionsFromBranch(
+  branch_id: string
+): Promise<PostgrestResponse<Action>> {
+  return supabase
+    .from("Actions")
+    .select("*")
+    .eq("branch_id", branch_id)
+    .order("created_at", { ascending: false });
 }
 
 export async function getAction(

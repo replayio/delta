@@ -6,7 +6,7 @@ import { SnapshotRow } from "../components/SnapshotRow";
 import { useFetchSnapshots } from "../hooks/useFetchSnapshots";
 import { getSnapshotStatus } from "../utils/snapshots";
 import useSWR from "swr";
-import uniq from "lodash/uniq";
+import uniqBy from "lodash/uniqBy";
 import sortBy from "lodash/sortBy";
 import Dropdown from "../components/Dropdown";
 import Image from "next/image";
@@ -17,7 +17,6 @@ const projectId = "dcb5df26-b418-4fe2-9bdf-5a838e604ec4";
 
 export default function Home() {
   const [selectedSnapshotIndex, setSelectedSnapshot] = useState(0);
-  const [theme, setTheme] = useState("light");
   const [mode, setMode] = useState();
   const router = useRouter();
   const [branch, setBranch] = useState("main");
@@ -47,9 +46,9 @@ export default function Home() {
     () =>
       actionsQuery.data &&
       sortBy(
-        uniq(
-          actionsQuery.data.map((action) => action.branch)
-          // (b) => b
+        uniqBy(
+          actionsQuery.data.map((action) => action.Branches),
+          (b) => b.name
         )
       ),
     [actionsQuery.data]
@@ -87,7 +86,7 @@ export default function Home() {
   console.log({ branches });
 
   return (
-    <div className={`${theme == "dark" ? "bg-slate-900" : "bg-white"} h-full`}>
+    <div className={` h-full`}>
       <div className="flex text-black justify-between border-b-2 mb-1 border-b-slate-100 ">
         <div className="flex items-center py-2 pl-4">
           <div style={{ transform: "rotate(-90deg)" }}>
@@ -98,12 +97,9 @@ export default function Home() {
           <Dropdown
             onChange={(val) => setBranch(val)}
             selected={branch}
-            options={branches}
+            options={branches.map((b) => b.name)}
           />
         </div>
-        {/* <div onClick={() => setTheme(theme == "dark" ? "light" : "dark")}>
-          {theme == "dark" ? "dark" : "light"}
-        </div> */}
       </div>
       <div className="flex h-full overflow-hidden pl-4">
         <div className="flex flex-col">

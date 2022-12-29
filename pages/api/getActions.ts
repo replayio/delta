@@ -7,7 +7,7 @@ export default async function handler(req, res) {
 
   const { data, error } = await supabase
     .from("Actions")
-    .select("*, Branches(project_id)")
+    .select("*, Branches(project_id, name, status)")
     .eq("Branches.project_id", projectId)
     .order("created_at", { ascending: false })
     .limit(1000);

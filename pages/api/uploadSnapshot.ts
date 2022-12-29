@@ -35,6 +35,7 @@ export default async function handler(req, res) {
   try {
     const snapshot = await uploadSnapshot(image, projectId);
     console.log("uploadSnapshot (2) ", branchName, image.file);
+
     const status: string = snapshot.error ? snapshot.error : "Uploaded";
     console.log("uploadSnapshot (3) ", branchName, image.file, status);
 

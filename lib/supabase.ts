@@ -120,11 +120,13 @@ export async function insertSnapshot(
 ): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
   const branch = await getBranchFromProject(projectId, branchName);
   if (branch.error) {
-    return createError("Branch not found");
+    return createError(`Branch not found for ${branchName}`);
   }
   const action = await getActionFromBranch(branch.data.id);
   if (action.error) {
-    return createError("Action not found");
+    return createError(
+      `Action not found for ${branchName} and ${branch.data.id}`
+    );
   }
 
   const sha = createHash("sha256").update(image.content).digest("hex");

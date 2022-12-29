@@ -184,6 +184,11 @@ export default async function handler(req, res) {
             } not found: ${JSON.stringify(branch.error)}`
           );
         }
+
+        if (!branch.data.check_id) {
+          return skip(`Branch ${branch.data.name} is missing a check_id`);
+        }
+
         // TODO: check to see if the branch is different or not
         const isDifferent = false;
 
@@ -191,21 +196,26 @@ export default async function handler(req, res) {
           head_sha: payload.workflow_job.head_sha,
           title: "1 of 15 snapshots are different",
           summary: "",
-          conclusion: isDifferent ? "failed" : "completed",
+          conclusion: isDifferent ? "failure" : "success",
           status: "completed",
           text: "",
         };
 
         log("updating check", branch.data.check_id, updateCheckArgs);
-
-        return response(
-          await updateCheck(
-            payload.organization.login,
-            payload.repository.name,
-            branch.data.check_id,
-            updateCheckArgs
-          )
+        const updatedCheck = await updateCheck(
+          payload.organization.login,
+          payload.repository.name,
+          branch.data.check_id,
+          updateCheckArgs
         );
+
+        return response({
+          status: 200,
+          data: {
+            check:
+              updatedCheck.status == 200 ? updatedCheck.data : updatedCheck,
+          },
+        });
       }
     }
   }

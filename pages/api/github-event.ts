@@ -171,25 +171,32 @@ export default async function handler(req, res) {
         );
 
         if (branch.error) {
-          return skip(`branch ${payload.workflow_job.head_branch} not found`);
+          return skip(
+            `branch ${
+              payload.workflow_job.head_branch
+            } not found: ${JSON.stringify(branch.error)}`
+          );
         }
-
         // TODO: check to see if the branch is different or not
         const isDifferent = false;
+
+        const updateCheckArgs = {
+          head_sha: payload.workflow_job.head_sha,
+          title: "1 of 15 snapshots are different",
+          summary: "",
+          conclusion: isDifferent ? "failed" : "completed",
+          status: "completed",
+          text: "",
+        };
+
+        log("updating check", branch.data.check_id, updateCheckArgs);
 
         return response(
           await updateCheck(
             payload.organization.login,
             payload.repository.name,
             branch.data.check_id,
-            {
-              head_sha: payload.workflow_job.head_sha,
-              title: "1 of 15 snapshots are different",
-              summary: "",
-              conclusion: isDifferent ? "failed" : "completed",
-              status: "completed",
-              text: "",
-            }
+            updateCheckArgs
           )
         );
       }

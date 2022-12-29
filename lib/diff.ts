@@ -31,5 +31,8 @@ export function diffImages(img1, img2) {
 }
 
 export function diffBase64Images(img1, img2) {
+  if (!img1 || !img2) {
+    return { changed: false };
+  }
   return diffImages(Buffer.from(img1, "base64"), Buffer.from(img2, "base64"));
 }

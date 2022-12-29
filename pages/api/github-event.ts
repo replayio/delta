@@ -165,6 +165,13 @@ export default async function handler(req, res) {
           },
         });
       } else if (payload.action === "completed") {
+        log(payload.workflow_job.workflow_name);
+        if (
+          !payload.workflow_job.workflow_name.startsWith("Playwright Snapshot")
+        ) {
+          return skip(`workflow is ${payload.workflow_job.workflow_name}`);
+        }
+
         const branch = await getBranchFromProject(
           project.data.id,
           payload.workflow_job.head_branch

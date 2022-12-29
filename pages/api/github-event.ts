@@ -130,11 +130,14 @@ export default async function handler(req, res) {
         const checkId = check.data.id;
         log("created check", checkId, check);
 
-        const updatedBranch = updateBranch(branch.data, {
+        const updatedBranch = await updateBranch(branch.data, {
           check_id: checkId,
         });
 
-        log("updated branch", updatedBranch);
+        log(
+          "updated branch",
+          updatedBranch.status == 201 ? updatedBranch.data : updatedBranch.error
+        );
 
         log("inserting check", {
           project_id: project.data.id,

@@ -154,7 +154,13 @@ export default async function handler(req, res) {
           })
           .single();
 
-        return response({ status: 200, data: { check, action } });
+        return response({
+          status: 200,
+          data: {
+            check: check.status == 201 ? check.data : check,
+            action: action.status == 201 ? action.data : action.error,
+          },
+        });
       } else if (payload.action === "completed") {
         const branch = await getBranchFromProject(
           project.data.id,

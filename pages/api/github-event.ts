@@ -143,6 +143,7 @@ export default async function handler(req, res) {
 
           log(
             "updated branch",
+            updatedBranch.status == 201 ? "success" : "error",
             updatedBranch.status == 201
               ? updatedBranch.data
               : updatedBranch.error

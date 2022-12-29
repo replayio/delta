@@ -32,7 +32,7 @@ async function testEvent(eventType, req) {
 }
 
 (async () => {
-  const action = "workflow_job.completed";
+  const action = "workflow_job.queued";
   const payload = fixtures[action];
   const eventType = action.split(".")[0];
   const res = await testEvent(eventType, payload);

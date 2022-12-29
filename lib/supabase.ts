@@ -203,10 +203,7 @@ export async function getBranchFromProject(
 }
 
 export async function updateBranch(branch: Branch, data: Partial<Branch>) {
-  return supabase
-    .from("Branches")
-    .update({ id: branch.id, ...data })
-    .single();
+  return supabase.from("Branches").update(data).eq("id", branch.id).single();
 }
 
 export async function getActionFromBranch(

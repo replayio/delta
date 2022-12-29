@@ -125,7 +125,9 @@ export async function insertSnapshot(
   const action = await getActionFromBranch(branch.data.id);
   if (action.error) {
     return createError(
-      `Action not found for ${branchName} and ${branch.data.id}`
+      `Action not found for ${branchName} and ${
+        branch.data.id
+      }: ${JSON.stringify(action.error)}`
     );
   }
 
@@ -215,6 +217,7 @@ export async function getActionFromBranch(
     .select("*")
     .eq("branch_id", branch_id)
     .order("created_at", { ascending: false })
+    .limit(1)
     .single();
 }
 

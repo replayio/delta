@@ -71,6 +71,8 @@ export async function getSnapshotFromBranch(
     .select("*, Actions(branch_id)")
     .eq("file", image.file)
     .eq("Actions.branch_id", branch.data.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
     .single();
 }
 

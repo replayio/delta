@@ -71,6 +71,7 @@ export default async function handler(req, res) {
       branchName,
       projectId
     );
+
     console.log("uploadSnapshot (4) ", branchName, image.file);
 
     const snapshotResponse = await insertSnapshot(
@@ -85,7 +86,7 @@ export default async function handler(req, res) {
       "uploadSnapshot (5) ",
       branchName,
       image.file,
-      snapshotResponse
+      snapshotResponse.data || snapshot.error
     );
 
     console.log("uploadSnapshot finished ", branchName, image.file);

@@ -67,12 +67,29 @@ export default async function handler(req, res) {
             .single()
         );
       } else if (payload.action === "closed") {
+        const branch = await getBranchFromProject(
+          project.data.id,
+          payload.pull_request.head.ref
+        );
+
+        if (branch.error) {
+          return skip(
+            `branch ${
+              payload.pull_request.head.ref
+            } not found: ${JSON.stringify(branch.error)}`
+          );
+        }
+
         return response(
-          await supabase.from("Branches").update({
-            name: payload.pull_request.head.ref,
-            project_id: project.data.id,
-            status: "closed",
-          })
+          await supabase
+            .from("Branches")
+            .update({
+              name: payload.pull_request.head.ref,
+              project_id: project.data.id,
+              status: "closed",
+            })
+            .eq("id", branch.data.id)
+            .single()
         );
       }
     }

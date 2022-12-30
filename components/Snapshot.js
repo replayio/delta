@@ -12,7 +12,9 @@ export function Snapshot({ snapshot }) {
     error: mainError,
     isLoading: mainIsLoading,
   } = useSWR(
-    encodeURI(`/api/downloadSnapshot?path=${snapshot?.mainSnapshot?.path}`),
+    snapshot?.mainSnapshot?.path
+      ? encodeURI(`/api/downloadSnapshot?path=${snapshot?.mainSnapshot?.path}`)
+      : null,
     fetcher
   );
 
@@ -24,7 +26,16 @@ export function Snapshot({ snapshot }) {
       <div className="flex mt-4">
         <div className=" overflow-y-auto mr-2 flex items-center flex-col">
           <div>Before</div>
-          <img src={`data:image/png;base64,${mainData}`} />
+          {mainData ? (
+            <img src={`data:image/png;base64,${mainData}`} />
+          ) : (
+            <div
+              className="bg-gray-100 rounded-lg flex items-center justify-center text-gray-500"
+              style={{ width: "200px", height: "100px", overflow: "hidden" }}
+            >
+              Unavailable
+            </div>
+          )}
         </div>
         <div className=" overflow-y-auto flex items-center flex-col">
           <div>After</div>

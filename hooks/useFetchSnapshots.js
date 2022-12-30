@@ -9,7 +9,7 @@ export function useFetchSnapshots(branch, projectQuery) {
       ? null
       : `/api/getSnapshotsForBranch?branch=${branch}&project_id=${projectQuery.data.id}`
   );
-  console.log("selectedKey", selectedKey);
+
   const { data, error, isLoading } = useSWR(selectedKey, fetcher);
 
   const primaryBranch = projectQuery.data?.primary_branch;
@@ -20,7 +20,6 @@ export function useFetchSnapshots(branch, projectQuery) {
           `/api/getSnapshotsForBranch?branch=${primaryBranch}&project_id=${projectQuery.data.id}`
         );
 
-  console.log("primaryKey", primaryKey);
   const {
     data: mainData,
     error: mainError,

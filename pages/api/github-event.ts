@@ -1,5 +1,6 @@
 import createClient from "../../lib/initServerSupabase";
 import { createCheck, updateCheck } from "../../lib/github";
+import omit from "lodash/omit";
 
 import {
   getProjectFromRepo,
@@ -8,6 +9,8 @@ import {
 } from "../../lib/supabase";
 
 const supabase = createClient();
+
+const formatCheck = (check) => omit(check, ["app", "pull_requests"]);
 
 export default async function handler(req, res) {
   const payload = req.body;
@@ -148,8 +151,8 @@ export default async function handler(req, res) {
           );
           log(
             "created check",
-            checkId,
-            check.status == 201 ? check.data : check
+            check.data.id,
+            check.status <= 299 ? check.data : check
           );
           checkId = check.data.id;
           newCheck = check.data;
@@ -160,8 +163,9 @@ export default async function handler(req, res) {
 
           log(
             "updated branch",
-            updatedBranch.status == 201 ? "success" : "error",
-            updatedBranch.status == 201
+            updatedBranch.status,
+            updatedBranch.status <= 299 ? "success" : "error",
+            updatedBranch.status <= 299
               ? updatedBranch.data
               : updatedBranch.error
           );
@@ -185,7 +189,7 @@ export default async function handler(req, res) {
           status: 200,
           data: {
             checkId,
-            newCheck,
+            check: formatCheck(newCheck),
             action: action.status == 201 ? action.data : action.error,
           },
         });
@@ -238,7 +242,9 @@ export default async function handler(req, res) {
           status: 200,
           data: {
             check:
-              updatedCheck.status == 200 ? updatedCheck.data : updatedCheck,
+              updatedCheck.status == 200
+                ? formatCheck(updatedCheck.data)
+                : updatedCheck,
           },
         });
       }

@@ -1,7 +1,6 @@
 import { Snapshot } from "./Snapshot";
 import { SnapshotRow } from "./SnapshotRow";
 import { useFetchSnapshots } from "../hooks/useFetchSnapshots";
-import { getSnapshotStatus } from "../utils/snapshots";
 
 export function Snapshots({
   toggleMode,
@@ -14,15 +13,11 @@ export function Snapshots({
 }) {
   const { data, error, isLoading } = useFetchSnapshots(branch, projectQuery);
 
-  const newSnapshots = data?.filter(
-    (snapshot) => getSnapshotStatus(snapshot) === "new"
-  );
-  const changedSnapshots = data?.filter(
-    (snapshot) => getSnapshotStatus(snapshot) === "different"
-  );
+  const newSnapshots = data?.filter((snapshot) => !snapshot.mainSnapshot);
+  const changedSnapshots = data?.filter((snapshot) => snapshot.primary_changed);
 
   const unchangedSnapshots = data?.filter(
-    (snapshot) => getSnapshotStatus(snapshot) === "same"
+    (snapshot) => !snapshot.primary_changed
   );
 
   const snapshots =
@@ -33,7 +28,10 @@ export function Snapshots({
       : mode == "unchanged"
       ? unchangedSnapshots
       : data;
+
   const selectedSnapshot = snapshots?.[selectedSnapshotIndex];
+
+  console.log("Selected snapshot", selectedSnapshot);
 
   if (isLoading || actionsQuery.isLoading) return <div>loading...</div>;
   if (error || actionsQuery.error) return <div>error</div>;

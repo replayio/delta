@@ -32,8 +32,12 @@ async function testEvent(eventType, req) {
 }
 
 (async () => {
-  const action = "pull_request.closed";
+  const action = "workflow_job.completed";
   const payload = fixtures[action];
+  if (!payload) {
+    console.error("No fixture found for action", action);
+    return;
+  }
   const eventType = action.split(".")[0];
   const res = await testEvent(eventType, payload);
   console.log(res);

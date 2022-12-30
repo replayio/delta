@@ -72,8 +72,7 @@ export default function Home() {
             project={projectQuery.data}
             options={branches
               .filter((i) => i.status == "open")
-              .map((b) => b.name)
-              .filter((i) => i !== "main")}
+              .map((b) => b.name)}
           />
         </div>
         <div className="flex items-center py-2 pr-4">

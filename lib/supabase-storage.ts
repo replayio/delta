@@ -28,6 +28,7 @@ export async function uploadSnapshot(
 export async function downloadSnapshot(
   path: string
 ): Promise<{ error: string; data: null } | { data: Snapshot; error: null }> {
+  console.log("downloadSnapshot", path);
   const { data, error } = await supabase.storage
     .from("snapshots")
     .download(path);

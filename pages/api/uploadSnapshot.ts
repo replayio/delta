@@ -30,9 +30,21 @@ async function diffWithPrimaryBranch(image, projectId) {
 }
 
 export default async function handler(req, res) {
-  const { image, projectId, branch: branchName } = req.body;
-  console.log("uploadSnapshot start (1)", branchName, image.file);
+  const { image, projectId, branch: branchName, runId } = req.body;
+  console.log("uploadSnapshot start (1)", branchName, runId, image.file);
   try {
+    if (!branchName) {
+      return res.status(400).json({ error: "branchName is required" });
+    }
+
+    if (!projectId) {
+      return res.status(400).json({ error: "projectId is required" });
+    }
+
+    if (!image.file || !image.content) {
+      return res.status(400).json({ error: "image is required" });
+    }
+
     const snapshot = await uploadSnapshot(image, projectId);
     console.log("uploadSnapshot (2) ", branchName, image.file);
 

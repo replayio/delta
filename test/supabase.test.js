@@ -4,6 +4,7 @@ import {
   getSnapshotsFromBranch,
   getActionFromRunId,
   getSnapshotsForAction,
+  updateActionStatus,
 } from "../lib/supabase";
 
 import {
@@ -36,10 +37,22 @@ describe("supabase", () => {
     const snapshot = await downloadSnapshot(
       "dcb5df26-b418-4fe2-9bdf-5a838e604ec4/ff8f1f8d9217d9c96e70995292445d33edbd54f411d96b9bdf46733c349da318.png"
     );
-    expect(snapshot.data).toEqual(null);
-    expect(snapshot.error).toEqual({
-      message: "The resource was not found",
-      status: 400,
-    });
+    expect(snapshot.data.slice(0, 10)).toEqual("iVBORw0KGg");
+  });
+
+  it.only("can update action status", async () => {
+    const action = await updateActionStatus(
+      "9ba81dd3-98c4-44a9-a013-5835a1931ae9",
+      "failure"
+    );
+
+    expect(action.data.status).toEqual("failure");
+
+    const action2 = await updateActionStatus(
+      "9ba81dd3-98c4-44a9-a013-5835a1931ae9",
+      "success"
+    );
+
+    expect(action2.data.status).toEqual("success");
   });
 });

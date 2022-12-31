@@ -4,13 +4,10 @@ import { useRouter } from "next/router";
 import useSWR from "swr";
 import uniqBy from "lodash/uniqBy";
 import sortBy from "lodash/sortBy";
-import Dropdown from "../../components/Dropdown";
-import Image from "next/image";
 import { Snapshots } from "../../components/Snapshots";
+import { Header } from "../../components/Header";
 
 const fetcher = (...args) => fetch(...args).then((res) => res.json());
-
-const projectId = "dcb5df26-b418-4fe2-9bdf-5a838e604ec4";
 
 export default function Home() {
   const [selectedSnapshotIndex, setSelectedSnapshot] = useState(0);
@@ -28,6 +25,8 @@ export default function Home() {
     encodeURI(`/api/getProject?projectShort=${projectShort}`),
     fetcher
   );
+
+  const projectId = projectQuery.data?.id;
 
   const actionsQuery = useSWR(
     encodeURI(
@@ -56,29 +55,25 @@ export default function Home() {
 
   console.log({ actions: actionsQuery.data });
   console.log({ branches });
+  const currentAction = useMemo(
+    () =>
+      sortBy(
+        actionsQuery.data,
+        (action) => new Date(action.created_at)
+      )?.filter((action) => action.Branches?.name == branch)[0],
+    [actionsQuery, branch]
+  );
 
   return (
     <div className={` h-full`}>
-      <div className="flex text-black justify-between border-b-2 mb-1 border-b-slate-100 ">
-        <div className="flex items-center py-2 pl-4">
-          <div style={{ transform: "rotate(-90deg)" }}>
-            <Image width={16} height={16} src="/logo.svg" alt="Replay logo" />
-          </div>
-          <h1 className="pl-2 text-lg">Delta</h1>
-          <div className="ml-1 mr-1"> / </div>
-          <Dropdown
-            onChange={(val) => setBranch(val)}
-            selected={branch}
-            project={projectQuery.data}
-            options={branches
-              .filter((i) => i.status == "open")
-              .map((b) => b.name)}
-          />
-        </div>
-        <div className="flex items-center py-2 pr-4">
-          {projectQuery.data?.name}
-        </div>
-      </div>
+      <Header
+        setBranch={setBranch}
+        currentAction={currentAction}
+        branch={branch}
+        projectQuery={projectQuery}
+        branches={branches}
+      />
+
       <Snapshots
         toggleMode={toggleMode}
         mode={mode}

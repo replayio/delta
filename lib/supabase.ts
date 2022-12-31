@@ -34,6 +34,7 @@ export type Action = {
   run_id: string;
   head_sha: string;
   actor: string;
+  status?: "success" | "failure" | "neutral";
 };
 
 export type Snapshot = {
@@ -253,4 +254,15 @@ export async function getAction(
   actionId: string
 ): Promise<PostgrestSingleResponse<Action>> {
   return supabase.from("Actions").select("*").eq("id", actionId).single();
+}
+
+export async function updateActionStatus(
+  actionId: string,
+  status: string
+): Promise<PostgrestSingleResponse<Action>> {
+  return supabase
+    .from("Actions")
+    .update({ status })
+    .eq("id", actionId)
+    .single();
 }

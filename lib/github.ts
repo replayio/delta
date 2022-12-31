@@ -1,7 +1,16 @@
-const { App } = require("@octokit/app");
+import { App } from "@octokit/app";
+import dotenv from "dotenv";
 
-const dotenv = require("dotenv");
 dotenv.config({ path: "./.env.local" });
+
+type CheckArgs = {
+  head_sha?: string;
+  status?: string;
+  conclusion?: string;
+  title?: string;
+  summary?: string;
+  text?: string;
+};
 
 async function getOctokit() {
   const pem = process.env.PEM;
@@ -21,7 +30,7 @@ async function getOctokit() {
   return octokit;
 }
 
-async function createCheck(
+export async function createCheck(
   owner,
   repo,
   { head_sha, title, summary, conclusion, text, status }
@@ -47,35 +56,33 @@ async function createCheck(
   return check;
 }
 
-async function updateCheck(
-  owner,
-  repo,
-  checkRunId,
-  { head_sha, status, conclusion, title, summary, text }
+export async function updateCheck(
+  owner: string,
+  repo: string,
+  checkRunId: string,
+  { head_sha, status, conclusion, title, summary, text }: CheckArgs
 ) {
   const octokit = await getOctokit();
 
+  const checkArgs = {
+    owner,
+    repo,
+    check_run_id: checkRunId,
+    name: "Visuals",
+    head_sha: head_sha,
+    status,
+    conclusion,
+    completed_at: new Date().toISOString(),
+    output: {
+      title,
+      summary,
+      text,
+    },
+  };
+
+  console.log("updateCheck", checkArgs);
   return octokit.request(
     `PATCH /repos/${owner}/${repo}/check-runs/${checkRunId}`,
-    {
-      owner,
-      repo,
-      check_run_id: checkRunId,
-      name: "Visuals",
-      head_sha: head_sha,
-      status,
-      conclusion,
-      completed_at: new Date().toISOString(),
-      output: {
-        title,
-        summary,
-        text,
-      },
-    }
+    checkArgs
   );
 }
-
-module.exports = {
-  createCheck,
-  updateCheck,
-};

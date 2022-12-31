@@ -178,6 +178,7 @@ export default async function handler(req, res) {
           branch_id: branch.data.id,
           head_sha: payload.workflow_job.head_sha,
           actor: payload.sender.login,
+          status: "neutral",
         };
 
         log("insert action", insertActionArgs);

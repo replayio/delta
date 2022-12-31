@@ -1,6 +1,15 @@
 import useSWR from "swr";
 const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
+const Placeholder = () => (
+  <div
+    className="bg-gray-100 rounded-lg flex items-center justify-center text-gray-500"
+    style={{ width: "200px", height: "100px", overflow: "hidden" }}
+  >
+    Unavailable
+  </div>
+);
+
 export function Snapshot({ snapshot }) {
   const { data, error, isLoading } = useSWR(
     encodeURI(`/api/downloadSnapshot?path=${snapshot?.path}`),
@@ -29,17 +38,16 @@ export function Snapshot({ snapshot }) {
           {mainData ? (
             <img src={`data:image/png;base64,${mainData}`} />
           ) : (
-            <div
-              className="bg-gray-100 rounded-lg flex items-center justify-center text-gray-500"
-              style={{ width: "200px", height: "100px", overflow: "hidden" }}
-            >
-              Unavailable
-            </div>
+            <Placeholder />
           )}
         </div>
         <div className=" overflow-y-auto flex items-center flex-col">
           <div>After</div>
-          <img src={`data:image/png;base64,${data}`} />
+          {data ? (
+            <img src={`data:image/png;base64,${data}`} />
+          ) : (
+            <Placeholder />
+          )}
         </div>
       </div>
     </div>

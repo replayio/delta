@@ -20,5 +20,5 @@ test("get snapshots for action", async () => {
   const snapshots = await getSnapshotsForAction(
     "7be05e81-8595-4052-a969-3cfaddb44188"
   );
-  console.log(snapshots.data.slice(0, 3));
+  expect(snapshots.data).toHaveLength(360);
 });

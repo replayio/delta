@@ -3,9 +3,9 @@ export function SnapshotRow({ snapshot, onSelect, index, selectedSnapshot }) {
   const isSelected = snapshot.id === selectedSnapshot?.id;
   const status = !snapshot.mainSnapshot
     ? "new"
-    : snapshot.mainSnapshot.sha == snapshot.sha
-    ? "same"
-    : "different";
+    : snapshot.primary_changed
+    ? "different"
+    : "same";
 
   const bgColor =
     status === "new" ? "green" : status === "same" ? "blue" : "red";

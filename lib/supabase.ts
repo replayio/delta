@@ -106,10 +106,17 @@ export async function getSnapshotsFromBranch(
     if (snapshots.error) {
       continue;
     }
+
     if (snapshots.data.length > 0) {
       return snapshots;
     }
   }
+}
+
+export async function getSnapshotsForAction(
+  actionId: string
+): Promise<PostgrestResponse<Snapshot>> {
+  return supabase.from("Snapshots").select("*").eq("action_id", actionId);
 }
 
 export async function insertSnapshot(
@@ -215,6 +222,18 @@ export async function getActionFromBranch(
     .from("Actions")
     .select("*")
     .eq("branch_id", branch_id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+}
+
+export async function getActionFromRunId(
+  run_id: string
+): Promise<PostgrestSingleResponse<Action>> {
+  return supabase
+    .from("Actions")
+    .select("*")
+    .eq("run_id", run_id)
     .order("created_at", { ascending: false })
     .limit(1)
     .single();

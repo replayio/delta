@@ -6,6 +6,8 @@ import {
   getProjectFromRepo,
   getBranchFromProject,
   updateBranch,
+  getActionFromRunId,
+  getSnapshotsForAction,
 } from "../../lib/supabase";
 
 const supabase = createClient();
@@ -218,12 +220,32 @@ export default async function handler(req, res) {
           return skip(`Branch ${branch.data.name} is missing a check_id`);
         }
 
-        // TODO: check to see if the branch is different or not
-        const isDifferent = false;
+        const runId = payload.workflow_job.run_id;
+        const action = await getActionFromRunId(runId);
+        if (action.error) {
+          return skip(
+            `action for run ${runId} not found: ${JSON.stringify(action.error)}`
+          );
+        }
+
+        const snapshots = await getSnapshotsForAction(action.data.id);
+        if (snapshots.error) {
+          return skip(
+            `snapshots for action ${action.data.id} not found: ${JSON.stringify(
+              snapshots.error
+            )}`
+          );
+        }
+
+        const numDifferent = snapshots.data.filter(
+          (s) => s.primary_changed
+        ).length;
+
+        const isDifferent = numDifferent > 0;
 
         const updateCheckArgs = {
           head_sha: payload.workflow_job.head_sha,
-          title: "1 of 15 snapshots are different",
+          title: `${numDifferent} of ${snapshots.data.length} snapshots are different`,
           summary: "",
           conclusion: isDifferent ? "failure" : "success",
           status: "completed",

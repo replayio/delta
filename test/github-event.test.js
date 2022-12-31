@@ -1,3 +1,5 @@
+import { describe, it, expect } from "vitest";
+
 const dotenv = require("dotenv");
 const fetch = require("node-fetch");
 const fixtures = require("./fixtures/github");
@@ -38,7 +40,9 @@ async function testEvent(action) {
   }
 }
 
-test("workflow completed", async () => {
-  const res = await testEvent("workflow_job.completed");
-  expect(res.check.output.title).toEqual("0 of 360 snapshots are different");
+describe("github event", () => {
+  it("workflow completed", async () => {
+    const res = await testEvent("workflow_job.completed");
+    expect(res.check.output.title).toEqual("0 of 360 snapshots are different");
+  });
 });

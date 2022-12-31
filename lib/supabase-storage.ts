@@ -34,12 +34,49 @@ export async function downloadSnapshot(
     .download(path);
 
   if (error) {
-    console.log("error", error);
-    return { error: (error as any).error, data: null };
+    return { error: error as any, data: null };
   }
 
   const fileBuffer = Buffer.from(await data.arrayBuffer());
 
   const image = fileBuffer.toString("base64");
   return { data: image, error: null };
+}
+
+export async function listSnapshots(
+  projectId: string
+): Promise<{ error: string; data: null } | { data: any[]; error: null }> {
+  const { data, error } = await supabase.storage
+    .from("snapshots")
+    .list(projectId, {
+      limit: 100,
+    });
+
+  if (error) {
+    return { error: error as any, data: null };
+  }
+
+  return { data, error: null };
+}
+
+export async function listCorruptedSnapshots(
+  projectId: string
+): Promise<any[]> {
+  const snapshots = await listSnapshots(projectId);
+  if (snapshots.error) {
+    return [];
+  }
+
+  return snapshots.data.filter((s) => s.metadata == null);
+}
+
+export async function removeCorruptedSnapshots(projectId: string) {
+  const snapshots = await listCorruptedSnapshots(projectId);
+  if (snapshots.length === 0) {
+    return;
+  }
+
+  return supabase.storage
+    .from("snapshots")
+    .remove(snapshots.map((s) => `${projectId}/${s.name}`));
 }

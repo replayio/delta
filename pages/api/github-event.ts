@@ -287,7 +287,7 @@ export default async function handler(req, res) {
           if (branch.status != 200) {
             return skip(
               `branch ${branch.data.id} not updated: ${JSON.stringify(
-                updatedBranch
+                branch.error
               )}`
             );
           }

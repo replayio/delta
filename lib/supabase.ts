@@ -9,6 +9,7 @@ const supabase = createClient();
 
 export type Project = {
   id: string;
+  short: string;
   repository: string;
   organization: string;
   created_at: string;

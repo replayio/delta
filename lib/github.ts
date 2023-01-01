@@ -31,6 +31,8 @@ async function getOctokit() {
 }
 
 export async function createCheck(
+  projectShort,
+  branchName,
   owner,
   repo,
   { head_sha, title, summary, conclusion, text, status }
@@ -44,7 +46,7 @@ export async function createCheck(
     head_sha,
     status,
     conclusion,
-    details_url: "https://replay-visuals.vercel.app/?branch=visuals5",
+    details_url: `https://replay-visuals.vercel.app/project/${projectShort}/?branch=${branchName}`,
     started_at: new Date().toISOString(),
     output: {
       title,

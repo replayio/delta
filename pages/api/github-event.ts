@@ -108,19 +108,14 @@ export default async function handler(req, res) {
           return skip(`workflow is ${payload.workflow_job.workflow_name}`);
         }
 
-        log(
-          "getting branch",
-          project.data.id,
-          payload.workflow_job.head_branch
-        );
+        const branchName = payload.workflow_job.head_branch;
+        const projectId = project.data.id;
+        log("getting branch", projectId, branchName);
 
-        const branch = await getBranchFromProject(
-          project.data.id,
-          payload.workflow_job.head_branch
-        );
+        const branch = await getBranchFromProject(projectId, branchName);
 
         if (branch.error) {
-          return skip(`branch ${payload.workflow_job.head_branch} not found`);
+          return skip(`branch ${branchName} not found`);
         }
 
         let checkId = branch.data.check_id;
@@ -140,6 +135,8 @@ export default async function handler(req, res) {
             }
           );
           const check = await createCheck(
+            project.data.short,
+            branchName,
             payload.organization.login,
             payload.repository.name,
             {

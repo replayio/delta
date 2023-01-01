@@ -12,7 +12,11 @@ function ApproveButton({ branch, projectQuery, currentAction }) {
 
   const hasChanged = data?.some((snapshot) => snapshot.primary_changed);
 
-  if (!hasChanged || currentAction.status == "success") {
+  // Don't show the approve button if:
+  // - the branch has no changes
+  // - the branch has already been approved
+  // - the branch has a currently running action
+  if (!hasChanged || ["success", "neutral"].includes(currentAction?.status)) {
     return null;
   }
 

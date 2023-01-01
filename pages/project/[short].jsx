@@ -77,8 +77,14 @@ export default function Home() {
       />
 
       {currentAction?.status == "neutral" ? (
-        <div className="flex justify-center items-center mt-10 italic">
-          Action progress...
+        <div className="flex justify-center items-center mt-10 italic underline text-blue-600">
+          <a
+            target="_blank"
+            rel="noreferrer"
+            href={`https://github.com/${projectQuery.data.organization}/${projectQuery.data.repository}/actions/runs/${currentAction?.run_id}`}
+          >
+            Action in progress...
+          </a>
         </div>
       ) : (
         <Snapshots

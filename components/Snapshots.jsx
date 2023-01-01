@@ -69,20 +69,31 @@ export function Snapshots({
           </div>
         </div>
 
-        <div className="flex flex-col h-full overflow-y-scroll">
-          {snapshots.map((snapshot, index) => (
+        <div
+          className="flex flex-col h-full overflow-y-scroll overflow-x-hidden"
+          style={{ width: "300px" }}
+        >
+          {snapshots.slice(20, 30).map((snapshot, index) => (
             <SnapshotRow
               key={snapshot.id}
+              branch={branch}
               onSelect={setSelectedSnapshot}
               index={index}
               snapshot={snapshot}
               selectedSnapshot={selectedSnapshot}
+              project={projectQuery.data}
             />
           ))}
         </div>
       </div>
-      <div className="flex  flex-col flex-grow items-center overflow-hidden">
-        {selectedSnapshot && <Snapshot snapshot={selectedSnapshot} />}
+      <div className="flex  flex-col flex-grow items-center ">
+        {selectedSnapshot && (
+          <Snapshot
+            branch={branch}
+            project={projectQuery.data}
+            snapshot={selectedSnapshot}
+          />
+        )}
       </div>
     </div>
   );

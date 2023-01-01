@@ -20,7 +20,7 @@ async function diffWithPrimaryBranch(image, branchName, projectId) {
 
   console.log("diffWithPrimaryBranch (2)", projectId);
   const snapshot = await getSnapshotFromBranch(
-    image,
+    image.file,
     projectId,
     project.data.primary_branch
   );

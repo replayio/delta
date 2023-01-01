@@ -59,7 +59,7 @@ type ResponseError = {
 const createError = (error: string): ResponseError => ({ error, data: null });
 
 export async function getSnapshotFromBranch(
-  image: { file: string; content: string },
+  file: string,
   projectId: string,
   branchName: string
 ): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
@@ -69,11 +69,13 @@ export async function getSnapshotFromBranch(
     return createError("Branch not found");
   }
 
+  const action = await getActionFromBranch(branch.data.id);
+
   return supabase
     .from("Snapshots")
-    .select("*, Actions(branch_id)")
-    .eq("file", image.file)
-    .eq("Actions.branch_id", branch.data.id)
+    .select("*")
+    .eq("file", file)
+    .eq("action_id", action.data.id)
     .order("created_at", { ascending: false })
     .limit(1)
     .single();

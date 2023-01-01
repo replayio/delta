@@ -10,7 +10,7 @@ const Placeholder = () => (
   </div>
 );
 
-export function Snapshot({ snapshot }) {
+export function Snapshot({ snapshot, project, branch }) {
   const { data, error, isLoading } = useSWR(
     encodeURI(`/api/downloadSnapshot?path=${snapshot?.path}`),
     fetcher
@@ -50,6 +50,14 @@ export function Snapshot({ snapshot }) {
           )}
         </div>
       </div>
+      {/* <div className="mt-2">
+        <img
+          src={encodeURI(
+            `/api/snapshot-diff/?projectId=${project?.id}&branch=${branch}&file=${snapshot.file}`
+          )}
+          alt=""
+        />
+      </div> */}
     </div>
   );
 }

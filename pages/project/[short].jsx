@@ -60,7 +60,7 @@ export default function Home() {
     () =>
       sortBy(
         actionsQuery.data,
-        (action) => new Date(action.created_at)
+        (action) => -new Date(action.created_at)
       )?.filter((action) => action.Branches?.name == branch)[0],
     [actionsQuery, branch]
   );

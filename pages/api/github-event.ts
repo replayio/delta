@@ -8,6 +8,7 @@ import {
   updateBranch,
   getActionFromRunId,
   getSnapshotsForAction,
+  updateActionStatus,
 } from "../../lib/supabase";
 
 const supabase = createClient();
@@ -201,10 +202,9 @@ export default async function handler(req, res) {
           return skip(`workflow is ${payload.workflow_job.workflow_name}`);
         }
 
-        const branch = await getBranchFromProject(
-          project.data.id,
-          payload.workflow_job.head_branch
-        );
+        const branchName = payload.workflow_job.head_branch;
+        log("getting branch", project.data.id, branchName);
+        const branch = await getBranchFromProject(project.data.id, branchName);
 
         if (branch.error) {
           return skip(
@@ -218,6 +218,7 @@ export default async function handler(req, res) {
           return skip(`Branch ${branch.data.name} is missing a check_id`);
         }
 
+        log("found branch", branch.data.id, branch.data.check_id);
         const runId = payload.workflow_job.run_id;
         const action = await getActionFromRunId(runId);
         if (action.error) {
@@ -226,6 +227,7 @@ export default async function handler(req, res) {
           );
         }
 
+        log("found action", action.data.id);
         const snapshots = await getSnapshotsForAction(action.data.id);
         if (snapshots.error) {
           return skip(
@@ -239,13 +241,12 @@ export default async function handler(req, res) {
           (s) => s.primary_changed
         ).length;
 
-        const isDifferent = numDifferent > 0;
-
+        const conclusion = numDifferent > 0 ? "failure" : "success";
         const updateCheckArgs = {
           head_sha: payload.workflow_job.head_sha,
           title: `${numDifferent} of ${snapshots.data.length} snapshots are different`,
           summary: "",
-          conclusion: isDifferent ? "failure" : "success",
+          conclusion,
           status: "completed",
           text: "",
         };
@@ -258,13 +259,33 @@ export default async function handler(req, res) {
           updateCheckArgs
         );
 
+        if (updatedCheck.status != 200) {
+          return skip(
+            `check ${branch.data.check_id} not updated: ${JSON.stringify(
+              updatedCheck
+            )}`
+          );
+        }
+
+        log("updating action status", action.data.id, conclusion);
+        const updatedAction = await updateActionStatus(
+          action.data.id,
+          conclusion
+        );
+
+        if (updatedAction.error) {
+          return skip(
+            `action ${action.data.id} not updated: ${JSON.stringify(
+              updatedAction.error
+            )}`
+          );
+        }
+
         return response({
           status: 200,
           data: {
-            check:
-              updatedCheck.status == 200
-                ? formatCheck(updatedCheck.data)
-                : updatedCheck,
+            check: formatCheck(updatedCheck.data),
+            action: updatedAction.data,
           },
         });
       }

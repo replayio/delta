@@ -29,6 +29,7 @@ export function useFetchSnapshots(branch, projectQuery) {
   console.log({ data, mainData });
   const snapshots = useMemo(() => {
     if (!data || !mainData) return null;
+    if (data.error || mainData.error) return null;
     return data.map((snapshot) => {
       const mainSnapshot = mainData.find(
         (mainSnapshot) => mainSnapshot.file === snapshot.file
@@ -41,6 +42,7 @@ export function useFetchSnapshots(branch, projectQuery) {
     });
   }, [data, mainData]);
 
+  if (snapshots == null) return { error: "No snapshots" };
   if (isLoading || mainLoading) return { isLoading: true };
   if (error || mainError) return { error: error || mainError };
 

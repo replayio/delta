@@ -15,6 +15,7 @@ export default function Home() {
   const router = useRouter();
   const [branch, setBranch] = useState("main");
   const projectShort = router.query.short;
+  console.log("project short", projectShort);
 
   useEffect(
     () => setBranch(router.query.branch || "main"),
@@ -63,6 +64,7 @@ export default function Home() {
       )?.filter((action) => action.Branches?.name == branch)[0],
     [actionsQuery, branch]
   );
+  console.log(`currentAction`, currentAction);
 
   return (
     <div className={` h-full`}>
@@ -74,16 +76,22 @@ export default function Home() {
         branches={branches}
       />
 
-      <Snapshots
-        toggleMode={toggleMode}
-        mode={mode}
-        actionsQuery={actionsQuery}
-        projectQuery={projectQuery}
-        branch={branch}
-        branches={branches}
-        selectedSnapshotIndex={selectedSnapshotIndex}
-        setSelectedSnapshot={setSelectedSnapshot}
-      />
+      {currentAction?.status == "neutral" ? (
+        <div className="flex justify-center items-center mt-10 italic">
+          Action progress...
+        </div>
+      ) : (
+        <Snapshots
+          toggleMode={toggleMode}
+          mode={mode}
+          actionsQuery={actionsQuery}
+          projectQuery={projectQuery}
+          branch={branch}
+          branches={branches}
+          selectedSnapshotIndex={selectedSnapshotIndex}
+          setSelectedSnapshot={setSelectedSnapshot}
+        />
+      )}
     </div>
   );
 }

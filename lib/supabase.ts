@@ -113,6 +113,8 @@ export async function getSnapshotsFromBranch(
       return snapshots;
     }
   }
+
+  return createError("No snapshots found");
 }
 
 export async function getSnapshotsForAction(

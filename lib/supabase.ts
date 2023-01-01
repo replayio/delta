@@ -25,6 +25,7 @@ export type Branch = {
   pr_number?: string;
   created_at: string;
   check_id: string;
+  comment_id: string;
   status: string;
 };
 

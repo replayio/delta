@@ -31,11 +31,9 @@ async function getOctokit() {
 }
 
 export async function createCheck(
-  projectShort,
-  branchName,
   owner,
   repo,
-  { head_sha, title, summary, conclusion, text, status }
+  { head_sha, title, summary, conclusion, text, status, details_url }
 ) {
   const octokit = await getOctokit();
 
@@ -46,7 +44,7 @@ export async function createCheck(
     head_sha,
     status,
     conclusion,
-    details_url: `https://replay-visuals.vercel.app/project/${projectShort}/?branch=${branchName}`,
+    details_url,
     started_at: new Date().toISOString(),
     output: {
       title,
@@ -87,4 +85,41 @@ export async function updateCheck(
     `PATCH /repos/${owner}/${repo}/check-runs/${checkRunId}`,
     checkArgs
   );
+}
+
+export async function createComment(
+  owner,
+  repo,
+  issue_number,
+  { body } = { body: "..." }
+) {
+  const octokit = await getOctokit();
+
+  const comment = await octokit.request(
+    `POST /repos/${owner}/${repo}/issues/${issue_number}/comments`,
+    {
+      owner,
+      repo,
+      issue_number,
+      body,
+    }
+  );
+
+  return comment;
+}
+
+export async function updateComment(owner, repo, comment_id, { body }) {
+  const octokit = await getOctokit();
+
+  const comment = await octokit.request(
+    `PATCH /repos/${owner}/${repo}/issues/comments/${comment_id}`,
+    {
+      owner,
+      repo,
+      comment_id,
+      body,
+    }
+  );
+
+  return comment;
 }

@@ -5,7 +5,8 @@ import {
   getProject,
 } from "../../lib/supabase";
 
-import { updateCheck } from "../../lib/github";
+import { updateComment, updateCheck } from "../../lib/github";
+import { getDeltaBranchUrl } from "../../lib/delta";
 
 export default async function handler(req, res) {
   const { branch, projectId, status } = req.body;
@@ -20,6 +21,8 @@ export default async function handler(req, res) {
   if (projectRecord.error) {
     return res.status(500).json({ error: projectRecord.error });
   }
+  const organization = projectRecord.data.organization;
+  const repository = projectRecord.data.repository;
 
   const branchRecord = await getBranchFromProject(projectId, branch);
   if (branchRecord.error) {
@@ -31,18 +34,38 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: action.error });
   }
 
-  const { data, error } = await updateActionStatus(action.data.id, status);
+  const updatedAction = await updateActionStatus(action.data.id, status);
+
+  if (updatedAction.error) {
+    return res.status(500).json({ error: updatedAction.error });
+  }
 
   const updatedCheck = await updateCheck(
-    projectRecord.data.organization,
-    projectRecord.data.repository,
+    organization,
+    repository,
     branchRecord.data.check_id,
     { conclusion: status, title: "Changes approved", summary: "" }
   );
 
-  if (error) {
-    return res.status(500).json({ error });
+  const updatedComment = await updateComment(
+    organization,
+    repository,
+    branchRecord.data.comment_id,
+    {
+      body: `Changes approved\n<a href="${getDeltaBranchUrl(
+        projectRecord.data,
+        branchRecord.data.name
+      )}">View snapshots</a>`,
+    }
+  );
+
+  if (updatedComment.status != 200) {
+    return res.status(500).json({ error: updatedComment });
   }
 
-  res.status(200).json(data, updatedCheck);
+  res.status(200).json({
+    action: updatedAction.data,
+    check: updatedCheck,
+    comment: updatedComment,
+  });
 }

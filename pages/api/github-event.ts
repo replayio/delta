@@ -1,5 +1,10 @@
 import createClient from "../../lib/initServerSupabase";
-import { createCheck, updateCheck } from "../../lib/github";
+import {
+  createCheck,
+  updateCheck,
+  createComment,
+  updateComment,
+} from "../../lib/github";
 import omit from "lodash/omit";
 
 import {
@@ -10,6 +15,7 @@ import {
   getSnapshotsForAction,
   updateActionStatus,
 } from "../../lib/supabase";
+import { getDeltaBranchUrl } from "../../lib/delta";
 
 const supabase = createClient();
 
@@ -135,13 +141,13 @@ export default async function handler(req, res) {
               summary: "",
             }
           );
+
           const check = await createCheck(
-            project.data.short,
-            branchName,
             payload.organization.login,
             payload.repository.name,
             {
               head_sha: payload.workflow_job.head_sha,
+              details_url: getDeltaBranchUrl(project.data, branchName),
               title: "Tests are running",
               status: "in_progress",
               conclusion: "neutral",
@@ -204,7 +210,7 @@ export default async function handler(req, res) {
 
         const branchName = payload.workflow_job.head_branch;
         log("getting branch", project.data.id, branchName);
-        const branch = await getBranchFromProject(project.data.id, branchName);
+        let branch = await getBranchFromProject(project.data.id, branchName);
 
         if (branch.error) {
           return skip(
@@ -242,9 +248,10 @@ export default async function handler(req, res) {
         ).length;
 
         const conclusion = numDifferent > 0 ? "failure" : "success";
+        const title = `${numDifferent} of ${snapshots.data.length} snapshots are different`;
         const updateCheckArgs = {
           head_sha: payload.workflow_job.head_sha,
-          title: `${numDifferent} of ${snapshots.data.length} snapshots are different`,
+          title,
           summary: "",
           conclusion,
           status: "completed",
@@ -259,10 +266,52 @@ export default async function handler(req, res) {
           updateCheckArgs
         );
 
-        if (updatedCheck.status != 200) {
+        // Create a comment if it doesn't already exist
+        if (!branch.data.comment_id) {
+          log("creating comment");
+          const comment = await createComment(
+            payload.organization.login,
+            payload.repository.name,
+            branch.data.pr_number
+          );
+
+          if (comment.status != 201) {
+            return skip(`comment not created: ${JSON.stringify(comment)}`);
+          }
+
+          log("created comment. updating branch", comment.data.id);
+          branch = await updateBranch(branch.data, {
+            comment_id: comment.data.id,
+          });
+
+          if (branch.status != 200) {
+            return skip(
+              `branch ${branch.data.id} not updated: ${JSON.stringify(
+                updatedBranch
+              )}`
+            );
+          }
+        }
+
+        log("updating comment", branch.data.comment_id, branch.data.pr_number);
+        const updatedComment = await updateComment(
+          payload.organization.login,
+          payload.repository.name,
+          branch.data.comment_id,
+          {
+            body: `${
+              numDifferent > 0 ? title : "Nothing changed"
+            }\n<a href="${getDeltaBranchUrl(
+              project.data,
+              branchName
+            )}">View snapshots</a>`,
+          }
+        );
+
+        if (updatedComment.status != 200) {
           return skip(
             `check ${branch.data.check_id} not updated: ${JSON.stringify(
-              updatedCheck
+              updatedComment
             )}`
           );
         }

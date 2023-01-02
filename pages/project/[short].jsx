@@ -161,7 +161,7 @@ export default function Home() {
           <div className="flex flex-col flex-grow items-center ">
             {selectedSnapshot && (
               <Snapshot
-                key={selectedSnapshot.sha}
+                key={selectedSnapshot.id}
                 branch={branch}
                 project={projectQuery.data}
                 snapshot={selectedSnapshot}

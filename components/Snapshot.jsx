@@ -1,4 +1,5 @@
 import useSWR from "swr";
+const { useState, useRef, useEffect } = require("react");
 const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
 const Placeholder = () => (
@@ -38,16 +39,16 @@ export function Snapshot({ snapshot, project, branch }) {
     fetcher
   );
 
+  console.log(
+    isLoading,
+    mainIsLoading,
+    snapshot?.primary_diff_path && diffIsLoading
+  );
   if (
     isLoading ||
     mainIsLoading ||
     (snapshot?.primary_diff_path && diffIsLoading)
   ) {
-    console.log(
-      isLoading,
-      mainIsLoading,
-      snapshot?.primary_diff_path && diffIsLoading
-    );
     return (
       <div className="flex justify-center items-center h-full">loading...</div>
     );
@@ -59,21 +60,11 @@ export function Snapshot({ snapshot, project, branch }) {
 
   return (
     <div
-      className="flex flex-col px-10 mt-4 overflow-y-auto w-full pb-20"
+      className="flex flex-col px-10 mt-4 overflow-y-auto w-full pb-20 items-center"
       style={{ minHeight: "300px" }}
     >
-      <div className="flex flex-col justify-center">
-        <div className=" overflow-y-auto flex items-center flex-col">
-          <div>Before</div>
-          <SnapshotImage data={mainData} />
-        </div>
-        <div className=" overflow-y-auto flex items-center flex-col mt-4">
-          <div>After</div>
-          <SnapshotImage data={data} />
-        </div>
-      </div>
-      <div className="mt-4 flex items-center flex-col p-4">
-        <div>Diff</div>
+      <ImageSlider data={data} mainData={mainData} />
+      <div className="mt-4 flex items-center flex-col ">
         {snapshot.primary_diff_path ? (
           <SnapshotImage data={diffData} />
         ) : (
@@ -87,6 +78,123 @@ export function Snapshot({ snapshot, project, branch }) {
         )}
       </div>
     </div>
+  );
+}
+
+function ImageSlider({ data, mainData }) {
+  const testImage = useRef(null);
+  const [scrubber, setScrubber] = useState(50);
+  const [imageRect, setImageRect] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    if (testImage.current) {
+      setImageRect({
+        height: testImage.current.offsetHeight,
+        width: testImage.current.offsetWidth,
+      });
+    }
+  }, [testImage.current, mainData, data]);
+
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        ref={testImage}
+        style={{
+          position: "absolute",
+          top: "-1000px",
+          right: "-10000px",
+        }}
+        alt=""
+        src={`data:image/png;base64,${data}`}
+      />
+
+      <div
+        className="flex flex-col justify-center pt-4"
+        style={{ width: `${imageRect.width}px` }}
+      >
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={scrubber}
+          class="slider"
+          id="myRange"
+          onChange={(e) => {
+            setScrubber(e.target.value);
+          }}
+        />
+        <div
+          style={{
+            position: "relative",
+            width: `100%`,
+            height: `${imageRect.height}px`,
+          }}
+          className="mt-4"
+        >
+          <div
+            style={{
+              position: "absolute",
+              left: "0px",
+              height: "100%",
+              top: "0px",
+              width: "100%",
+            }}
+          >
+            <div
+              style={{
+                position: "relative",
+                width: `${scrubber}%`,
+                overflow: "hidden",
+                height: `${imageRect.height}px`,
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                style={{
+                  position: "absolute",
+                  left: "0px",
+                  top: "0px",
+                  minWidth: `${imageRect.width}px`,
+                }}
+                alt=""
+                src={`data:image/png;base64,${data}`}
+              />
+            </div>
+          </div>
+          <div
+            style={{
+              position: "absolute",
+              right: "0px",
+              height: "100%",
+              top: "0px",
+              width: `${100 - scrubber}%`,
+            }}
+          >
+            <div
+              style={{
+                position: "relative",
+                width: `100%`,
+                overflow: "hidden",
+                height: `${imageRect.height}px`,
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                style={{
+                  position: "absolute",
+                  top: "0px",
+                  right: "0px",
+                  minWidth: `${imageRect.width}px`,
+                }}
+                alt=""
+                src={`data:image/png;base64,${mainData}`}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 

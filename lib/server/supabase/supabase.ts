@@ -37,6 +37,7 @@ export type Action = {
   head_sha: string;
   actor: string;
   status?: "success" | "failure" | "neutral";
+  num_snapshots: number;
 };
 
 export type Snapshot = {
@@ -153,6 +154,12 @@ export async function insertSnapshot({
   }
 
   const sha = createHash("sha256").update(image.content).digest("hex");
+
+  await incrementActionNumSnapshots(action.data.id);
+
+  if (primary_changed) {
+    await incrementActionNumSnapshotsChanged(action.data.id);
+  }
 
   return supabase
     .from("Snapshots")
@@ -277,4 +284,16 @@ export async function updateActionStatus(
     .update({ status })
     .eq("id", actionId)
     .single();
+}
+
+export async function incrementActionNumSnapshots(action_id) {
+  return supabase.rpc("snapshots_inc", {
+    action_id,
+  });
+}
+
+export async function incrementActionNumSnapshotsChanged(action_id) {
+  return supabase.rpc("snapshots_changed_inc", {
+    action_id,
+  });
 }

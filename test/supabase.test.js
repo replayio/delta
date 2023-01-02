@@ -5,13 +5,12 @@ import {
   getActionFromRunId,
   getSnapshotsForAction,
   updateActionStatus,
+  incrementActionNumSnapshotsChanged,
+  incrementActionNumSnapshots,
+  getAction,
 } from "../lib/server/supabase/supabase";
 
-import {
-  downloadSnapshot,
-  listCorruptedSnapshots,
-  removeCorruptedSnapshots,
-} from "../lib/server/supabase/supabase-storage";
+import { downloadSnapshot } from "../lib/server/supabase/supabase-storage";
 
 const projectId = "dcb5df26-b418-4fe2-9bdf-5a838e604ec4";
 
@@ -40,7 +39,7 @@ describe("supabase", () => {
     expect(snapshot.data.slice(0, 10)).toEqual("iVBORw0KGg");
   });
 
-  it.only("can update action status", async () => {
+  it("can update action status", async () => {
     const action = await updateActionStatus(
       "9ba81dd3-98c4-44a9-a013-5835a1931ae9",
       "failure"
@@ -54,5 +53,27 @@ describe("supabase", () => {
     );
 
     expect(action2.data.status).toEqual("success");
+  });
+
+  it("increments num_snapshots", async () => {
+    const actionId = "bb0205c1-0055-40e0-bcad-717ccce77685";
+    const action = await getAction(actionId);
+
+    const { num_snapshots } = action.data;
+    const { data } = await incrementActionNumSnapshots(actionId);
+
+    const newNumSnapshots = data[0].num_snapshots;
+    expect(newNumSnapshots).toEqual(num_snapshots + 1);
+  });
+
+  it("increments num_snapshots_changed", async () => {
+    const actionId = "bb0205c1-0055-40e0-bcad-717ccce77685";
+    const action = await getAction(actionId);
+
+    const { num_snapshots_changed } = action.data;
+    const { data } = await incrementActionNumSnapshotsChanged(actionId);
+
+    const newNumSnapshots = data[0].num_snapshots_changed;
+    expect(newNumSnapshots).toEqual(num_snapshots_changed + 1);
   });
 });

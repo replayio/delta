@@ -18,7 +18,6 @@ export default function Home() {
   const router = useRouter();
   const [branch, setBranch] = useState("main");
   const projectShort = router.query.short;
-  console.log("project short", projectShort);
 
   useEffect(
     () => setBranch(router.query.branch || "main"),
@@ -31,7 +30,6 @@ export default function Home() {
   );
 
   const projectId = projectQuery.data?.id;
-  console.log(`project`, projectQuery?.data);
 
   const actionsQuery = useSWR(
     projectId
@@ -68,49 +66,57 @@ export default function Home() {
 
   const { data, error, isLoading } = useFetchSnapshots(branch, projectQuery);
 
-  const { snapshots, newSnapshots, changedSnapshots, unchangedSnapshots } =
-    useMemo(() => {
-      let snapshots = sortBy(data || [], (snapshot) => snapshot.file);
-
-      const newSnapshots = snapshots.filter(
-        (snapshot) => !snapshot.mainSnapshot
-      );
-      const changedSnapshots = snapshots.filter(
-        (snapshot) => snapshot.primary_changed
-      );
-
-      const unchangedSnapshots = snapshots.filter(
-        (snapshot) => !snapshot.primary_changed
-      );
-
-      snapshots =
-        mode == "new"
-          ? newSnapshots
-          : mode == "changed"
-          ? changedSnapshots
-          : mode == "unchanged"
-          ? unchangedSnapshots
-          : data;
-
-      return { snapshots, newSnapshots, changedSnapshots, unchangedSnapshots };
-    }, [data, mode]);
-
-  const selectedSnapshot = snapshots?.[selectedSnapshotIndex];
-
-  console.log("snapshots", {
-    selectedSnapshot,
-    newSnapshots,
+  const {
     snapshots,
+    newSnapshots,
+    selectedSnapshot,
     changedSnapshots,
     unchangedSnapshots,
-  });
+  } = useMemo(() => {
+    let snapshots = sortBy(data || [], (snapshot) => snapshot.file);
+
+    const newSnapshots = snapshots.filter((snapshot) => !snapshot.mainSnapshot);
+    const changedSnapshots = snapshots.filter(
+      (snapshot) => snapshot.primary_changed
+    );
+
+    const unchangedSnapshots = snapshots.filter(
+      (snapshot) => !snapshot.primary_changed
+    );
+
+    snapshots =
+      mode == "new"
+        ? newSnapshots
+        : mode == "changed"
+        ? changedSnapshots
+        : mode == "unchanged"
+        ? unchangedSnapshots
+        : data;
+
+    const selectedSnapshot = snapshots?.[selectedSnapshotIndex];
+    console.log("snapshots", {
+      newSnapshots,
+      snapshots,
+      changedSnapshots,
+      unchangedSnapshots,
+      selectedSnapshot,
+    });
+
+    return {
+      snapshots,
+      newSnapshots,
+      changedSnapshots,
+      unchangedSnapshots,
+      selectedSnapshot,
+    };
+  }, [data, mode, selectedSnapshotIndex]);
 
   if (error || actionsQuery.error) {
     console.log("error", error, actionsQuery.error);
   }
 
   return (
-    <div className={`h-full overflow-y-hidden`}>
+    <div className={`h-full overflow-hidden`}>
       <Header
         setBranch={setBranch}
         currentAction={currentAction}
@@ -158,7 +164,7 @@ export default function Home() {
               ))}
             </div>
           </div>
-          <div className="flex flex-col flex-grow items-center ">
+          <div className="flex flex-col flex-grow overflow-x-hidden  items-center ">
             {selectedSnapshot && (
               <Snapshot
                 key={selectedSnapshot.id}

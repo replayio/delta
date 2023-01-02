@@ -92,7 +92,7 @@ export function Header({
         {changedSnapshots.length > 0 && (
           <div className="flex items-center mr-4 text-gray-600">
             {/* <div className="rounded-lg bg-yellow-300 w-2 h-2 mr-2" /> */}
-            <div className="text-yellow-500">
+            <div className="text-gray-500">
               {changedSnapshots.length} Changed
             </div>
           </div>

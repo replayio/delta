@@ -39,11 +39,6 @@ export function Snapshot({ snapshot, project, branch }) {
     fetcher
   );
 
-  console.log(
-    isLoading,
-    mainIsLoading,
-    snapshot?.primary_diff_path && diffIsLoading
-  );
   if (
     isLoading ||
     mainIsLoading ||
@@ -60,8 +55,8 @@ export function Snapshot({ snapshot, project, branch }) {
 
   return (
     <div
-      className="flex flex-col px-10 mt-4 overflow-y-auto w-full pb-20 items-center"
-      style={{ minHeight: "300px" }}
+      className="flex flex-col mt-4 overflow-y-auto overflow-x-auto  pb-20  items-center"
+      style={{ minHeight: "300px", width: "calc(100% - 20px)" }}
     >
       <ImageSlider data={data} mainData={mainData} />
       <div className="mt-4 flex items-center flex-col ">
@@ -110,7 +105,7 @@ function ImageSlider({ data, mainData }) {
       />
 
       <div
-        className="flex flex-col justify-center pt-4"
+        className="flex flex-col justify-center pt-4 "
         style={{ width: `${imageRect.width}px` }}
       >
         <input

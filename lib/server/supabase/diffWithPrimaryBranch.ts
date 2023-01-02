@@ -1,5 +1,6 @@
 import { diffBase64Images } from "../../diff";
-import { getSnapshotFromBranch, getProject } from "./supabase";
+import { getProject } from "./supabase";
+import { getSnapshotFromBranch } from "./snapshots";
 
 import { downloadSnapshot, uploadSnapshot } from "./supabase-storage";
 

@@ -1,4 +1,4 @@
-import { insertSnapshot } from "../../lib/server/supabase/supabase";
+import { insertSnapshot } from "../../lib/server/supabase/snapshots";
 
 import { uploadSnapshot } from "../../lib/server/supabase/supabase-storage";
 import { diffWithPrimaryBranch } from "../../lib/server/supabase/diffWithPrimaryBranch";

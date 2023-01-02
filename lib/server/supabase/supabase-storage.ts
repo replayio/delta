@@ -6,23 +6,28 @@ const supabase = createClient();
 const Buffer = require("buffer").Buffer;
 
 export async function uploadSnapshot(
-  content: string,
+  content: string | Buffer,
   projectId: string
-): Promise<{ error: string; data: null } | { data: any; error: null }> {
+): Promise<
+  | { error: string; data: null }
+  | { data: { path: string; sha: string }; error: null }
+> {
   const sha = createHash("sha256").update(content).digest("hex");
   const path = `${projectId}/${sha}.png`;
-  const res = await supabase.storage
-    .from("snapshots")
-    .upload(path, Buffer.from(content, "base64"), {
-      contentType: "image/png",
-    });
+
+  if (typeof content === "string") {
+    content = Buffer.from(content, "base64");
+  }
+
+  const res = await supabase.storage.from("snapshots").upload(path, content, {
+    contentType: "image/png",
+  });
 
   if (res.error) {
-    console.log("error", res.error);
     return { error: (res.error as any).error, data: { sha, path } };
   }
 
-  return { data: res.data[0], error: null };
+  return { data: { path, sha }, error: null };
 }
 
 export async function downloadSnapshot(

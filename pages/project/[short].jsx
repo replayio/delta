@@ -135,11 +135,7 @@ export default function Home() {
         shownBranches={shownBranches}
       />
 
-      {!projectId ? (
-        <div className="flex justify-center items-center h-full">
-          Can&#39;t find project...
-        </div>
-      ) : currentAction?.status == "neutral" ? (
+      {currentAction?.status == "neutral" ? (
         <div className="flex justify-center items-center mt-10 italic underline text-blue-600">
           <a
             target="_blank"
@@ -149,7 +145,7 @@ export default function Home() {
             Action in progress...
           </a>
         </div>
-      ) : isLoading || actionsQuery.isLoading ? (
+      ) : !projectId || isLoading || actionsQuery.isLoading ? (
         <div className="flex justify-center items-center mt-10">
           <ArrowPathIcon
             className="text-violet-500 h-5 w-5"

@@ -6,8 +6,8 @@ export function SnapshotRow({ snapshot, onSelect, index, selectedSnapshot }) {
     <div
       className={`mt-1 flex items-center w-full px-4 text-sm cursor-pointer  text-ellipsis ${
         isSelected
-          ? "bg-blue-500 text-white hover:bg-blue-600"
-          : "text-black hover:bg-gray-100 "
+          ? "bg-violet-500 text-white hover:bg-violet-600"
+          : "text-gray-500 hover:bg-gray-100 "
       }`}
       onClick={() => onSelect(index)}
       key={snapshot.id}

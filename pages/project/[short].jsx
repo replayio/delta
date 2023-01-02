@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
+import { ArrowPathIcon } from "@heroicons/react/20/solid";
 
 import useSWR from "swr";
 import uniqBy from "lodash/uniqBy";
@@ -47,14 +48,17 @@ export default function Home() {
       actionsQuery.data
         ? sortBy(
             uniqBy(
-              actionsQuery.data.map((action) => action.Branches),
+              actionsQuery.data.map((action) => ({
+                ...action.Branches,
+                num_snapshots: action.num_snapshots,
+                num_snapshots_changed: action.num_snapshots_changed,
+              })),
               (b) => b.name
             )
           )
         : [],
     [actionsQuery.data]
   );
-
   const currentAction = useMemo(
     () =>
       sortBy(
@@ -66,13 +70,7 @@ export default function Home() {
 
   const { data, error, isLoading } = useFetchSnapshots(branch, projectQuery);
 
-  const {
-    snapshots,
-    newSnapshots,
-    selectedSnapshot,
-    changedSnapshots,
-    unchangedSnapshots,
-  } = useMemo(() => {
+  const { snapshots, selectedSnapshot, changedSnapshots } = useMemo(() => {
     let snapshots = sortBy(data || [], (snapshot) => snapshot.file);
 
     const newSnapshots = snapshots.filter((snapshot) => !snapshot.mainSnapshot);
@@ -141,9 +139,14 @@ export default function Home() {
           </a>
         </div>
       ) : isLoading || actionsQuery.isLoading ? (
-        <div className="flex justify-center items-center">loading...</div>
+        <div className="flex justify-center items-center mt-10">
+          <ArrowPathIcon
+            className="text-violet-500 h-5 w-5"
+            aria-hidden="true"
+          />
+        </div>
       ) : error || actionsQuery.error ? (
-        <div className="flex justify-center items-center">error</div>
+        <div className="flex justify-center items-center mt-10">Error</div>
       ) : (
         <div className="flex  h-full">
           <div className="flex flex-col">

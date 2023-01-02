@@ -1,6 +1,7 @@
 import useSWR from "swr";
 const { useState, useRef, useEffect } = require("react");
 const fetcher = (...args) => fetch(...args).then((res) => res.json());
+import { ArrowPathIcon } from "@heroicons/react/20/solid";
 
 const Placeholder = () => (
   <div
@@ -12,6 +13,7 @@ const Placeholder = () => (
 );
 
 export function Snapshot({ snapshot, project, branch }) {
+  const [mode, setMode] = useState("slider");
   const { data, error, isLoading } = useSWR(
     encodeURI(`/api/downloadSnapshot?path=${snapshot?.path}`),
     fetcher
@@ -45,7 +47,9 @@ export function Snapshot({ snapshot, project, branch }) {
     (snapshot?.primary_diff_path && diffIsLoading)
   ) {
     return (
-      <div className="flex justify-center items-center h-full">loading...</div>
+      <div className="flex justify-center items-center  mt-10">
+        <ArrowPathIcon className="text-violet-500 h-5 w-5" aria-hidden="true" />
+      </div>
     );
   }
 
@@ -58,20 +62,24 @@ export function Snapshot({ snapshot, project, branch }) {
       className="flex flex-col mt-4 overflow-y-auto overflow-x-auto  pb-20  items-center"
       style={{ minHeight: "300px", width: "calc(100% - 20px)" }}
     >
-      <ImageSlider data={data} mainData={mainData} />
-      <div className="mt-4 flex items-center flex-col ">
-        {snapshot.primary_diff_path ? (
-          <SnapshotImage data={diffData} />
-        ) : (
-          <img
-            className=""
-            src={encodeURI(
-              `/api/snapshot-diff/?projectId=${project?.id}&branch=${branch}&file=${snapshot.file}`
-            )}
-            alt=""
-          />
-        )}
-      </div>
+      <Toggle mode={mode} setMode={setMode} />
+      {mode == "slider" ? (
+        <ImageSlider data={data} mainData={mainData} />
+      ) : (
+        <div className="mt-4 flex items-center flex-col ">
+          {snapshot.primary_diff_path ? (
+            <SnapshotImage data={diffData} />
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={encodeURI(
+                `/api/snapshot-diff/?projectId=${project?.id}&branch=${branch}&file=${snapshot.file}`
+              )}
+              alt=""
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -108,17 +116,6 @@ function ImageSlider({ data, mainData }) {
         className="flex flex-col justify-center pt-4 "
         style={{ width: `${imageRect.width}px` }}
       >
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={scrubber}
-          class="slider"
-          id="myRange"
-          onChange={(e) => {
-            setScrubber(e.target.value);
-          }}
-        />
         <div
           style={{
             position: "relative",
@@ -127,6 +124,33 @@ function ImageSlider({ data, mainData }) {
           }}
           className="mt-4"
         >
+          <input
+            id="image-slider-scrubber"
+            type="range"
+            min="0"
+            max="100"
+            value={scrubber}
+            style={{
+              top: "calc(50% - 6px)",
+              left: "-6px",
+              position: "absolute",
+              zIndex: 100,
+              width: "calc(100% + 12px)",
+            }}
+            onChange={(e) => {
+              setScrubber(e.target.value);
+            }}
+          />
+          <div
+            style={{
+              width: "1px",
+              height: "100%",
+              position: "absolute",
+              left: `calc(${scrubber}% )`,
+              background: "#f0f0f0",
+              zIndex: 99,
+            }}
+          />
           <div
             style={{
               position: "absolute",
@@ -198,4 +222,57 @@ function SnapshotImage({ data }) {
     return <Placeholder />;
   }
   return <img src={`data:image/png;base64,${data}`} />;
+}
+
+function ToggleButton({ isSelected, onToggle, children }) {
+  return (
+    <div
+      className={`flex justify-center cursor-pointer py-2 px-4 hover:bg-slate-200 ${
+        isSelected ? "fill-violet-500" : "fill-slate-500"
+      } `}
+      onClick={onToggle}
+      // style={{ width: "34px" }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Toggle({ mode, setMode }) {
+  return (
+    <div
+      className="flex justify-between  bg-slate-100 border-slate-300 border"
+      style={{
+        borderRadius: "5px",
+      }}
+    >
+      <ToggleButton
+        isSelected={mode == "slider"}
+        onToggle={() => setMode("slider")}
+      >
+        <svg
+          width="18"
+          height="14"
+          viewBox="0 0 18 14"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path d="M18 4L14 0V3H7V5H14V8M4 6L0 10L4 14V11H11V9H4V6Z" />
+        </svg>
+      </ToggleButton>
+
+      <ToggleButton
+        isSelected={mode == "diff"}
+        onToggle={() => setMode("diff")}
+      >
+        <svg
+          width="15"
+          height="12"
+          viewBox="0 0 15 12"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path d="M7.5 2.8275L12.2925 10.5H2.7075L7.5 2.8275ZM7.5 0L0 12H15" />
+        </svg>
+      </ToggleButton>
+    </div>
+  );
 }

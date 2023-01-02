@@ -1,6 +1,6 @@
 import Dropdown from "./Dropdown";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useFetchSnapshots } from "../hooks/useFetchSnapshots";
 
 function ApproveButton({ branch, projectQuery, currentAction }) {
@@ -55,7 +55,7 @@ function ApproveButton({ branch, projectQuery, currentAction }) {
     <div className="flex items-center">
       <button
         onClick={() => approveBranch()}
-        className="bg-blue-500 hover:bg-blue-700 text-white font-medium  py-1 px-2 rounded mr-4"
+        className="bg-violet-500 hover:bg-violet-700 text-white font-medium  py-1 px-2 rounded mr-4"
       >
         Approve
       </button>
@@ -71,21 +71,25 @@ export function Header({
   currentAction,
   changedSnapshots,
 }) {
+  const shownBranches = useMemo(
+    () =>
+      branches
+        .filter((i) => i.status == "open")
+        .filter((i) => i.name != projectQuery.data.primary_branch),
+    [branches, projectQuery]
+  );
+
   return (
     <div className="flex text-black justify-between border-b-2 mb-1 border-b-slate-100 ">
       <div className="flex items-center py-2 pl-4">
-        <div style={{ transform: "rotate(-90deg)" }}>
+        <div style={{ transform: "rotate(-90deg)" }} className="mr-2">
           <Image width={16} height={16} src="/logo.svg" alt="Replay logo" />
         </div>
-        <h1 className="pl-2 text-lg">Delta</h1>
-        <div className="ml-1 mr-1"> / </div>
         <Dropdown
           onChange={(val) => setBranch(val)}
           selected={branch}
           project={projectQuery.data}
-          options={branches
-            .filter((i) => i.status == "open")
-            .map((b) => b.name)}
+          options={shownBranches.map((b) => b.name)}
         />
       </div>
       <div className="flex">

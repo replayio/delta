@@ -1,0 +1,15 @@
+name: Typescript
+on: [push, pull_request]
+
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18
+      - name: install deps
+        run: yarn
+      - name: Check types
+        run: yarn tsc

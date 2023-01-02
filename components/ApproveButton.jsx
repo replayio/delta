@@ -1,32 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFetchSnapshots } from "../hooks/useFetchSnapshots";
 
 export function ApproveButton({ branch, projectQuery, currentAction }) {
   const { data, error, isLoading } = useFetchSnapshots(branch, projectQuery);
-  const [newBranch, setBranch] = useState(null);
-  if (isLoading) {
-    return null;
-  }
+  const [currentBranch, setBranch] = useState(null);
 
-  const hasChanged = data?.some((snapshot) => snapshot.primary_changed);
+  useEffect(() => {
+    setBranch(branch);
+  }, []);
 
-  // Don't show the approve button if:
-  // - the branch has no changes
-  // - the branch has already been approved
-  // - the branch has a currently running action
-  if (!hasChanged || ["success", "neutral"].includes(currentAction?.status)) {
-    return null;
-  }
-
-  if (newBranch?.status == "success") {
-    return (
-      <div className="flex items-center">
-        <button className="font-medium py-1 px-2 rounded mr-4">Approved</button>
-      </div>
-    );
-  }
-
-  const approveBranch = async () => {
+  const toggleBranchStatus = async (status) => {
     console.log({
       branch,
       status: "success",
@@ -40,20 +23,47 @@ export function ApproveButton({ branch, projectQuery, currentAction }) {
       },
       body: JSON.stringify({
         branch,
-        status: "success",
+        status,
         projectId: projectQuery.data.id,
       }),
     });
 
     const body = await res.json();
-    setBranch(body);
+    console.log("res", body.action);
+    setBranch(body.action);
   };
+
+  if (isLoading) {
+    return null;
+  }
+
+  const hasChanged = data?.some((snapshot) => snapshot.primary_changed);
+
+  // Don't show the approve button if:
+  // - the branch has no changes
+  // - the branch has a currently running action
+  if (!hasChanged || currentBranch.status == "neutral") {
+    return null;
+  }
+
+  if (currentBranch.status == "success") {
+    return (
+      <div className="flex items-center">
+        <button
+          onClick={() => toggleBranchStatus("failure")}
+          className="font-medium py-1 px-2 mr-4 text-violet-400  border-2 border-violet-400 hover:border-violet-500 hover:text-violet-500 rounded-md"
+        >
+          Changes Approved
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center">
       <button
-        onClick={() => approveBranch()}
-        className="bg-violet-500 hover:bg-violet-700 text-white font-medium  py-1 px-2 rounded mr-4"
+        onClick={() => toggleBranchStatus("success")}
+        className="font-medium py-1 px-2 mr-4 text-violet-400  border-2 border-violet-400 hover:border-violet-500 hover:text-violet-500 rounded-md"
       >
         Approve
       </button>

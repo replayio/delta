@@ -7,7 +7,7 @@ import {
 
 import { updateComment, updateCheck } from "../../lib/github";
 import { getDeltaBranchUrl } from "../../lib/delta";
-
+import omit from "lodash/omit";
 export default async function handler(req, res) {
   const { branch, projectId, status } = req.body;
 
@@ -46,21 +46,31 @@ export default async function handler(req, res) {
     branchRecord.data.check_id,
     { conclusion: status, title: "Changes approved", summary: "" }
   );
-
-  const updatedComment = await updateComment(
-    organization,
-    repository,
-    branchRecord.data.comment_id,
-    {
-      body: `Changes approved\n<a href="${getDeltaBranchUrl(
-        projectRecord.data,
-        branchRecord.data.name
-      )}">View snapshots</a>`,
-    }
+  console.log(
+    "updateBranchStatus (3) updated check",
+    omit(updatedCheck.data, ["app"])
   );
 
-  if (updatedComment.status != 200) {
-    return res.status(500).json({ error: updatedComment });
+  let updatedComment;
+  if (branchRecord.data.comment_id) {
+    updatedComment = await updateComment(
+      organization,
+      repository,
+      branchRecord.data.comment_id,
+      {
+        body: `Changes approved\n<a href="${getDeltaBranchUrl(
+          projectRecord.data,
+          branchRecord.data.name
+        )}">View snapshots</a>`,
+      }
+    );
+
+    if (updatedComment.status != 200) {
+      console.log(
+        "updateBranchStatus (4) failed to update comment",
+        updatedComment
+      );
+    }
   }
 
   res.status(200).json({

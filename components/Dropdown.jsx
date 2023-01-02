@@ -29,7 +29,7 @@ export default function Dropdown({ selected, options, onChange, project }) {
       >
         <Menu.Items className="absolute left-0 z-10 mt-2 w-56 flex flex-col truncate origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
           {options.map((option) => (
-            <Menu.Item key={option}>
+            <Menu.Item key={option.name}>
               {({ active }) => (
                 <a
                   href={`/project/${project.short}/?branch=${option.name}`}

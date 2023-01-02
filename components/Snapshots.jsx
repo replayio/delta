@@ -37,7 +37,7 @@ export function Snapshots({
   if (error || actionsQuery.error) return <div>error</div>;
 
   return (
-    <div className="flex h-full overflow-hidden pl-4">
+    <div className="flex h-full pl-4">
       <div className="flex flex-col">
         <div className="flex flex-col mb-4">
           <div
@@ -69,20 +69,31 @@ export function Snapshots({
           </div>
         </div>
 
-        <div className="flex flex-col h-full overflow-y-scroll">
+        <div
+          className="flex flex-col h-full overflow-y-scroll overflow-x-hidden"
+          style={{ width: "300px" }}
+        >
           {snapshots.map((snapshot, index) => (
             <SnapshotRow
               key={snapshot.id}
+              branch={branch}
               onSelect={setSelectedSnapshot}
               index={index}
               snapshot={snapshot}
               selectedSnapshot={selectedSnapshot}
+              project={projectQuery.data}
             />
           ))}
         </div>
       </div>
-      <div className="flex  flex-col flex-grow items-center overflow-hidden">
-        {selectedSnapshot && <Snapshot snapshot={selectedSnapshot} />}
+      <div className="flex  flex-col flex-grow items-center ">
+        {selectedSnapshot && (
+          <Snapshot
+            branch={branch}
+            project={projectQuery.data}
+            snapshot={selectedSnapshot}
+          />
+        )}
       </div>
     </div>
   );

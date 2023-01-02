@@ -1,0 +1,15 @@
+// Vitest Snapshot v1
+
+exports[`uploadSnapshot > should upload a snapshot 1`] = `
+{
+  "action_changed": false,
+  "action_id": "f16a4a35-052b-41ad-8d05-9133b3a70fcb",
+  "changed": null,
+  "file": "./playwright/visuals/dark/object-collapsed.png",
+  "path": "dcb5df26-b418-4fe2-9bdf-5a838e604ec4/68e4dd6b357ac328ce5ee7d4f032d6828cc1de32a32a303d8e2aecbd04fede90.png",
+  "primary_changed": true,
+  "primary_diff_path": "dcb5df26-b418-4fe2-9bdf-5a838e604ec4/ec18c80d8e7d03673f333ead45b30bc06a769fa30168a8289f60fc55ceeb1c7b.png",
+  "sha": "68e4dd6b357ac328ce5ee7d4f032d6828cc1de32a32a303d8e2aecbd04fede90",
+  "status": "Duplicate",
+}
+`;

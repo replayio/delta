@@ -1,4 +1,7 @@
-import { getProject, getProjectByShort } from "../../lib/supabase";
+import {
+  getProject,
+  getProjectByShort,
+} from "../../lib/server/supabase/supabase";
 
 export default async function handler(req, res) {
   const { projectId, projectShort } = req.query;

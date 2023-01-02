@@ -1,4 +1,4 @@
-import { getPublicProjects } from "../../lib/supabase";
+import { getPublicProjects } from "../../lib/server/supabase/supabase";
 
 export default async function handler(req, res) {
   const projects = await getPublicProjects();

@@ -10,7 +10,7 @@ const Placeholder = () => (
   </div>
 );
 
-export function Snapshot({ snapshot }) {
+export function Snapshot({ snapshot, project, branch }) {
   const { data, error, isLoading } = useSWR(
     encodeURI(`/api/downloadSnapshot?path=${snapshot?.path}`),
     fetcher
@@ -32,8 +32,8 @@ export function Snapshot({ snapshot }) {
 
   return (
     <div className="flex flex-col p-10" style={{ minHeight: "300px" }}>
-      <div className="flex mt-4">
-        <div className=" overflow-y-auto mr-2 flex items-center flex-col">
+      <div className="flex flex-col mt-4 justify-center">
+        <div className=" overflow-y-auto flex items-center flex-col">
           <div>Before</div>
           {mainData ? (
             <img src={`data:image/png;base64,${mainData}`} />
@@ -41,7 +41,7 @@ export function Snapshot({ snapshot }) {
             <Placeholder />
           )}
         </div>
-        <div className=" overflow-y-auto flex items-center flex-col">
+        <div className=" overflow-y-auto flex items-center flex-col mt-4">
           <div>After</div>
           {data ? (
             <img src={`data:image/png;base64,${data}`} />
@@ -49,6 +49,16 @@ export function Snapshot({ snapshot }) {
             <Placeholder />
           )}
         </div>
+      </div>
+      <div className="mt-4 flex items-center flex-col p-4">
+        <div>Diff</div>
+        <img
+          className=""
+          src={encodeURI(
+            `/api/snapshot-diff/?projectId=${project?.id}&branch=${branch}&file=${snapshot.file}`
+          )}
+          alt=""
+        />
       </div>
     </div>
   );

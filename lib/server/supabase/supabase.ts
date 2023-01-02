@@ -2,7 +2,7 @@ import {
   PostgrestResponse,
   PostgrestSingleResponse,
 } from "@supabase/supabase-js";
-import createClient from "./initServerSupabase";
+import createClient from "../../initServerSupabase";
 const { createHash } = require("crypto");
 
 const supabase = createClient();
@@ -49,6 +49,7 @@ export type Snapshot = {
   action_changed: boolean;
   primary_changed: boolean;
   created_at: string;
+  primary_diff_path?: string;
 };
 
 type ResponseError = {
@@ -59,21 +60,26 @@ type ResponseError = {
 const createError = (error: string): ResponseError => ({ error, data: null });
 
 export async function getSnapshotFromBranch(
-  image: { file: string; content: string },
+  file: string,
   projectId: string,
   branchName: string
-): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
+): Promise<
+  | { error: { message: string; code: null }; data: null }
+  | PostgrestSingleResponse<Snapshot>
+> {
   const branch = await getBranchFromProject(projectId, branchName);
 
   if (branch.error) {
-    return createError("Branch not found");
+    return { error: { message: "Branch not found", code: null }, data: null };
   }
+
+  const action = await getActionFromBranch(branch.data.id);
 
   return supabase
     .from("Snapshots")
-    .select("*, Actions(branch_id)")
-    .eq("file", image.file)
-    .eq("Actions.branch_id", branch.data.id)
+    .select("*")
+    .eq("file", file)
+    .eq("action_id", action.data.id)
     .order("created_at", { ascending: false })
     .limit(1)
     .single();
@@ -124,14 +130,15 @@ export async function getSnapshotsForAction(
   return supabase.from("Snapshots").select("*").eq("action_id", actionId);
 }
 
-export async function insertSnapshot(
+export async function insertSnapshot({
   branchName,
   projectId,
   image,
   status,
   primary_changed,
-  action_changed = false
-): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
+  action_changed = false,
+  primary_diff_path = "",
+}): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
   const branch = await getBranchFromProject(projectId, branchName);
   if (branch.error) {
     return createError(`Branch not found for ${branchName}`);
@@ -157,6 +164,7 @@ export async function insertSnapshot(
       status,
       action_changed,
       primary_changed,
+      primary_diff_path,
     })
     .single();
 }

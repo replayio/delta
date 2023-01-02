@@ -5,13 +5,13 @@ import {
   getActionFromRunId,
   getSnapshotsForAction,
   updateActionStatus,
-} from "../lib/supabase";
+} from "../lib/server/supabase/supabase";
 
 import {
   downloadSnapshot,
   listCorruptedSnapshots,
   removeCorruptedSnapshots,
-} from "../lib/supabase-storage";
+} from "../lib/server/supabase/supabase-storage";
 
 const projectId = "dcb5df26-b418-4fe2-9bdf-5a838e604ec4";
 

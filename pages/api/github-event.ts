@@ -14,7 +14,7 @@ import {
   getActionFromRunId,
   getSnapshotsForAction,
   updateActionStatus,
-} from "../../lib/supabase";
+} from "../../lib/server/supabase/supabase";
 import { getDeltaBranchUrl } from "../../lib/delta";
 
 const supabase = createClient();

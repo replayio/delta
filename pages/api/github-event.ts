@@ -319,7 +319,9 @@ export default async function handler(req, res) {
         }
 
         log("updating action status", action.data.id, conclusion);
-        const updatedAction = await updateAction(action.data.id, conclusion);
+        const updatedAction = await updateAction(action.data.id, {
+          status: conclusion,
+        });
 
         if (updatedAction.error) {
           return skip(

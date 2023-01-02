@@ -162,7 +162,7 @@ export default function Home() {
         <div className="flex  h-full">
           <div className="flex flex-col">
             <div
-              className="flex flex-col h-full overflow-y-scroll overflow-x-hidden"
+              className="flex flex-col h-full overflow-y-auto overflow-x-hidden"
               style={{ width: "300px" }}
             >
               {snapshots.map((snapshot, index) => (

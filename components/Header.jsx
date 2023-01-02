@@ -9,7 +9,6 @@ export function Header({
   projectQuery,
   shownBranches,
   currentAction,
-  changedSnapshots,
 }) {
   return (
     <div className="flex text-black justify-between border-b-2 mb-1 border-b-slate-100 ">

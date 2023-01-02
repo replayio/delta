@@ -26,7 +26,7 @@ export function useFetchSnapshots(branch, projectQuery) {
     isLoading: mainLoading,
   } = useSWR(primaryKey, fetcher);
 
-  console.log({ data, mainData });
+  console.log({ data, mainData, error, mainError });
   const snapshots = useMemo(() => {
     if (!data || !mainData) return [];
     if (data.error || mainData.error) return null;

@@ -43,6 +43,11 @@ export function Snapshot({ snapshot, project, branch }) {
     mainIsLoading ||
     (snapshot?.primary_diff_path && diffIsLoading)
   ) {
+    console.log(
+      isLoading,
+      mainIsLoading,
+      snapshot?.primary_diff_path && diffIsLoading
+    );
     return (
       <div className="flex justify-center items-center h-full">loading...</div>
     );

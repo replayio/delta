@@ -23,7 +23,7 @@ function ApproveButton({ branch, projectQuery, currentAction }) {
   if (newBranch?.status == "success") {
     return (
       <div className="flex items-center">
-        <button className="font-bold  py-1 px-2 rounded mr-4">Approved</button>
+        <button className="font-medium py-1 px-2 rounded mr-4">Approved</button>
       </div>
     );
   }
@@ -55,7 +55,7 @@ function ApproveButton({ branch, projectQuery, currentAction }) {
     <div className="flex items-center">
       <button
         onClick={() => approveBranch()}
-        className="bg-blue-500 hover:bg-blue-700 text-white  py-1 px-2 rounded mr-4"
+        className="bg-blue-500 hover:bg-blue-700 text-white font-medium  py-1 px-2 rounded mr-4"
       >
         Approve
       </button>
@@ -69,6 +69,7 @@ export function Header({
   projectQuery,
   branches,
   currentAction,
+  changedSnapshots,
 }) {
   return (
     <div className="flex text-black justify-between border-b-2 mb-1 border-b-slate-100 ">
@@ -88,14 +89,17 @@ export function Header({
         />
       </div>
       <div className="flex">
+        {changedSnapshots.length > 0 && (
+          <div className="flex items-center mr-4 text-gray-600">
+            {/* <div className="rounded-lg bg-yellow-400 w-2 h-2 mr-2" /> */}
+            {changedSnapshots.length} changed
+          </div>
+        )}
         <ApproveButton
           branch={branch}
           projectQuery={projectQuery}
           currentAction={currentAction}
         />
-        <div className="flex items-center py-2 pr-4">
-          {projectQuery.data?.name}
-        </div>
       </div>
     </div>
   );

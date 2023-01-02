@@ -31,16 +31,18 @@ export default function Home() {
   );
 
   const projectId = projectQuery.data?.id;
+  console.log(`project`, projectQuery?.data);
 
   const actionsQuery = useSWR(
-    encodeURI(
-      projectQuery.isLoading ? null : `/api/getActions?projectId=${projectId}`
-    ),
+    projectId
+      ? encodeURI(
+          projectQuery.isLoading
+            ? null
+            : `/api/getActions?projectId=${projectId}`
+        )
+      : null,
     fetcher
   );
-
-  console.log("projectQuery", projectQuery?.data);
-  console.log("actionsQuery", actionsQuery?.data);
 
   const branches = useMemo(
     () =>
@@ -54,8 +56,6 @@ export default function Home() {
         : [],
     [actionsQuery.data]
   );
-
-  const toggleMode = (newMode) => (newMode == mode ? null : setMode(newMode));
 
   const currentAction = useMemo(
     () =>
@@ -97,7 +97,17 @@ export default function Home() {
 
   const selectedSnapshot = snapshots?.[selectedSnapshotIndex];
 
-  console.log("Selected snapshot", selectedSnapshot);
+  console.log("snapshots", {
+    selectedSnapshot,
+    newSnapshots,
+    snapshots,
+    changedSnapshots,
+    unchangedSnapshots,
+  });
+
+  if (error || actionsQuery.error) {
+    console.log("error", error, actionsQuery.error);
+  }
 
   return (
     <div className={`h-full overflow-y-hidden`}>
@@ -106,10 +116,15 @@ export default function Home() {
         currentAction={currentAction}
         branch={branch}
         projectQuery={projectQuery}
+        changedSnapshots={changedSnapshots}
         branches={branches}
       />
 
-      {currentAction?.status == "neutral" ? (
+      {!projectId ? (
+        <div className="flex justify-center items-center h-full">
+          Can&#39;t find project...
+        </div>
+      ) : currentAction?.status == "neutral" ? (
         <div className="flex justify-center items-center mt-10 italic underline text-blue-600">
           <a
             target="_blank"

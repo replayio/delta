@@ -20,11 +20,6 @@ export default function Home() {
   const [branch, setBranch] = useState("main");
   const projectShort = router.query.short;
 
-  useEffect(
-    () => setBranch(router.query.branch || "main"),
-    [router.query.branch]
-  );
-
   const projectQuery = useSWR(
     encodeURI(`/api/getProject?projectShort=${projectShort}`),
     fetcher
@@ -67,6 +62,22 @@ export default function Home() {
       )?.filter((action) => action.Branches?.name == branch)[0],
     [actionsQuery, branch]
   );
+
+  const shownBranches = useMemo(
+    () =>
+      branches
+        .filter((i) => i.status == "open" && i.num_snapshots_changed > 0)
+        .filter((i) => i.name != projectQuery.data.primary_branch),
+    [branches, projectQuery]
+  );
+
+  useEffect(() => {
+    if (router.query.branch) {
+      setBranch(router.query.branch);
+    } else if (shownBranches.length > 0) {
+      setBranch(shownBranches[0].name);
+    }
+  }, [router.query.branch, shownBranches]);
 
   const { data, error, isLoading } = useFetchSnapshots(branch, projectQuery);
 
@@ -121,7 +132,7 @@ export default function Home() {
         branch={branch}
         projectQuery={projectQuery}
         changedSnapshots={changedSnapshots}
-        branches={branches}
+        shownBranches={shownBranches}
       />
 
       {!projectId ? (

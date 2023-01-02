@@ -2,11 +2,11 @@ import { describe, it, expect } from "vitest";
 
 import {
   getActionFromRunId,
-  updateActionStatus,
+  updateAction,
   incrementActionNumSnapshotsChanged,
   incrementActionNumSnapshots,
   getAction,
-} from "../lib/server/supabase/supabase";
+} from "../lib/server/supabase/actions";
 import {
   getSnapshotsFromBranch,
   getSnapshotsForAction,
@@ -42,14 +42,14 @@ describe("supabase", () => {
   });
 
   it("can update action status", async () => {
-    const action = await updateActionStatus(
+    const action = await updateAction(
       "9ba81dd3-98c4-44a9-a013-5835a1931ae9",
       "failure"
     );
 
     expect(action.data.status).toEqual("failure");
 
-    const action2 = await updateActionStatus(
+    const action2 = await updateAction(
       "9ba81dd3-98c4-44a9-a013-5835a1931ae9",
       "success"
     );

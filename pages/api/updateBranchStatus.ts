@@ -1,9 +1,9 @@
+import { getProject } from "../../lib/server/supabase/supabase";
+import { getBranchFromProject } from "../../lib/server/supabase/branches";
 import {
-  updateActionStatus,
+  updateAction,
   getActionFromBranch,
-  getBranchFromProject,
-  getProject,
-} from "../../lib/server/supabase/supabase";
+} from "../../lib/server/supabase/actions";
 
 import { updateComment, updateCheck } from "../../lib/github";
 import { getDeltaBranchUrl } from "../../lib/delta";
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: action.error });
   }
 
-  const updatedAction = await updateActionStatus(action.data.id, status);
+  const updatedAction = await updateAction(action.data.id, { status });
 
   if (updatedAction.error) {
     return res.status(500).json({ error: updatedAction.error });

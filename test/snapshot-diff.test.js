@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 
 import { toMatchImageSnapshot } from "jest-image-snapshot";
-import fs from "fs";
 const dotenv = require("dotenv");
 const fetch = require("node-fetch");
 dotenv.config({ path: "./.env.local" });

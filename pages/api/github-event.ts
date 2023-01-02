@@ -7,13 +7,15 @@ import {
 } from "../../lib/github";
 import omit from "lodash/omit";
 
+import { getProjectFromRepo } from "../../lib/server/supabase/supabase";
 import {
-  getProjectFromRepo,
   getBranchFromProject,
   updateBranch,
+} from "../../lib/server/supabase/branches";
+import {
   getActionFromRunId,
-  updateActionStatus,
-} from "../../lib/server/supabase/supabase";
+  updateAction,
+} from "../../lib/server/supabase/actions";
 import { getSnapshotsForAction } from "../../lib/server/supabase/snapshots";
 import { getDeltaBranchUrl } from "../../lib/delta";
 
@@ -317,10 +319,7 @@ export default async function handler(req, res) {
         }
 
         log("updating action status", action.data.id, conclusion);
-        const updatedAction = await updateActionStatus(
-          action.data.id,
-          conclusion
-        );
+        const updatedAction = await updateAction(action.data.id, conclusion);
 
         if (updatedAction.error) {
           return skip(

@@ -3,17 +3,14 @@ import {
   PostgrestSingleResponse,
 } from "@supabase/supabase-js";
 const { createHash } = require("crypto");
+import { Snapshot, supabase, ResponseError, createError } from "./supabase";
+import { getBranchFromProject } from "./branches";
 import {
-  Snapshot,
-  getBranchFromProject,
   getActionFromBranch,
-  supabase,
-  ResponseError,
-  createError,
   getActionsFromBranch,
   incrementActionNumSnapshots,
   incrementActionNumSnapshotsChanged,
-} from "./supabase";
+} from "./actions";
 
 export async function getSnapshotFromBranch(
   file: string,

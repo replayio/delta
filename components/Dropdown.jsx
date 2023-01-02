@@ -1,7 +1,5 @@
 import { Fragment } from "react";
 import { Menu, Transition } from "@headlessui/react";
-import { ChevronDownIcon } from "@heroicons/react/20/solid";
-import Link from "next/link";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -34,14 +32,19 @@ export default function Dropdown({ selected, options, onChange, project }) {
             <Menu.Item key={option}>
               {({ active }) => (
                 <a
-                  href={`/project/${project.short}/?branch=${option}`}
+                  href={`/project/${project.short}/?branch=${option.name}`}
                   //   onClick={() => onChange(option)}
                   className={classNames(
                     active ? "bg-gray-100 text-gray-900" : "text-gray-700",
                     "block px-4 py-2 text-sm  "
                   )}
                 >
-                  {option}
+                  <div className="flex justify-between w-full">
+                    <div className="truncate pr-4">{option.name}</div>
+                    <div className="bg-violet-500 px-2 rounded text-white text-xs font-bold flex items-center">
+                      {option.num_snapshots_changed}
+                    </div>
+                  </div>
                 </a>
               )}
             </Menu.Item>

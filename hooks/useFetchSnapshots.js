@@ -5,7 +5,7 @@ const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
 export function useFetchSnapshots(branch, projectQuery) {
   const selectedKey = encodeURI(
-    projectQuery.isLoading || projectQuery.error
+    (branch && projectQuery.isLoading) || projectQuery.error
       ? null
       : `/api/getSnapshotsForBranch?branch=${branch}&project_id=${projectQuery.data.id}`
   );

@@ -1,48 +1,7 @@
-import { diffBase64Images } from "../../lib/diff";
-import {
-  getSnapshotFromBranch,
-  insertSnapshot,
-  getProject,
-} from "../../lib/supabase";
+import { insertSnapshot } from "../../lib/server/supabase/supabase";
 
-import { downloadSnapshot, uploadSnapshot } from "../../lib/supabase-storage";
-
-async function diffWithPrimaryBranch(image, branchName, projectId) {
-  console.log("diffWithPrimaryBranch (1)", projectId);
-  const project = await getProject(projectId);
-
-  if (branchName === project.data.primary_branch) {
-    console.log(
-      `diffWithPrimaryBranch (2) bailing because ${branchName} is the primary branch`
-    );
-    return false;
-  }
-
-  console.log("diffWithPrimaryBranch (2)", projectId);
-  const snapshot = await getSnapshotFromBranch(
-    image.file,
-    projectId,
-    project.data.primary_branch
-  );
-
-  if (snapshot.error) {
-    console.log("diffWithPrimaryBranch (3) bailing with error", snapshot.error);
-    return false;
-  }
-
-  console.log("diffWithPrimaryBranch (3)", snapshot.data.path);
-  const primarySnapshot = await downloadSnapshot(snapshot.data.path);
-  if (primarySnapshot.error) {
-    console.log(
-      "diffWithPrimaryBranch (4) bailing with error",
-      primarySnapshot.error
-    );
-    return false;
-  }
-
-  const { changed } = diffBase64Images(image.content, primarySnapshot.data);
-  return changed;
-}
+import { uploadSnapshot } from "../../lib/server/supabase/supabase-storage";
+import { diffWithPrimaryBranch } from "../../lib/server/supabase/diffWithPrimaryBranch";
 
 export default async function handler(req, res) {
   const { image, projectId, branch: branchName, runId } = req.body;
@@ -60,27 +19,28 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "image is required" });
     }
 
-    const snapshot = await uploadSnapshot(image, projectId);
+    const snapshot = await uploadSnapshot(image.content, projectId);
     console.log("uploadSnapshot (2) ", branchName, image.file);
 
     const status: string = snapshot.error ? snapshot.error : "Uploaded";
     console.log("uploadSnapshot (3) ", branchName, image.file, status);
 
-    const primary_changed = await diffWithPrimaryBranch(
-      image,
+    const primaryDiff = await diffWithPrimaryBranch(
+      projectId,
       branchName,
-      projectId
+      image
     );
 
     console.log("uploadSnapshot (4) ", branchName, image.file);
 
-    const snapshotResponse = await insertSnapshot(
+    const snapshotResponse = await insertSnapshot({
       branchName,
       projectId,
       image,
       status,
-      primary_changed
-    );
+      primary_changed: primaryDiff.changed,
+      primary_diff_path: primaryDiff.diffSnapshot?.path,
+    });
 
     console.log(
       "uploadSnapshot (5) ",

@@ -38,11 +38,11 @@ export function SnapshotRow({
           marginRight: "10px",
         }}
       ></div> */}
-      {/* {filename} */}
-      <img
+      {filename}
+      {/* <img
         src={`/api/snapshot-diff/?projectId=${project?.id}&branch=${branch}&file=${snapshot.file}`}
         alt=""
-      />
+      /> */}
     </div>
   );
 }

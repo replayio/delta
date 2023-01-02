@@ -37,7 +37,7 @@ export function Snapshots({
   if (error || actionsQuery.error) return <div>error</div>;
 
   return (
-    <div className="flex h-full overflow-hidden pl-4">
+    <div className="flex h-full pl-4">
       <div className="flex flex-col">
         <div className="flex flex-col mb-4">
           <div
@@ -73,7 +73,7 @@ export function Snapshots({
           className="flex flex-col h-full overflow-y-scroll overflow-x-hidden"
           style={{ width: "300px" }}
         >
-          {snapshots.slice(20, 30).map((snapshot, index) => (
+          {snapshots.map((snapshot, index) => (
             <SnapshotRow
               key={snapshot.id}
               branch={branch}

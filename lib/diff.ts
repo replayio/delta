@@ -1,38 +1,91 @@
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
+import gm from "gm";
+import fs from "fs";
 
-export function diffImages(img1, img2) {
+const imageMagick = gm.subClass({ imageMagick: true });
+
+function cropImage(img, width, height) {
+  return new Promise((resolve, reject) => {
+    imageMagick(img)
+      .crop(width, height, 0, 0)
+      .toBuffer("png", function (err, buffer) {
+        if (err) reject(err);
+        resolve(PNG.sync.read(buffer));
+      });
+  });
+}
+
+async function resizeImage(png1, png2, img1, img2) {
+  if (png1.width > png2.width) {
+    console.log(
+      `resizeImage: resizing img1 width from ${png1.width} to ${png2.width}`
+    );
+    png1 = await cropImage(img1, png2.width, png1.height);
+  }
+
+  if (png2.width > png1.width) {
+    console.log(
+      `resizeImage: resizing img2 width from ${png2.width} to ${png1.width}`
+    );
+    png2 = await cropImage(img2, png1.width, png2.height);
+  }
+
+  if (png1.height > png2.height) {
+    console.log(
+      `resizeImage: resizing img1 height from ${png1.height} to ${png2.height}`
+    );
+    png1 = await cropImage(img1, png1.width, png2.height);
+  }
+
+  if (png2.height > png1.height) {
+    console.log(
+      `resizeImage: resizing img2 height from ${png2.height} to ${png1.height}`
+    );
+    png2 = await cropImage(img2, png2.width, png1.height);
+  }
+
+  return { png1, png2 };
+}
+
+export async function diffImages(img1, img2) {
   try {
-    const png1 = PNG.sync.read(img1);
-    const png2 = PNG.sync.read(img2);
+    let png1 = PNG.sync.read(img1);
+    let png2 = PNG.sync.read(img2);
     const { width, height } = png1;
-    const diff = new PNG({ width, height });
 
-    const numDiffPixels = pixelmatch(
+    if (png1.width !== png2.width || png1.height !== png2.height) {
+      console.log(
+        `diffImages: resizing images (${png1.width}, ${png1.height}) (${png2.width} ${png2.height})`
+      );
+      ({ png1, png2 } = await resizeImage(png1, png2, img1, img2));
+    }
+
+    const diff = new PNG({ width: png1.width, height: png1.height });
+
+    const numPixels = pixelmatch(
       png1.data,
       png2.data,
       diff.data,
-      width,
-      height,
+      png1.width,
+      png2.height,
       {
         threshold: 0.2,
       }
     );
 
     const diffPng = PNG.sync.write(diff);
-    const changed = numDiffPixels > 0;
-    console.log({ numDiffPixels });
-
-    return { changed, numDiffPixels, diffPng };
+    const changed = numPixels > 0;
+    return { changed, numPixels, png: diffPng, error: null };
   } catch (e) {
-    console.log("error", e);
-    return { changed: true };
+    return { error: e };
   }
 }
 
 export function diffBase64Images(img1, img2) {
   if (!img1 || !img2) {
-    return { changed: false };
+    console.log(`diffBase64Images: bailing because one of the images is null`);
+    return { changed: false, error: null, png: null };
   }
   return diffImages(Buffer.from(img1, "base64"), Buffer.from(img2, "base64"));
 }

@@ -43,6 +43,6 @@ async function testEvent(action) {
 describe("github event", () => {
   it("workflow completed", async () => {
     const res = await testEvent("workflow_job.completed");
-    expect(res.check.output.title).toEqual("0 of 360 snapshots are different");
+    expect(res.check.output.title).toEqual("6 of 379 snapshots are different");
   });
 });

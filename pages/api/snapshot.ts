@@ -1,4 +1,4 @@
-import { downloadSnapshot } from "../../lib/supabase-storage";
+import { downloadSnapshot } from "../../lib/server/supabase/supabase-storage";
 
 export default async function handler(req, res) {
   const { path } = req.query;

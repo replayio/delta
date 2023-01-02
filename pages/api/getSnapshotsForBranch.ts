@@ -1,4 +1,4 @@
-import { getSnapshotsFromBranch } from "../../lib/supabase";
+import { getSnapshotsFromBranch } from "../../lib/server/supabase/supabase";
 
 export default async function handler(req, res) {
   const { branch, project_id } = req.query;

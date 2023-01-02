@@ -3,7 +3,7 @@ import {
   getActionFromBranch,
   getBranchFromProject,
   getProject,
-} from "../../lib/supabase";
+} from "../../lib/server/supabase/supabase";
 
 import { updateComment, updateCheck } from "../../lib/github";
 import { getDeltaBranchUrl } from "../../lib/delta";

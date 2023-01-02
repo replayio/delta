@@ -1,0 +1,30 @@
+// Vitest Snapshot v1
+
+exports[`github > create comment 1`] = `
+{
+  "author_association": "NONE",
+  "body": "...",
+  "issue_url": "https://api.github.com/repos/replayio/devtools/issues/8432",
+  "performed_via_github_app": null,
+  "user": {
+    "avatar_url": "https://avatars.githubusercontent.com/in/274973?v=4",
+    "events_url": "https://api.github.com/users/replay-delta%5Bbot%5D/events{/privacy}",
+    "followers_url": "https://api.github.com/users/replay-delta%5Bbot%5D/followers",
+    "following_url": "https://api.github.com/users/replay-delta%5Bbot%5D/following{/other_user}",
+    "gists_url": "https://api.github.com/users/replay-delta%5Bbot%5D/gists{/gist_id}",
+    "gravatar_id": "",
+    "html_url": "https://github.com/apps/replay-delta",
+    "id": 121197601,
+    "login": "replay-delta[bot]",
+    "node_id": "BOT_kgDOBzlUIQ",
+    "organizations_url": "https://api.github.com/users/replay-delta%5Bbot%5D/orgs",
+    "received_events_url": "https://api.github.com/users/replay-delta%5Bbot%5D/received_events",
+    "repos_url": "https://api.github.com/users/replay-delta%5Bbot%5D/repos",
+    "site_admin": false,
+    "starred_url": "https://api.github.com/users/replay-delta%5Bbot%5D/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/replay-delta%5Bbot%5D/subscriptions",
+    "type": "Bot",
+    "url": "https://api.github.com/users/replay-delta%5Bbot%5D",
+  },
+}
+`;

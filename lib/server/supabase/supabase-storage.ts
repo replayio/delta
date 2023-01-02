@@ -1,4 +1,4 @@
-import createClient from "./initServerSupabase";
+import createClient from "../../initServerSupabase";
 import { createHash } from "crypto";
 import { Snapshot } from "./supabase";
 
@@ -6,28 +6,29 @@ const supabase = createClient();
 const Buffer = require("buffer").Buffer;
 
 export async function uploadSnapshot(
-  image: { content: string; file: string },
+  content: string,
   projectId: string
-): Promise<{ error: string } | { snapshot: Snapshot; error: null }> {
-  const sha = createHash("sha256").update(image.content).digest("hex");
-
+): Promise<{ error: string; data: null } | { data: any; error: null }> {
+  const sha = createHash("sha256").update(content).digest("hex");
+  const path = `${projectId}/${sha}.png`;
   const res = await supabase.storage
     .from("snapshots")
-    .upload(`${projectId}/${sha}.png`, Buffer.from(image.content, "base64"), {
+    .upload(path, Buffer.from(content, "base64"), {
       contentType: "image/png",
     });
 
   if (res.error) {
     console.log("error", res.error);
-    return { error: (res.error as any).error };
+    return { error: (res.error as any).error, data: { sha, path } };
   }
 
-  return { snapshot: res.data[0], error: null };
+  return { data: res.data[0], error: null };
 }
 
 export async function downloadSnapshot(
   path: string
 ): Promise<{ error: string; data: null } | { data: string; error: null }> {
+  console.log("downloadSnapshot", path);
   const { data, error } = await supabase.storage
     .from("snapshots")
     .download(path);

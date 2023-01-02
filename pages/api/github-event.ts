@@ -12,9 +12,9 @@ import {
   getBranchFromProject,
   updateBranch,
   getActionFromRunId,
-  getSnapshotsForAction,
   updateActionStatus,
 } from "../../lib/server/supabase/supabase";
+import { getSnapshotsForAction } from "../../lib/server/supabase/snapshots";
 import { getDeltaBranchUrl } from "../../lib/delta";
 
 const supabase = createClient();

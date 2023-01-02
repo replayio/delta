@@ -1,14 +1,16 @@
 import { describe, it, expect } from "vitest";
 
 import {
-  getSnapshotsFromBranch,
   getActionFromRunId,
-  getSnapshotsForAction,
   updateActionStatus,
   incrementActionNumSnapshotsChanged,
   incrementActionNumSnapshots,
   getAction,
 } from "../lib/server/supabase/supabase";
+import {
+  getSnapshotsFromBranch,
+  getSnapshotsForAction,
+} from "../lib/server/supabase/snapshots";
 
 import { downloadSnapshot } from "../lib/server/supabase/supabase-storage";
 

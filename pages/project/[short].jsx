@@ -4,8 +4,11 @@ import { useRouter } from "next/router";
 import useSWR from "swr";
 import uniqBy from "lodash/uniqBy";
 import sortBy from "lodash/sortBy";
-import { Snapshots } from "../../components/Snapshots";
+import { Snapshot } from "../../components/Snapshot";
+import { SnapshotRow } from "../../components/SnapshotRow";
+
 import { Header } from "../../components/Header";
+import { useFetchSnapshots } from "../../hooks/useFetchSnapshots";
 
 const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
@@ -54,8 +57,6 @@ export default function Home() {
 
   const toggleMode = (newMode) => (newMode == mode ? null : setMode(newMode));
 
-  console.log({ actions: actionsQuery.data });
-  console.log({ branches });
   const currentAction = useMemo(
     () =>
       sortBy(
@@ -64,10 +65,42 @@ export default function Home() {
       )?.filter((action) => action.Branches?.name == branch)[0],
     [actionsQuery, branch]
   );
-  console.log(`currentAction`, currentAction);
+
+  const { data, error, isLoading } = useFetchSnapshots(branch, projectQuery);
+
+  const { snapshots, newSnapshots, changedSnapshots, unchangedSnapshots } =
+    useMemo(() => {
+      let snapshots = sortBy(data || [], (snapshot) => snapshot.file);
+
+      const newSnapshots = snapshots.filter(
+        (snapshot) => !snapshot.mainSnapshot
+      );
+      const changedSnapshots = snapshots.filter(
+        (snapshot) => snapshot.primary_changed
+      );
+
+      const unchangedSnapshots = snapshots.filter(
+        (snapshot) => !snapshot.primary_changed
+      );
+
+      snapshots =
+        mode == "new"
+          ? newSnapshots
+          : mode == "changed"
+          ? changedSnapshots
+          : mode == "unchanged"
+          ? unchangedSnapshots
+          : data;
+
+      return { snapshots, newSnapshots, changedSnapshots, unchangedSnapshots };
+    }, [data, mode]);
+
+  const selectedSnapshot = snapshots?.[selectedSnapshotIndex];
+
+  console.log("Selected snapshot", selectedSnapshot);
 
   return (
-    <div className={` h-full`}>
+    <div className={`h-full overflow-y-hidden`}>
       <Header
         setBranch={setBranch}
         currentAction={currentAction}
@@ -86,17 +119,41 @@ export default function Home() {
             Action in progress...
           </a>
         </div>
+      ) : isLoading || actionsQuery.isLoading ? (
+        <div className="flex justify-center items-center">loading...</div>
+      ) : error || actionsQuery.error ? (
+        <div className="flex justify-center items-center">error</div>
       ) : (
-        <Snapshots
-          toggleMode={toggleMode}
-          mode={mode}
-          actionsQuery={actionsQuery}
-          projectQuery={projectQuery}
-          branch={branch}
-          branches={branches}
-          selectedSnapshotIndex={selectedSnapshotIndex}
-          setSelectedSnapshot={setSelectedSnapshot}
-        />
+        <div className="flex  h-full">
+          <div className="flex flex-col">
+            <div
+              className="flex flex-col h-full overflow-y-scroll overflow-x-hidden"
+              style={{ width: "300px" }}
+            >
+              {snapshots.map((snapshot, index) => (
+                <SnapshotRow
+                  key={snapshot.id}
+                  branch={branch}
+                  onSelect={setSelectedSnapshot}
+                  index={index}
+                  snapshot={snapshot}
+                  selectedSnapshot={selectedSnapshot}
+                  project={projectQuery.data}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col flex-grow items-center ">
+            {selectedSnapshot && (
+              <Snapshot
+                key={selectedSnapshot.sha}
+                branch={branch}
+                project={projectQuery.data}
+                snapshot={selectedSnapshot}
+              />
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

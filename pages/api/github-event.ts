@@ -175,7 +175,9 @@ export default async function handler(req, res) {
 
         let checkId = branch.data.check_id;
         let newCheck;
-        if (!checkId) {
+        if (checkId) {
+          log("Check already exists", checkId);
+        } else  {
           log(
             "creating check",
             payload.organization.login,
@@ -205,24 +207,28 @@ export default async function handler(req, res) {
           );
           log(
             "created check",
+            check.status,
             check.data.id,
-            check.status <= 299 ? check.data : check
+            check.status <= 299 ? check.data : JSON.stringify(check).slice(0,200)
           );
-          checkId = check.data.id;
-          newCheck = check.data;
 
-          const updatedBranch = await updateBranch(branch.data, {
-            check_id: checkId,
-          });
-
-          log(
-            "updated branch",
-            updatedBranch.status,
-            updatedBranch.status <= 299 ? "success" : "error",
-            updatedBranch.status <= 299
-              ? updatedBranch.data
-              : updatedBranch.error
-          );
+          if (check.status <= 299 ) {
+            checkId = check.data.id;
+            newCheck = check.data;
+  
+            const updatedBranch = await updateBranch(branch.data, {
+              check_id: checkId,
+            });
+  
+            log(
+              "updated branch",
+              updatedBranch.status,
+              updatedBranch.status <= 299 ? "success" : "error",
+              updatedBranch.status <= 299
+                ? updatedBranch.data
+                : updatedBranch.error
+            );
+          } 
         }
 
         const insertActionArgs = {

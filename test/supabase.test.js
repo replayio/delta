@@ -3,10 +3,11 @@ import { describe, it, expect } from "vitest";
 import {
   getActionFromRunId,
   updateAction,
-  incrementActionNumSnapshotsChanged,
   incrementActionNumSnapshots,
   getAction,
 } from "../lib/server/supabase/actions";
+
+import { incrementActionNumSnapshotsChanged } from "../lib/server/supabase/incrementActionNumSnapshotsChanged";
 import {
   getSnapshotsFromBranch,
   getSnapshotsForAction,
@@ -69,11 +70,13 @@ describe("supabase", () => {
   });
 
   it("increments num_snapshots_changed", async () => {
-    const actionId = "bb0205c1-0055-40e0-bcad-717ccce77685";
     const action = await getAction(actionId);
 
     const { num_snapshots_changed } = action.data;
-    const { data } = await incrementActionNumSnapshotsChanged(actionId);
+    const { data } = await incrementActionNumSnapshotsChanged(
+      projectId,
+      "visuals10"
+    );
 
     const newNumSnapshots = data[0].num_snapshots_changed;
     expect(newNumSnapshots).toEqual(num_snapshots_changed + 1);

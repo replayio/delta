@@ -52,7 +52,6 @@ export async function diffImages(img1, img2) {
   try {
     let png1 = PNG.sync.read(img1);
     let png2 = PNG.sync.read(img2);
-    const { width, height } = png1;
 
     if (png1.width !== png2.width || png1.height !== png2.height) {
       console.log(

@@ -56,9 +56,3 @@ export async function incrementActionNumSnapshots(action_id) {
     action_id,
   });
 }
-
-export async function incrementActionNumSnapshotsChanged(action_id) {
-  return supabase.rpc("snapshots_changed_inc", {
-    action_id,
-  });
-}

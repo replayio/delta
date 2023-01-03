@@ -9,7 +9,6 @@ import {
   getActionFromBranch,
   getActionsFromBranch,
   incrementActionNumSnapshots,
-  incrementActionNumSnapshotsChanged,
 } from "./actions";
 
 export async function getSnapshotFromBranch(
@@ -83,16 +82,12 @@ export async function getSnapshotsForAction(
   return supabase.from("Snapshots").select("*").eq("action_id", actionId);
 }
 
-export async function insertSnapshot({
+export async function insertSnapshot(
   branchName,
   projectId,
   image,
-  status,
-  primary_changed,
-  action_changed = false,
-  primary_diff_path = "",
-  primary_num_pixels = 0,
-}): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
+  status
+): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
   const branch = await getBranchFromProject(projectId, branchName);
   if (branch.error) {
     return createError(`Branch not found for ${branchName}`);
@@ -110,10 +105,6 @@ export async function insertSnapshot({
 
   await incrementActionNumSnapshots(action.data.id);
 
-  if (primary_changed) {
-    await incrementActionNumSnapshotsChanged(action.data.id);
-  }
-
   return supabase
     .from("Snapshots")
     .insert({
@@ -122,10 +113,6 @@ export async function insertSnapshot({
       path: `${projectId}/${sha}.png`,
       file: image.file,
       status,
-      action_changed,
-      primary_changed,
-      primary_diff_path,
-      primary_num_pixels,
     })
     .single();
 }

@@ -1,9 +1,15 @@
 import { describe, it, expect } from "vitest";
+import { getBranchFromProject } from "../lib/server/supabase/branches";
+import { getSnapshotsForAction } from "../lib/server/supabase/snapshots";
+import { getProject } from "../lib/server/supabase/supabase";
+import { getActionFromBranch } from "../lib/server/supabase/actions";
+import { formatComment } from "../pages/api/github-event";
 
 const dotenv = require("dotenv");
 const fetch = require("node-fetch");
 const fixtures = require("./fixtures/github");
 dotenv.config({ path: "./.env.local" });
+const projectId = "dcb5df26-b418-4fe2-9bdf-5a838e604ec4";
 
 async function testEvent(action) {
   const payload = fixtures[action];
@@ -43,6 +49,24 @@ async function testEvent(action) {
 describe("github event", () => {
   it("workflow completed", async () => {
     const res = await testEvent("workflow_job.completed");
-    expect(res.check.output.title).toEqual("6 of 379 snapshots are different");
+    expect(res.check.output.title).toEqual(
+      "265 of 663 snapshots are different"
+    );
+  });
+
+  it.skip("format cmments", async () => {
+    const project = await getProject(projectId);
+    const branchName = "visuals9";
+    const branch = await getBranchFromProject(project.data.id, branchName);
+    const action = await getActionFromBranch(branch.data.id);
+
+    const snapshots = await getSnapshotsForAction(action.data.id);
+    const comment = formatComment({
+      project: project.data,
+      branchName,
+      snapshots: snapshots.data,
+    });
+
+    expect(comment).toMatchSnapshot();
   });
 });

@@ -23,8 +23,8 @@ const supabase = createClient();
 
 const formatCheck = (check) => omit(check, ["app", "pull_requests"]);
 
-function formatComment({ project, branchName, snapshots }) {
-  const deltaUrl = getDeltaBranchUrl(project.data, branchName);
+export function formatComment({ project, branchName, snapshots }) {
+  const deltaUrl = getDeltaBranchUrl(project, branchName);
 
   const numDifferent = snapshots.filter(
     (snapshot) => snapshot.primary_changed
@@ -36,17 +36,14 @@ function formatComment({ project, branchName, snapshots }) {
     .map(
       (snapshot) =>
         `<details><summary>${snapshot.file}</summary><img src="https://delta.replay.io/api/snapshot?path=${snapshot.path}"/></details>`
-    );
+    )
+    .join("\n");
 
-  return `${
+  const title =
     numDifferent > 0
       ? `${numDifferent} of ${snapshots.length} changed`
-      : "Nothing changed"
-  }\n
-  
-  ${snapshotList.join("\n")}\n
-  
-  <a href="${deltaUrl}">View Delta</a>`;
+      : "Nothing changed";
+  return `${title}\n${snapshotList}\n<a href="${deltaUrl}">View Delta</a>`;
 }
 
 export default async function handler(req, res) {

@@ -27,8 +27,7 @@ describe("diffWithPrimaryBranch", () => {
   });
 
   it.only("./playwright/visuals/light/searchable-result-updated-after-filter.png", async () => {
-    const file =
-      "./playwright/visuals/light/searchable-result-updated-after-filter.png";
+    const file = "./playwright/visuals/light/warning-stack-collapsed.png";
     const branch = "visuals9";
     const snapshot = await getSnapshotFromBranch(file, projectId, branch);
     const downloadedSnapshot = await downloadSnapshot(snapshot.data.path);

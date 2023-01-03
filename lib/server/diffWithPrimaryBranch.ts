@@ -1,8 +1,8 @@
-import { diffBase64Images } from "../../diff";
-import { getProject } from "./supabase";
-import { getSnapshotFromBranch } from "./snapshots";
+import { diffBase64Images } from "./diff";
+import { getProject } from "./supabase/supabase";
+import { getSnapshotFromBranch } from "./supabase/snapshots";
 
-import { downloadSnapshot, uploadSnapshot } from "./supabase-storage";
+import { downloadSnapshot, uploadSnapshot } from "./supabase/storage";
 
 type Image = {
   content: string;
@@ -66,8 +66,8 @@ export async function diffWithPrimaryBranch(
 
   console.log(
     "diffWithPrimaryBranch (4) diffBase64Images",
-    primaryImage.data.slice(0, 10),
-    image.content.slice(0, 10)
+    primaryImage.data.slice(0, 100),
+    image.content.slice(0, 100)
   );
   const { changed, png, numPixels } = await diffBase64Images(
     image.content,

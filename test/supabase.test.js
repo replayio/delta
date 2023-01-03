@@ -13,7 +13,7 @@ import {
   getSnapshotsForAction,
 } from "../lib/server/supabase/snapshots";
 
-import { downloadSnapshot } from "../lib/server/supabase/supabase-storage";
+import { downloadSnapshot } from "../lib/server/supabase/storage";
 
 const projectId = "dcb5df26-b418-4fe2-9bdf-5a838e604ec4";
 

@@ -3,8 +3,8 @@ import {
   updateSnapshot,
 } from "../../lib/server/supabase/snapshots";
 
-import { uploadSnapshot } from "../../lib/server/supabase/supabase-storage";
-import { diffWithPrimaryBranch } from "../../lib/server/supabase/diffWithPrimaryBranch";
+import { uploadSnapshot } from "../../lib/server/supabase/storage";
+import { diffWithPrimaryBranch } from "../../lib/server/diffWithPrimaryBranch";
 import { incrementActionNumSnapshotsChanged } from "../../lib/server/supabase/incrementActionNumSnapshotsChanged";
 
 export default async function handler(req, res) {

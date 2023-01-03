@@ -55,11 +55,14 @@ export async function diffImages(img1, img2) {
 
     if (png1.width !== png2.width || png1.height !== png2.height) {
       console.log(
-        `diffImages: resizing images (${png1.width}, ${png1.height}) (${png2.width} ${png2.height})`
+        `diffImages: resizing images (${png1.width}, ${png1.height}) (${png2.width}, ${png2.height})`
       );
       ({ png1, png2 } = await resizeImage(png1, png2, img1, img2));
     }
 
+    console.log(
+      `diffImages: resized images (${png1.width}, ${png1.height}) (${png2.width}, ${png2.height})`
+    );
     const diff = new PNG({ width: png1.width, height: png1.height });
 
     const numPixels = pixelmatch(
@@ -75,6 +78,7 @@ export async function diffImages(img1, img2) {
 
     const diffPng = PNG.sync.write(diff);
     const changed = numPixels > 0;
+    console.log(`diffImages:`, { changed, numPixels });
     return { changed, numPixels, png: diffPng, error: null };
   } catch (e) {
     return { error: e };

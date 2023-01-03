@@ -1,6 +1,6 @@
 import { getSnapshotFromBranch } from "../../lib/server/supabase/snapshots";
-import { downloadSnapshot } from "../../lib/server/supabase/supabase-storage";
-import { diffWithPrimaryBranch } from "../../lib/server/supabase/diffWithPrimaryBranch";
+import { downloadSnapshot } from "../../lib/server/supabase/storage";
+import { diffWithPrimaryBranch } from "../../lib/server/diffWithPrimaryBranch";
 import { updateSnapshot } from "../../lib/server/supabase/snapshots";
 
 export default async function handler(req, res) {

@@ -312,13 +312,17 @@ export default async function handler(req, res) {
           text: "",
         };
 
-        log("updating check", branch.data.check_id, updateCheckArgs);
-        const updatedCheck = await updateCheck(
-          payload.organization.login,
-          payload.repository.name,
-          branch.data.check_id,
-          updateCheckArgs
-        );
+        if (branch.data.check_id) {
+          log("updating check", branch.data.check_id, updateCheckArgs);
+          const updatedCheck = await updateCheck(
+            payload.organization.login,
+            payload.repository.name,
+            branch.data.check_id,
+            updateCheckArgs
+          );
+        } else {
+          log("Check doesnt exist")
+        }
 
         // only create a comment if there are differences
         if (numDifferent > 0) {

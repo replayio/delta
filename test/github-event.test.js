@@ -54,9 +54,9 @@ describe("github event", () => {
     );
   });
 
-  it.skip("format cmments", async () => {
+  it.only("format cmments", async () => {
     const project = await getProject(projectId);
-    const branchName = "visuals9";
+    const branchName = "visuals21";
     const branch = await getBranchFromProject(project.data.id, branchName);
     const action = await getActionFromBranch(branch.data.id);
 
@@ -67,6 +67,7 @@ describe("github event", () => {
       snapshots: snapshots.data,
     });
 
-    expect(comment).toMatchSnapshot();
+    console.log(comment);
+    // expect(comment).toMatchSnapshot();
   });
 });

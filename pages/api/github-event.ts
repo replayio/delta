@@ -35,7 +35,14 @@ export function formatComment({ project, branchName, snapshots }) {
     .slice(0, 20)
     .map(
       (snapshot) =>
-        `<details><summary>${snapshot.file}</summary><img src="https://delta.replay.io/api/snapshot?path=${snapshot.path}"/></details>`
+        `<details>
+          <summary>${
+            snapshot.file.split("/")[snapshot.file.split("/").length - 1]
+          }</summary>
+          <img src="https://delta.replay.io/api/snapshot?path=${
+            snapshot.path
+          }" />
+        </details>`
     )
     .join("\n");
 

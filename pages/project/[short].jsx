@@ -146,6 +146,17 @@ export default function Home() {
     console.log("error", error, actionsQuery.error);
   }
 
+  const actionDuration = useMemo(() => {
+    if (currentAction) {
+      const actionAge =
+        (new Date() - new Date(currentAction.created_at)) / 1000;
+      const actionMinutes = Math.floor(actionAge / 60);
+      const actionSeconds = Math.floor(actionAge % 60);
+      return `${actionMinutes}m ${actionSeconds}s`;
+    }
+  }, [currentAction]);
+  console.log(actionDuration);
+
   return (
     <div className={`h-full overflow-hidden`}>
       <Header
@@ -163,15 +174,12 @@ export default function Home() {
             rel="noreferrer"
             href={`https://github.com/${projectQuery.data.organization}/${projectQuery.data.repository}/actions/runs/${currentAction?.run_id}`}
           >
-            Action in progress...
+            Action running...
           </a>
         </div>
       ) : !projectId || isLoading || actionsQuery.isLoading ? (
         <div className="flex justify-center items-center mt-10">
-          <ArrowPathIcon
-            className="text-violet-500 h-5 w-5"
-            aria-hidden="true"
-          />
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-violet-400"></div>
         </div>
       ) : error || actionsQuery.error ? (
         <div className="flex justify-center items-center mt-10">Error</div>

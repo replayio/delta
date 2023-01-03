@@ -1,13 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useFetchSnapshots } from "../hooks/useFetchSnapshots";
 
 export function ApproveButton({ branch, projectQuery, currentAction }) {
-  const { data, error, isLoading } = useFetchSnapshots(branch, projectQuery);
+  const { data } = useFetchSnapshots(branch, projectQuery);
   const [currentBranch, setBranch] = useState(null);
-
-  useEffect(() => {
-    setBranch(branch);
-  }, []);
+  const [isUpdating, setUpdating] = useState(false);
 
   const toggleBranchStatus = async (status) => {
     console.log({
@@ -28,14 +25,12 @@ export function ApproveButton({ branch, projectQuery, currentAction }) {
       }),
     });
 
+    setUpdating(true);
     const body = await res.json();
+    setUpdating(false);
     console.log("res", body.action);
     setBranch(body.action);
   };
-
-  if (isLoading) {
-    return null;
-  }
 
   const hasChanged = data?.some((snapshot) => snapshot.primary_changed);
 
@@ -46,14 +41,26 @@ export function ApproveButton({ branch, projectQuery, currentAction }) {
     return null;
   }
 
-  if (currentBranch?.status == "success") {
+  if (isUpdating) {
+    return (
+      <div className="font-medium px-2 mr-4 text-violet-400  border-2 border-transparent">
+        Updating
+      </div>
+    );
+  }
+
+  if (
+    currentBranch?.status == "success" ||
+    (currentAction?.status == "success" &&
+      currentAction?.num_snapshots_changed > 0)
+  ) {
     return (
       <div className="flex items-center">
         <button
           onClick={() => toggleBranchStatus("failure")}
           className="font-medium px-2 mr-4 text-violet-400  border-2 border-violet-400 hover:border-violet-500 hover:text-violet-500 rounded-md"
         >
-          Changes Approved
+          Reject
         </button>
       </div>
     );

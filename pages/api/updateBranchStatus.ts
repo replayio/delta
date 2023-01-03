@@ -4,6 +4,8 @@ import {
   updateAction,
   getActionFromBranch,
 } from "../../lib/server/supabase/actions";
+import { getSnapshotsForAction } from "../../lib/server/supabase/snapshots";
+import { formatComment } from "./github-event";
 
 import { updateComment, updateCheck } from "../../lib/github";
 import { getDeltaBranchUrl } from "../../lib/delta";
@@ -44,7 +46,11 @@ export default async function handler(req, res) {
     organization,
     repository,
     branchRecord.data.check_id,
-    { conclusion: status, title: "Changes approved", summary: "" }
+    {
+      conclusion: status,
+      title: status === "success" ? "Changes approved" : "Changes rejected",
+      summary: "",
+    }
   );
   console.log(
     "updateBranchStatus (3) updated check",
@@ -53,17 +59,19 @@ export default async function handler(req, res) {
 
   let updatedComment;
   if (branchRecord.data.comment_id) {
-    const message =
-      status == "success" ? "Changes approved" : "Changes rejected";
+    const snapshots = await getSnapshotsForAction(action.data.id);
+
     updatedComment = await updateComment(
       organization,
       repository,
       branchRecord.data.comment_id,
       {
-        body: `${message}\n<a href="${getDeltaBranchUrl(
-          projectRecord.data,
-          branchRecord.data.name
-        )}">View Delta</a>`,
+        body: formatComment({
+          project: projectRecord.data,
+          branchName: branch,
+          snapshots: snapshots.data,
+          subTitle: status === "success" ? "**(Approved)**" : "**(Rejected)**",
+        }),
       }
     );
 

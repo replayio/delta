@@ -54,7 +54,7 @@ describe("github event", () => {
     );
   });
 
-  it("format cmments", async () => {
+  it("format comments", async () => {
     const project = await getProject(projectId);
     const branchName = "visuals21";
     const branch = await getBranchFromProject(project.data.id, branchName);
@@ -66,6 +66,24 @@ describe("github event", () => {
       branchName,
       snapshots: snapshots.data,
     });
+
+    expect(comment).toMatchSnapshot();
+  });
+
+  it("format comment w/ subtitle", async () => {
+    const project = await getProject(projectId);
+    const branchName = "visuals21";
+    const branch = await getBranchFromProject(project.data.id, branchName);
+    const action = await getActionFromBranch(branch.data.id);
+
+    const snapshots = await getSnapshotsForAction(action.data.id);
+    const comment = formatComment({
+      project: project.data,
+      branchName,
+      snapshots: snapshots.data,
+      subTitle: "**(Approved)**",
+    });
+    console.log(comment);
 
     expect(comment).toMatchSnapshot();
   });

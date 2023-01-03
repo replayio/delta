@@ -23,7 +23,7 @@ const supabase = createClient();
 
 const formatCheck = (check) => omit(check, ["app", "pull_requests"]);
 
-export function formatComment({ project, branchName, snapshots }) {
+export function formatComment({ project, branchName, snapshots, subTitle }) {
   const deltaUrl = getDeltaBranchUrl(project, branchName);
 
   const numDifferent = snapshots.filter(
@@ -32,7 +32,7 @@ export function formatComment({ project, branchName, snapshots }) {
 
   const snapshotList = snapshots
     .filter((snapshot) => snapshot.primary_changed)
-    .slice(0, 20)
+    .slice(0, 10)
     .map(
       (snapshot) =>
         `<details>
@@ -50,7 +50,10 @@ export function formatComment({ project, branchName, snapshots }) {
     numDifferent > 0
       ? `${numDifferent} of ${snapshots.length} changed`
       : "Nothing changed";
-  return `<a href="${deltaUrl}">${title}</a>\n${snapshotList}`;
+  return [
+    `**<a href="${deltaUrl}">${title}</a>** ${subTitle}`,
+    snapshotList,
+  ].join("\n");
 }
 
 export default async function handler(req, res) {

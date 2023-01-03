@@ -47,6 +47,7 @@ export default function Home() {
                 ...action.Branches,
                 num_snapshots: action.num_snapshots,
                 num_snapshots_changed: action.num_snapshots_changed,
+                action_status: action.status,
               })),
               (b) => b.name
             )
@@ -66,7 +67,11 @@ export default function Home() {
   const shownBranches = useMemo(
     () =>
       branches
-        .filter((i) => i.status == "open" && i.num_snapshots_changed > 0)
+        .filter(
+          (i) =>
+            (i.status == "open" && i.num_snapshots_changed > 0) ||
+            i.action_status == "neutral"
+        )
         .filter((i) => i.name != projectQuery.data.primary_branch),
     [branches, projectQuery]
   );

@@ -1,7 +1,43 @@
 // Vitest Snapshot v1
 
+exports[`github event > format cmment w/ subtitle 1`] = `
+"**<a href=\\"https://delta.replay.io/project/dcb5df26/?branch=visuals21\\">2 of 360 changed</a>** **(Approved)**
+<details>
+          <summary>point-panel-invalid-conditional.png</summary>
+          <img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/ac5d53f47611dd90f1febda3735e61b6a19c5ad5b2cb0684bd7debbde7534a16.png\\" />
+        </details>
+<details>
+          <summary>point-panel-invalid-conditional.png</summary>
+          <img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/72b39f00bb879570c535a5e1eb51920c8991c719edc0467b560bfcdaa956e3b7.png\\" />
+        </details>"
+`;
+
 exports[`github event > format cmments 1`] = `
-"<a href=\\"https://delta.replay.io/project/dcb5df26/?branch=visuals21\\">2 of 360 changed</a>
+"**<a href=\\"https://delta.replay.io/project/dcb5df26/?branch=visuals21\\">2 of 360 changed</a>** undefined
+<details>
+          <summary>point-panel-invalid-conditional.png</summary>
+          <img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/ac5d53f47611dd90f1febda3735e61b6a19c5ad5b2cb0684bd7debbde7534a16.png\\" />
+        </details>
+<details>
+          <summary>point-panel-invalid-conditional.png</summary>
+          <img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/72b39f00bb879570c535a5e1eb51920c8991c719edc0467b560bfcdaa956e3b7.png\\" />
+        </details>"
+`;
+
+exports[`github event > format comment w/ subtitle 1`] = `
+"**<a href=\\"https://delta.replay.io/project/dcb5df26/?branch=visuals21\\">2 of 360 changed</a>** **(Approved)**
+<details>
+          <summary>point-panel-invalid-conditional.png</summary>
+          <img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/ac5d53f47611dd90f1febda3735e61b6a19c5ad5b2cb0684bd7debbde7534a16.png\\" />
+        </details>
+<details>
+          <summary>point-panel-invalid-conditional.png</summary>
+          <img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/72b39f00bb879570c535a5e1eb51920c8991c719edc0467b560bfcdaa956e3b7.png\\" />
+        </details>"
+`;
+
+exports[`github event > format comments 1`] = `
+"**<a href=\\"https://delta.replay.io/project/dcb5df26/?branch=visuals21\\">2 of 360 changed</a>** undefined
 <details>
           <summary>point-panel-invalid-conditional.png</summary>
           <img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/ac5d53f47611dd90f1febda3735e61b6a19c5ad5b2cb0684bd7debbde7534a16.png\\" />

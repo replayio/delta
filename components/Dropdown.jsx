@@ -41,9 +41,13 @@ export default function Dropdown({ selected, options, onChange, project }) {
                 >
                   <div className="flex justify-between w-full">
                     <div className="truncate pr-4">{option.name}</div>
-                    <div className="bg-violet-500 px-2 rounded text-white text-xs font-bold flex items-center">
-                      {option.num_snapshots_changed}
-                    </div>
+                    {
+                      <div className="bg-violet-500 px-2 rounded text-white text-xs font-bold flex items-center">
+                        {option.action_status != "neutral"
+                          ? option.num_snapshots_changed
+                          : "-"}
+                      </div>
+                    }
                   </div>
                 </a>
               )}

@@ -91,6 +91,7 @@ export async function insertSnapshot({
   primary_changed,
   action_changed = false,
   primary_diff_path = "",
+  primary_num_pixels = 0,
 }): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
   const branch = await getBranchFromProject(projectId, branchName);
   if (branch.error) {
@@ -124,6 +125,7 @@ export async function insertSnapshot({
       action_changed,
       primary_changed,
       primary_diff_path,
+      primary_num_pixels,
     })
     .single();
 }

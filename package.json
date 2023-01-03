@@ -21,6 +21,7 @@
     "dotenv": "^16.0.3",
     "gm": "^1.25.0",
     "imagemagick-convert": "^1.0.3",
+    "jotai": "^1.12.1",
     "jsonwebtoken": "^9.0.0",
     "lodash": "^4.17.21",
     "next": "latest",

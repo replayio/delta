@@ -40,6 +40,7 @@ export default async function handler(req, res) {
       status,
       primary_changed: primaryDiff.changed,
       primary_diff_path: primaryDiff.diffSnapshot?.path,
+      primary_num_pixels: primaryDiff.diffSnapshot?.numPixels,
     });
 
     console.log(

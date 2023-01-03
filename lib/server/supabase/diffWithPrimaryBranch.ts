@@ -69,14 +69,23 @@ export async function diffWithPrimaryBranch(
     primaryImage.data.slice(0, 10),
     image.content.slice(0, 10)
   );
-  const { changed, png } = await diffBase64Images(
+  const { changed, png, numPixels } = await diffBase64Images(
     image.content,
     primaryImage.data
   );
 
-  console.log("diffWithPrimaryBranch (5) uploadSnapshot", { changed });
+  console.log("diffWithPrimaryBranch (5) uploadSnapshot", {
+    changed,
+    numPixels,
+  });
   const diffSnapshot = await uploadSnapshot(png, projectId);
 
   console.log("diffWithPrimaryBranch (6) finished", diffSnapshot);
-  return { changed, diffSnapshot: diffSnapshot.data, png, error: null };
+  return {
+    changed,
+    diffSnapshot: diffSnapshot.data,
+    png,
+    error: null,
+    numPixels,
+  };
 }

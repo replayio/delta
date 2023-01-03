@@ -106,7 +106,6 @@ export default async function handler(req, res) {
             .upsert({
               name: payload.pull_request.head.ref,
               project_id: project.data.id,
-              pr_url: payload.pull_request.url,
               pr_title: payload.pull_request.title,
               pr_number: payload.number,
               status: "open",

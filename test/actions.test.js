@@ -19,7 +19,7 @@ describe("actions", () => {
     expect(action.data.id).toEqual("7014f712-991d-417f-91e6-ca2aca818b59");
   });
 
-  it.skip("can get open branches for a project", async () => {
+  it.skip("can update the snapshot count for open branches", async () => {
     const branches = await getBranchesFromProject(projectId);
     const openBranches = branches.data.filter((b) => b.status == "open");
 

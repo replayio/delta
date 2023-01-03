@@ -85,7 +85,7 @@ export async function diffImages(img1, img2) {
 export function diffBase64Images(img1, img2) {
   if (!img1 || !img2) {
     console.log(`diffBase64Images: bailing because one of the images is null`);
-    return { changed: false, error: null, png: null };
+    return { changed: false, error: null, png: null, numPixels: 0 };
   }
   return diffImages(Buffer.from(img1, "base64"), Buffer.from(img2, "base64"));
 }

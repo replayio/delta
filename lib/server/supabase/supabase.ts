@@ -19,7 +19,6 @@ export type Branch = {
   id: string;
   name: string;
   project_id: string;
-  pr_url?: string;
   pr_title?: string;
   pr_number?: string;
   created_at: string;
@@ -50,6 +49,7 @@ export type Snapshot = {
   primary_changed: boolean;
   created_at: string;
   primary_diff_path?: string;
+  primary_num_pixels?: number;
 };
 
 export type ResponseError = {

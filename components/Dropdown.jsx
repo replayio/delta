@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import { Menu, Transition } from "@headlessui/react";
+import Link from "next/link";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -31,7 +32,7 @@ export default function Dropdown({ selected, options, onChange, project }) {
           {options.map((option) => (
             <Menu.Item key={option.name}>
               {({ active }) => (
-                <a
+                <Link
                   href={`/project/${project.short}/?branch=${option.name}`}
                   //   onClick={() => onChange(option)}
                   className={classNames(
@@ -49,7 +50,7 @@ export default function Dropdown({ selected, options, onChange, project }) {
                       </div>
                     }
                   </div>
-                </a>
+                </Link>
               )}
             </Menu.Item>
           ))}

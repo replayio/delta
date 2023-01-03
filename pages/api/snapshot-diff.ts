@@ -37,13 +37,16 @@ export default async function handler(req, res) {
   console.log(
     `snapshot-diff (3) updating snapshot`,
     Buffer.from(diff.png, "base64").slice(0, 10),
-    diff.diffSnapshot?.path
+    diff.diffSnapshot?.path,
+    diff.numPixels
   );
 
   // Save the primary_diff_path to the snapshot if it exists
   if (diff.diffSnapshot?.path) {
     const updatedSnapshot = await updateSnapshot(snapshot.data.id, {
       primary_diff_path: diff.diffSnapshot.path,
+      primary_num_pixels: diff.numPixels,
+      primary_changed: diff.changed,
     });
 
     if (updatedSnapshot.error) {

@@ -42,16 +42,16 @@ export function ApproveButton({ branch, projectQuery, currentAction }) {
   // Don't show the approve button if:
   // - the branch has no changes
   // - the branch has a currently running action
-  if (!hasChanged || currentBranch.status == "neutral") {
+  if (!hasChanged || currentBranch?.status == "neutral") {
     return null;
   }
 
-  if (currentBranch.status == "success") {
+  if (currentBranch?.status == "success") {
     return (
       <div className="flex items-center">
         <button
           onClick={() => toggleBranchStatus("failure")}
-          className="font-medium py-1 px-2 mr-4 text-violet-400  border-2 border-violet-400 hover:border-violet-500 hover:text-violet-500 rounded-md"
+          className="font-medium px-2 mr-4 text-violet-400  border-2 border-violet-400 hover:border-violet-500 hover:text-violet-500 rounded-md"
         >
           Changes Approved
         </button>
@@ -63,7 +63,7 @@ export function ApproveButton({ branch, projectQuery, currentAction }) {
     <div className="flex items-center">
       <button
         onClick={() => toggleBranchStatus("success")}
-        className="font-medium py-1 px-2 mr-4 text-violet-400  border-2 border-violet-400 hover:border-violet-500 hover:text-violet-500 rounded-md"
+        className="font-medium px-2 mr-4 text-violet-400  border-2 border-violet-400 hover:border-violet-500 hover:text-violet-500 rounded-md"
       >
         Approve
       </button>

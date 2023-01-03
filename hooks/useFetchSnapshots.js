@@ -5,7 +5,9 @@ const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
 export function useFetchSnapshots(branch, projectQuery) {
   const selectedKey = encodeURI(
-    (branch && projectQuery.isLoading) || projectQuery.error
+    (branch && projectQuery.isLoading) ||
+      projectQuery.error ||
+      !projectQuery.data
       ? null
       : `/api/getSnapshotsForBranch?branch=${branch}&project_id=${projectQuery.data.id}`
   );
@@ -26,7 +28,6 @@ export function useFetchSnapshots(branch, projectQuery) {
     isLoading: mainLoading,
   } = useSWR(primaryKey, fetcher);
 
-  console.log({ data, mainData, error, mainError });
   const snapshots = useMemo(() => {
     if (!data || !mainData) return [];
     if (data.error || mainData.error) return null;
@@ -45,6 +46,5 @@ export function useFetchSnapshots(branch, projectQuery) {
   if (isLoading || mainLoading) return { isLoading: true };
   if (error || mainError) return { error: error || mainError };
 
-  console.log(`snapshots`, snapshots);
   return { data: snapshots };
 }

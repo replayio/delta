@@ -5,23 +5,23 @@ import { ArrowPathIcon } from "@heroicons/react/20/solid";
 import useSWR from "swr";
 import uniqBy from "lodash/uniqBy";
 import sortBy from "lodash/sortBy";
+import { useAtom } from "jotai";
 import { Snapshot } from "../../components/Snapshot";
 import { SnapshotRow } from "../../components/SnapshotRow";
 
 import { Header } from "../../components/Header";
 import { useFetchSnapshots } from "../../hooks/useFetchSnapshots";
+import { snapshotsModeAtom } from "../../lib/client/state";
 
 const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
 export default function Home() {
-  const [selectedSnapshotIndex, setSelectedSnapshot] = useState(0);
-  const [mode, setMode] = useState("changed");
   const router = useRouter();
-  const [branch, setBranch] = useState("main");
-  const projectShort = router.query.short;
+  const { short, file, branch } = router.query;
 
+  const [mode] = useAtom(snapshotsModeAtom);
   const projectQuery = useSWR(
-    encodeURI(`/api/getProject?projectShort=${projectShort}`),
+    encodeURI(`/api/getProject?projectShort=${short}`),
     fetcher
   );
 
@@ -77,12 +77,16 @@ export default function Home() {
   );
 
   useEffect(() => {
-    if (router.query.branch) {
-      setBranch(router.query.branch);
-    } else if (shownBranches.length > 0) {
-      setBranch(shownBranches[0].name);
+    const { short, branch, file } = router.query;
+    const newBranch = shownBranches[0]?.name;
+    if (!branch && newBranch) {
+      router.push(
+        `/project/${short}?branch=${newBranch}${file ? `&file=${file}` : ""}`,
+        undefined,
+        { shallow: true }
+      );
     }
-  }, [router.query.branch, shownBranches]);
+  }, [router, shownBranches]);
 
   const { data, error, isLoading } = useFetchSnapshots(branch, projectQuery);
 
@@ -107,7 +111,9 @@ export default function Home() {
         ? unchangedSnapshots
         : data;
 
-    const selectedSnapshot = snapshots?.[selectedSnapshotIndex];
+    const selectedSnapshot = snapshots.find(
+      (snapshot) => snapshot.file == file
+    );
     console.log("snapshots", {
       newSnapshots,
       snapshots,
@@ -123,7 +129,18 @@ export default function Home() {
       unchangedSnapshots,
       selectedSnapshot,
     };
-  }, [data, mode, selectedSnapshotIndex]);
+  }, [data, mode, file]);
+
+  useEffect(() => {
+    const { short, branch, file } = router.query;
+    if (!file && branch && snapshots.length > 0) {
+      router.push(
+        `/project/${short}?branch=${branch}&file=${snapshots[0].file}`,
+        undefined,
+        { shallow: true }
+      );
+    }
+  }, [router, snapshots, selectedSnapshot]);
 
   if (error || actionsQuery.error) {
     console.log("error", error, actionsQuery.error);
@@ -132,7 +149,6 @@ export default function Home() {
   return (
     <div className={`h-full overflow-hidden`}>
       <Header
-        setBranch={setBranch}
         currentAction={currentAction}
         branch={branch}
         projectQuery={projectQuery}
@@ -170,7 +186,6 @@ export default function Home() {
                 <SnapshotRow
                   key={snapshot.id}
                   branch={branch}
-                  onSelect={setSelectedSnapshot}
                   index={index}
                   snapshot={snapshot}
                   selectedSnapshot={selectedSnapshot}

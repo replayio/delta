@@ -7,7 +7,11 @@ import {
 } from "../../lib/github";
 import omit from "lodash/omit";
 
-import { getProjectFromRepo } from "../../lib/server/supabase/supabase";
+import {
+  getProjectFromRepo,
+  Project,
+  Snapshot,
+} from "../../lib/server/supabase/supabase";
 import {
   getBranchFromProject,
   updateBranch,
@@ -23,7 +27,17 @@ const supabase = createClient();
 
 const formatCheck = (check) => omit(check, ["app", "pull_requests"]);
 
-export function formatComment({ project, branchName, snapshots, subTitle }) {
+export function formatComment({
+  project,
+  branchName,
+  snapshots,
+  subTitle = "",
+}: {
+  project: Project;
+  branchName: string;
+  snapshots: Snapshot[];
+  subTitle?: string;
+}) {
   const deltaUrl = getDeltaBranchUrl(project, branchName);
 
   const numDifferent = snapshots.filter(

@@ -17,11 +17,13 @@ const Placeholder = () => (
 );
 
 function SnapshotImage({ data }) {
-  if (!data) {
-    return <Placeholder />;
-  }
   return <img src={`data:image/png;base64,${data}`} />;
 }
+const Loader = () => (
+  <div className="flex justify-center items-center mt-5">
+    <ArrowPathIcon className="text-violet-500 h-5 w-5" aria-hidden="true" />
+  </div>
+);
 
 export function Snapshot({ snapshot, project, branch }) {
   const [mode, setMode] = useAtom(comparisonModeAtom);
@@ -52,18 +54,6 @@ export function Snapshot({ snapshot, project, branch }) {
     fetcher
   );
 
-  if (
-    isLoading ||
-    mainIsLoading ||
-    (snapshot?.primary_diff_path && diffIsLoading)
-  ) {
-    return (
-      <div className="flex justify-center items-center  mt-10">
-        <ArrowPathIcon className="text-violet-500 h-5 w-5" aria-hidden="true" />
-      </div>
-    );
-  }
-
   if (error || mainError || (snapshot?.primary_diff_path && diffError)) {
     return <div className="flex justify-center items-center h-full">error</div>;
   }
@@ -82,14 +72,23 @@ export function Snapshot({ snapshot, project, branch }) {
     >
       <Toggle mode={mode} setMode={setMode} />
       {mode == "slider" ? (
-        <ImageSlider data={data} mainData={mainData} />
+        isLoading || mainIsLoading ? (
+          <Loader />
+        ) : (
+          <ImageSlider data={data} mainData={mainData} />
+        )
       ) : (
-        <div className="mt-8 flex items-center flex-col ">
+        <div className="flex items-center flex-col ">
           {snapshot.primary_diff_path ? (
-            <SnapshotImage data={diffData} />
+            diffIsLoading ? (
+              <Loader />
+            ) : (
+              <img className="mt-8" src={`data:image/png;base64,${diffData}`} />
+            )
           ) : (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
+              className="mt-8"
               src={encodeURI(
                 `/api/snapshot-diff/?projectId=${project?.id}&branch=${branch}&file=${snapshot.file}`
               )}

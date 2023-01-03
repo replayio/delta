@@ -54,7 +54,7 @@ async function uploadImage(file, projectId, branch) {
 }
 
 (async () => {
-  const allFiles = getFiles("./playwright/visuals").slice(0, 5);
+  const allFiles = getFiles("./playwright/visuals").slice(0, 100);
   console.log(allFiles);
 
   const projectId = "dcb5df26-b418-4fe2-9bdf-5a838e604ec4";

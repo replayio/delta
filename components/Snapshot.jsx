@@ -1,4 +1,5 @@
 import useSWR from "swr";
+import { useState } from "react";
 import { useAtom } from "jotai";
 import { comparisonModeAtom } from "../lib/client/state";
 import { Toggle } from "./Toggle";
@@ -41,7 +42,9 @@ export function Snapshot({ snapshot, project, branch }) {
     fetcher
   );
 
-  if (error || mainError || (snapshot?.primary_diff_path && diffError)) {
+  const [diffFailed, setDiffFailed] = useState(false);
+
+  if (error || mainError) {
     return <div className="flex justify-center items-center h-full">error</div>;
   }
 
@@ -55,34 +58,39 @@ export function Snapshot({ snapshot, project, branch }) {
   return (
     <div
       className="flex flex-col mt-4 overflow-y-auto overflow-x-auto  pb-20  items-center"
-      style={{ minHeight: "300px", width: "calc(100% - 20px)" }}
+      style={{ width: "calc(100% - 20px)" }}
     >
       <Toggle mode={mode} setMode={setMode} />
-      {mode == "slider" ? (
-        isLoading || mainIsLoading ? (
-          <Loader />
-        ) : (
-          <ImageSlider data={data} mainData={mainData} />
-        )
-      ) : (
-        <div className="flex items-center flex-col ">
-          {snapshot.primary_diff_path ? (
-            diffIsLoading ? (
-              <Loader />
-            ) : (
-              <img className="mt-8" src={`data:image/png;base64,${diffData}`} />
-            )
-          ) : (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              className="mt-8"
-              src={encodeURI(
-                `/api/snapshot-diff/?projectId=${project?.id}&branch=${branch}&file=${snapshot.file}`
-              )}
-              alt=""
-            />
-          )}
+      {error || mainError || diffError || diffFailed ? (
+        <div className="flex justify-center items-center h-full text-violet-500 mt-8">
+          Could not load...
         </div>
+      ) : isLoading || mainIsLoading || diffIsLoading ? (
+        <Loader />
+      ) : mode == "slider" ? (
+        <ImageSlider data={data} mainData={mainData} />
+      ) : snapshot.primary_diff_path ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          className="mt-8"
+          alt=""
+          src={`data:image/png;base64,${diffData}`}
+        />
+      ) : (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          className="mt-8"
+          fallback="loading"
+          placeholder="blur"
+          onError={(e) => {
+            setDiffFailed(true);
+            console.log("cannot show diff", e);
+          }}
+          src={encodeURI(
+            `/api/snapshot-diff/?projectId=${project?.id}&branch=${branch}&file=${snapshot.file}`
+          )}
+          alt=""
+        />
       )}
     </div>
   );

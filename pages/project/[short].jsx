@@ -76,6 +76,8 @@ export default function Home() {
     [branches, projectQuery]
   );
 
+  console.log("shownBranches", shownBranches);
+
   useEffect(() => {
     const { short, branch, file } = router.query;
     const newBranch = shownBranches[0]?.name;
@@ -155,7 +157,6 @@ export default function Home() {
       return `${actionMinutes}m ${actionSeconds}s`;
     }
   }, [currentAction]);
-  console.log(actionDuration);
 
   return (
     <div className={`h-full overflow-hidden`}>
@@ -167,7 +168,11 @@ export default function Home() {
         shownBranches={shownBranches}
       />
 
-      {currentAction?.status == "neutral" ? (
+      {shownBranches.length == 0 ? (
+        <div className="flex justify-center  h-full text-violet-500 mt-8">
+          No open branches with changes...
+        </div>
+      ) : currentAction?.status == "neutral" ? (
         <div className="flex justify-center items-center mt-10 italic underline text-violet-600">
           <a
             target="_blank"
@@ -182,7 +187,9 @@ export default function Home() {
           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-violet-400"></div>
         </div>
       ) : error || actionsQuery.error ? (
-        <div className="flex justify-center items-center mt-10">Error</div>
+        <div className="flex justify-center h-full text-violet-500 mt-8">
+          Error
+        </div>
       ) : (
         <div className="flex  h-full">
           <div className="flex flex-col">

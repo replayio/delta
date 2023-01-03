@@ -177,7 +177,7 @@ export default async function handler(req, res) {
         let newCheck;
         if (checkId) {
           log("Check already exists", checkId);
-        } else  {
+        } else {
           log(
             "creating check",
             payload.organization.login,
@@ -209,17 +209,19 @@ export default async function handler(req, res) {
             "created check",
             check.status,
             check.data.id,
-            check.status <= 299 ? check.data : JSON.stringify(check).slice(0,200)
+            check.status <= 299
+              ? check.data
+              : JSON.stringify(check).slice(0, 200)
           );
 
-          if (check.status <= 299 ) {
+          if (check.status <= 299) {
             checkId = check.data.id;
             newCheck = check.data;
-  
+
             const updatedBranch = await updateBranch(branch.data, {
               check_id: checkId,
             });
-  
+
             log(
               "updated branch",
               updatedBranch.status,
@@ -228,7 +230,7 @@ export default async function handler(req, res) {
                 ? updatedBranch.data
                 : updatedBranch.error
             );
-          } 
+          }
         }
 
         const insertActionArgs = {
@@ -312,13 +314,18 @@ export default async function handler(req, res) {
           text: "",
         };
 
-        log("updating check", branch.data.check_id, updateCheckArgs);
-        const updatedCheck = await updateCheck(
-          payload.organization.login,
-          payload.repository.name,
-          branch.data.check_id,
-          updateCheckArgs
-        );
+        let updatedCheck;
+        if (branch.data.check_id) {
+          log("updating check", branch.data.check_id, updateCheckArgs);
+          updatedCheck = await updateCheck(
+            payload.organization.login,
+            payload.repository.name,
+            branch.data.check_id,
+            updateCheckArgs
+          );
+        } else {
+          log("Check doesnt exist");
+        }
 
         // only create a comment if there are differences
         if (numDifferent > 0) {

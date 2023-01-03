@@ -23,6 +23,32 @@ const supabase = createClient();
 
 const formatCheck = (check) => omit(check, ["app", "pull_requests"]);
 
+function formatComment({ project, branchName, snapshots }) {
+  const deltaUrl = getDeltaBranchUrl(project.data, branchName);
+
+  const numDifferent = snapshots.filter(
+    (snapshot) => snapshot.primary_changed
+  ).length;
+
+  const snapshotList = snapshots
+    .filter((snapshot) => snapshot.primary_changed)
+    .slice(0, 20)
+    .map(
+      (snapshot) =>
+        `<details><summary>${snapshot.file}</summary><img src="https://delta.replay.io/api/snapshot?path=${snapshot.path}"/></details>`
+    );
+
+  return `${
+    numDifferent > 0
+      ? `${numDifferent} of ${snapshots.length} changed`
+      : "Nothing changed"
+  }\n
+  
+  ${snapshotList.join("\n")}\n
+  
+  <a href="${deltaUrl}">View Delta</a>`;
+}
+
 export default async function handler(req, res) {
   const payload = req.body;
   const eventType = req.headers["x-github-event"];
@@ -301,12 +327,11 @@ export default async function handler(req, res) {
           payload.repository.name,
           branch.data.comment_id,
           {
-            body: `${
-              numDifferent > 0 ? title : "Nothing changed"
-            }\n<a href="${getDeltaBranchUrl(
-              project.data,
-              branchName
-            )}">View snapshots</a>`,
+            body: formatComment({
+              branchName,
+              project: project.data,
+              snapshots: snapshots.data,
+            }),
           }
         );
 

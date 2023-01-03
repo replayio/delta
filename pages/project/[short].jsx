@@ -136,7 +136,7 @@ export default function Home() {
       />
 
       {currentAction?.status == "neutral" ? (
-        <div className="flex justify-center items-center mt-10 italic underline text-blue-600">
+        <div className="flex justify-center items-center mt-10 italic underline text-violet-600">
           <a
             target="_blank"
             rel="noreferrer"

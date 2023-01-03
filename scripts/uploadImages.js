@@ -54,30 +54,39 @@ async function uploadImage(file, projectId, branch) {
 }
 
 (async () => {
-  const allFiles = getFiles("./playwright/visuals").slice(10, 20);
+  const allFiles = getFiles("./playwright/visuals").slice(0, 50);
+
   const projectId = "dcb5df26-b418-4fe2-9bdf-5a838e604ec4";
   const branch = "visuals10";
-
+  let results = [];
   for (const files of chunk(allFiles, 20)) {
     const res = await Promise.all(
       files.map((file) => uploadImage(file, projectId, branch))
     );
+    const failedCount = res.filter((r) => r?.error).length;
+    const passCount = res.filter((r) => r?.data).length;
+    console.log(`uploaded ${passCount} images`);
 
-    console.log(
-      JSON.stringify(
-        res.map((r) => r?.data),
-        null,
-        2
-      )
-    );
-    console.log("---");
-
-    console.log(
-      JSON.stringify(
-        res.map((r) => r?.error),
-        null,
-        2
-      )
-    );
+    if (failedCount > 0) {
+      console.log(`failed to uploaded ${failedCount} images`);
+    }
+    results.push(...res);
   }
+
+  console.log(
+    JSON.stringify(
+      results.filter((r) => r?.data).map((r) => r?.data),
+      null,
+      2
+    )
+  );
+  console.log("---");
+
+  console.log(
+    JSON.stringify(
+      results.filter((r) => r?.error).map((r) => r?.error),
+      null,
+      2
+    )
+  );
 })();

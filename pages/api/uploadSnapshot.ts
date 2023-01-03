@@ -53,6 +53,6 @@ export default async function handler(req, res) {
     res.status(200).json(snapshotResponse);
   } catch (e) {
     console.error("uploadSnapshot error", e);
-    res.status(500).json({ error: e });
+    res.status(500).json({ error: e.message, file: image.file });
   }
 }

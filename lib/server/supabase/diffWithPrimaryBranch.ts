@@ -54,13 +54,14 @@ export async function diffWithPrimaryBranch(
     "diffWithPrimaryBranch (3) downloadSnapshot",
     primarySnapshot.data.path
   );
+
   const primaryImage = await downloadSnapshot(primarySnapshot.data.path);
-  if (primarySnapshot.error) {
+  if (primaryImage.error) {
     console.log(
       "diffWithPrimaryBranch (4) bailing with error",
-      primarySnapshot.error
+      primaryImage.error
     );
-    return { changed: false, diffSnapshot: null, error: primarySnapshot.error };
+    return { changed: false, diffSnapshot: null, error: primaryImage.error };
   }
 
   console.log(

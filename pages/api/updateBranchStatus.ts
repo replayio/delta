@@ -53,15 +53,17 @@ export default async function handler(req, res) {
 
   let updatedComment;
   if (branchRecord.data.comment_id) {
+    const message =
+      status == "success" ? "Changes approved" : "Changes rejected";
     updatedComment = await updateComment(
       organization,
       repository,
       branchRecord.data.comment_id,
       {
-        body: `Changes approved\n<a href="${getDeltaBranchUrl(
+        body: `${message}\n<a href="${getDeltaBranchUrl(
           projectRecord.data,
           branchRecord.data.name
-        )}">View snapshots</a>`,
+        )}">View Delta</a>`,
       }
     );
 

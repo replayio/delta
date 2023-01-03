@@ -11,7 +11,14 @@ function cropImage(img, width, height) {
       .crop(width, height, 0, 0)
       .toBuffer("png", function (err, buffer) {
         if (err) reject(err);
-        resolve(PNG.sync.read(buffer));
+
+        try {
+          const png = PNG.sync.read(buffer);
+          resolve(png);
+        } catch (e) {
+          console.log(`cropImage: error`, e, buffer);
+          reject(e);
+        }
       });
   });
 }

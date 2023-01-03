@@ -1,26 +1,13 @@
 // Vitest Snapshot v1
 
 exports[`github event > format cmments 1`] = `
-"60 of 316 changed
-<details><summary>./playwright/visuals/dark/log-point-not-in-search-results.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/bb080e569ac74815083fa5cdb6161dc1dec09e75aa53fd47ad426f2ab61d6c84.png\\"/></details>
-<details><summary>./playwright/visuals/dark/log-point-in-search-results.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/bb080e569ac74815083fa5cdb6161dc1dec09e75aa53fd47ad426f2ab61d6c84.png\\"/></details>
-<details><summary>./playwright/visuals/dark/message-list-seek-to-earlier-message.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/29e1d19e8b47e09d2037976eb898f86970a47159e556dfbab80fc01b9c6e4124.png\\"/></details>
-<details><summary>./playwright/visuals/dark/search-result-highlight-plaintext.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/c8bba208d9b8c1eb92607fdd27caaa1d529d8c539d3b8c05f2af2dd9572d40c5.png\\"/></details>
-<details><summary>./playwright/visuals/dark/inspect-getter-nested-array.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/898c14ff39899b48b33c3ebc91e36486199416be695fe10b0452c33d8824ef58.png\\"/></details>
-<details><summary>./playwright/visuals/dark/overflowing-array-second-bucket-expanded.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/a8634c69017b7ca9a287585b3b44efb4b8c8e520a8e6ac33b29bca7bc9e50ad7.png\\"/></details>
-<details><summary>./playwright/visuals/light/filtered-no-results.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/83405b3f61863a9682c87a1d6fea39689d7e10522d4cbdfb6453e9da232e823a.png\\"/></details>
-<details><summary>./playwright/visuals/light/log-point-auto-complete-list-window.loc.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/bff728e2e5c4697836fa0b5b2a2eb2e40eb9c11693e07beb218be517fc468b0b.png\\"/></details>
-<details><summary>./playwright/visuals/dark/context-menu-position-one.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/1691d1570898b5596c986f0baddc6a67eee20a4907708c391349d3bdeb143605.png\\"/></details>
-<details><summary>./playwright/visuals/dark/context-menu-position-two.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/3cd19b4a42d5f098f615c4d9f0f8207c2265059419278cb4d219a847e2b6a548.png\\"/></details>
-<details><summary>./playwright/visuals/dark/event-types-filtered-toggle-list-no-results.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/8ec4deda46a797e58ee398afad7ce2f2cdbfd920dee6487c5cf74963c6e396d4.png\\"/></details>
-<details><summary>./playwright/visuals/dark/filtered-single-result.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/07390ab4834c0b52455e529d33c143893ab68085451e0cef229b6815fa92dda5.png\\"/></details>
-<details><summary>./playwright/visuals/dark/log-point-multi-hits-console.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/2726b72309911780fa84d84203eb88886018248a96e7e2ef517ef16d07365247.png\\"/></details>
-<details><summary>./playwright/visuals/dark/render-and-inspect-big-uint-64-array.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/303c72915dce63f4f885adad0e1e50aadeb688e78d22ae0c05afc2f1784cb2d7.png\\"/></details>
-<details><summary>./playwright/visuals/dark/render-errors.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/d4c26b088d32f7e5fe817aa1ead29642be6a47e390e4ec3c34ea474fac1801ed.png\\"/></details>
-<details><summary>./playwright/visuals/dark/initial-side-filter-values.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/d350809142654b5d634dfe76001aad777c029c24f7c0c452eb64e15f43aee225.png\\"/></details>
-<details><summary>./playwright/visuals/dark/log-point-multi-hits-with-conditional-console.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/2726b72309911780fa84d84203eb88886018248a96e7e2ef517ef16d07365247.png\\"/></details>
-<details><summary>./playwright/visuals/dark/nested-resursive-set.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/8c48b163c4e3c6a97b9a5e152a317dd4846585d75354d1bf56d97fd9a103132b.png\\"/></details>
-<details><summary>./playwright/visuals/dark/message-list-seek-to-later-message.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/ebcf6a5924ed9a5d1ef1551b9af346c44c11ef11db241a53a0a1325e204e1b8d.png\\"/></details>
-<details><summary>./playwright/visuals/dark/log-point-analysis-console.png</summary><img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/b88e6f09acdad23b80cf38e3c7a16950c193142a5347c2b5ece07b3a10a0e8c8.png\\"/></details>
-<a href=\\"https://delta.replay.io/project/dcb5df26/?branch=visuals9\\">View Delta</a>"
+"<a href=\\"https://delta.replay.io/project/dcb5df26/?branch=visuals21\\">2 of 360 changed</a>
+<details>
+          <summary>point-panel-invalid-conditional.png</summary>
+          <img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/ac5d53f47611dd90f1febda3735e61b6a19c5ad5b2cb0684bd7debbde7534a16.png\\" />
+        </details>
+<details>
+          <summary>point-panel-invalid-conditional.png</summary>
+          <img src=\\"https://delta.replay.io/api/snapshot?path=dcb5df26-b418-4fe2-9bdf-5a838e604ec4/72b39f00bb879570c535a5e1eb51920c8991c719edc0467b560bfcdaa956e3b7.png\\" />
+        </details>"
 `;

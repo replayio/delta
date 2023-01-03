@@ -50,7 +50,7 @@ export function formatComment({ project, branchName, snapshots }) {
     numDifferent > 0
       ? `${numDifferent} of ${snapshots.length} changed`
       : "Nothing changed";
-  return `${title}\n${snapshotList}\n<a href="${deltaUrl}">View Delta</a>`;
+  return `<a href="${deltaUrl}">${title}</a>\n${snapshotList}`;
 }
 
 export default async function handler(req, res) {

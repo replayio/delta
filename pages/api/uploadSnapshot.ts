@@ -1,4 +1,5 @@
 import {
+  getSnapshotFromBranch,
   insertSnapshot,
   updateSnapshot,
 } from "../../lib/server/supabase/snapshots";
@@ -24,10 +25,12 @@ export default async function handler(req, res) {
     }
 
     console.log("uploadSnapshot (2) -  upload", branchName, image.file);
-    const snapshot = await uploadSnapshot(image.content, projectId);
-    const status: string = snapshot.error ? snapshot.error : "Uploaded";
+    const uploadedSnapshot = await uploadSnapshot(image.content, projectId);
+    const status: string = uploadedSnapshot.error
+      ? uploadedSnapshot.error
+      : "Uploaded";
 
-    console.log("uploadSnapshot (3) - insert", status, snapshot.data);
+    console.log("uploadSnapshot (3) - insert", status, uploadedSnapshot.data);
 
     const snapshotResponse = await insertSnapshot(
       branchName,
@@ -36,10 +39,39 @@ export default async function handler(req, res) {
       status
     );
 
+    let snapshot = snapshotResponse.data;
     console.log(
       "uploadSnapshot (4) - diff",
-      snapshotResponse.data || snapshot.error
+      snapshotResponse.data,
+      uploadedSnapshot.error
     );
+
+    if (!snapshot) {
+      console.log(
+        `uploadSnapshot (5) - could not insert snapshot, so try to get the last saved snapshot from branch ${branchName}`,
+        uploadedSnapshot.error
+      );
+
+      const previousSnapshot = await getSnapshotFromBranch(
+        image.file,
+        projectId,
+        branchName
+      );
+
+      console.log(
+        "uploadSnapshot (6) - getSnapshotFromBranch",
+        previousSnapshot.data
+      );
+      if (previousSnapshot.data) {
+        snapshot = previousSnapshot.data;
+      } else {
+        console.log(
+          `uploadSnapshot (6) - could not get snapshot from branch ${branchName}`,
+          previousSnapshot.error
+        );
+        return res.status(500).json({ error: "Could not find snapshot" });
+      }
+    }
 
     const primaryDiff = await diffWithPrimaryBranch(
       projectId,
@@ -47,20 +79,20 @@ export default async function handler(req, res) {
       image
     );
 
-    console.log("uploadSnapshot (5) - update", {
+    console.log("uploadSnapshot (7) - update", {
       primary_changed: primaryDiff.changed,
       primary_diff_path: primaryDiff.diffSnapshot?.path,
       primary_num_pixels: primaryDiff.diffSnapshot?.numPixels,
     });
 
-    const updatedSnapshot = await updateSnapshot(snapshotResponse.data.id, {
+    const updatedSnapshot = await updateSnapshot(snapshot.id, {
       primary_changed: primaryDiff.changed,
       primary_diff_path: primaryDiff.diffSnapshot?.path,
       primary_num_pixels: primaryDiff.diffSnapshot?.numPixels,
     });
 
     if (primaryDiff.changed) {
-      console.log("uploadSnapshot (6) - incrementActionNumSnapshotsChanged");
+      console.log("uploadSnapshot (8) - incrementActionNumSnapshotsChanged");
       await incrementActionNumSnapshotsChanged(projectId, branchName);
     }
 

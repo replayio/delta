@@ -72,7 +72,7 @@ export async function diffImages(img1, img2) {
       try {
         ({ png1, png2 } = await resizeImage(png1, png2, img1, img2));
       } catch (e) {
-        console.log(`diffImages: error`, e);
+        console.log(`diffImages: resizeImage error`, e);
         return { error: e, changed: true, numPixels: 0, png: null };
       }
     }
@@ -98,7 +98,8 @@ export async function diffImages(img1, img2) {
     console.log(`diffImages:`, { changed, numPixels });
     return { changed, numPixels, png: diffPng, error: null };
   } catch (e) {
-    return { error: e };
+    console.log(`diffImages: final error`, e);
+    return { error: e, changed: true, numPixels: 0, png: null };
   }
 }
 

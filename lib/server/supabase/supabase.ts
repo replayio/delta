@@ -57,6 +57,13 @@ export type ResponseError = {
   data: null;
 };
 
+export type GithubEvent = {
+  id: string;
+  event_type: string;
+  action: string;
+  payload: Object;
+};
+
 export const createError = (error: string): ResponseError => ({
   error,
   data: null,
@@ -103,4 +110,9 @@ export async function getProjectFromRepo(
     .eq("organization", organization)
     .eq("repository", repository)
     .single();
+}
+export async function insertGithubEvent(
+  event: Partial<GithubEvent>
+): Promise<PostgrestSingleResponse<GithubEvent>> {
+  return supabase.from("GithubEvent").insert(event).single();
 }

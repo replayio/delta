@@ -9,6 +9,7 @@ import omit from "lodash/omit";
 
 import {
   getProjectFromRepo,
+  insertGithubEvent,
   Project,
   Snapshot,
 } from "../../lib/server/supabase/supabase";
@@ -111,6 +112,12 @@ export default async function handler(req, res) {
       `no project found for ${payload.repository.name} and ${payload.organization.login}`
     );
   }
+
+  await insertGithubEvent({
+    action: payload.action,
+    event_type: eventType,
+    payload: payload,
+  });
 
   switch (eventType) {
     case "pull_request": {

@@ -50,7 +50,7 @@ describe("github event", () => {
   it("workflow completed", async () => {
     const res = await testEvent("workflow_job.completed");
     expect(res.check.output.title).toEqual(
-      "265 of 663 snapshots are different"
+      "376 of 789 snapshots are different"
     );
   });
 

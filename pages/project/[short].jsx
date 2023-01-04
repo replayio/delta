@@ -17,7 +17,7 @@ const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
 export default function Home() {
   const router = useRouter();
-  const { short, file, branch } = router.query;
+  const { short, snapshot, branch } = router.query;
 
   const [mode] = useAtom(snapshotsModeAtom);
   const projectQuery = useSWR(
@@ -79,11 +79,13 @@ export default function Home() {
   console.log("shownBranches", shownBranches);
 
   useEffect(() => {
-    const { short, branch, file } = router.query;
+    const { short, branch, snapshot } = router.query;
     const newBranch = shownBranches[0]?.name;
     if (!branch && newBranch) {
       router.push(
-        `/project/${short}?branch=${newBranch}${file ? `&file=${file}` : ""}`,
+        `/project/${short}?branch=${newBranch}${
+          snapshot ? `&snapshot=${snapshot}` : ""
+        }`,
         undefined,
         { shallow: true }
       );
@@ -114,8 +116,9 @@ export default function Home() {
         : data;
 
     const selectedSnapshot = snapshots.find(
-      (snapshot) => snapshot.file == file
+      (_snapshot) => _snapshot.id == snapshot
     );
+
     console.log("snapshots", {
       newSnapshots,
       snapshots,
@@ -131,13 +134,13 @@ export default function Home() {
       unchangedSnapshots,
       selectedSnapshot,
     };
-  }, [data, mode, file]);
+  }, [data, mode, snapshot]);
 
   useEffect(() => {
-    const { short, branch, file } = router.query;
-    if (!file && branch && snapshots.length > 0) {
+    const { short, branch, snapshot } = router.query;
+    if (!snapshot && branch && snapshots.length > 0) {
       router.push(
-        `/project/${short}?branch=${branch}&file=${snapshots[0].file}`,
+        `/project/${short}?branch=${branch}&snapshot=${snapshots[0].id}`,
         undefined,
         { shallow: true }
       );
@@ -157,6 +160,16 @@ export default function Home() {
       return `${actionMinutes}m ${actionSeconds}s`;
     }
   }, [currentAction]);
+
+  const lightSnapshots = useMemo(
+    () => snapshots.filter((snapshot) => snapshot.file.includes("light")),
+    [snapshots]
+  );
+
+  const darkSnapshots = useMemo(
+    () => snapshots.filter((snapshot) => snapshot.file.includes("dark")),
+    [snapshots]
+  );
 
   return (
     <div className={`h-full overflow-hidden`}>
@@ -197,7 +210,19 @@ export default function Home() {
               className="flex flex-col h-full overflow-y-auto overflow-x-hidden"
               style={{ width: "300px" }}
             >
-              {snapshots.map((snapshot, index) => (
+              <div className="ml-4 text-sm  text-gray-700 mt-4 mb-2">Light</div>
+              {lightSnapshots.map((snapshot, index) => (
+                <SnapshotRow
+                  key={snapshot.id}
+                  branch={branch}
+                  index={index}
+                  snapshot={snapshot}
+                  selectedSnapshot={selectedSnapshot}
+                  project={projectQuery.data}
+                />
+              ))}
+              <div className="ml-4 text-sm  text-gray-700 mt-4 mb-2">Dark</div>
+              {darkSnapshots.map((snapshot, index) => (
                 <SnapshotRow
                   key={snapshot.id}
                   branch={branch}

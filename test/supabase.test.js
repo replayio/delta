@@ -11,7 +11,10 @@ import { incrementActionNumSnapshotsChanged } from "../lib/server/supabase/incre
 import {
   getSnapshotsFromBranch,
   getSnapshotsForAction,
+  getSnapshotFromBranch,
 } from "../lib/server/supabase/snapshots";
+
+import { getBranchFromProject } from "../lib/server/supabase/branches";
 
 import { downloadSnapshot } from "../lib/server/supabase/storage";
 
@@ -21,6 +24,17 @@ describe("supabase", () => {
   it("get snapshots", async () => {
     const sn = await getSnapshotsFromBranch(projectId, "main");
     expect(sn.data.length).toBeGreaterThan(0);
+  });
+
+  it("get snapshot - warning-stack-collapsed.png", async () => {
+    const file = "./playwright/visuals/light/warning-stack-collapsed.png";
+    const branchName = "mbudayr/BAC-2510/use-focus-window-to-load-regions";
+
+    const branch = await getBranchFromProject(projectId, branchName);
+    const snapshot = await getSnapshotFromBranch(file, projectId, branchName);
+
+    expect(snapshot.data).toMatchSnapshot();
+    expect(branch.data).toMatchSnapshot();
   });
 
   it("get action from run_id", async () => {

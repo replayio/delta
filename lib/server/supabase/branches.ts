@@ -12,7 +12,7 @@ export async function getBranchFromProject(
     .from("Branches")
     .select("*")
     .eq("project_id", projectId)
-    .eq("name", branch)
+    .like("name", `%${branch}`)
     .single();
 }
 

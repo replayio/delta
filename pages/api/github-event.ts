@@ -91,7 +91,8 @@ export default async function handler(req, res) {
   const response = ({ data, status, error = null }) => {
     console.log(
       `github-event ${eventType}.${payload.action} status:${status} project:${project.data.id}`,
-      data
+      data,
+      error
     );
     res.status(status).json([200, 201].includes(status) ? data : error);
   };
@@ -114,17 +115,17 @@ export default async function handler(req, res) {
   switch (eventType) {
     case "pull_request": {
       if (payload.action === "opened") {
+        const newBranch = {
+          name: payload.pull_request.head.ref,
+          project_id: project.data.id,
+          pr_title: payload.pull_request.title,
+          pr_number: payload.number,
+          status: "open",
+        };
+        log("creating branch", newBranch);
+
         return response(
-          await supabase
-            .from("Branches")
-            .upsert({
-              name: payload.pull_request.head.ref,
-              project_id: project.data.id,
-              pr_title: payload.pull_request.title,
-              pr_number: payload.number,
-              status: "open",
-            })
-            .single()
+          await supabase.from("Branches").upsert(newBranch).single()
         );
       } else if (payload.action === "closed") {
         const branch = await getBranchFromProject(

@@ -105,6 +105,13 @@ export default async function handler(req, res) {
     );
   };
 
+  const insertEvent = () =>
+    insertGithubEvent({
+      action: payload.action,
+      event_type: eventType,
+      payload: payload,
+    });
+
   log(`start`);
 
   if (project.error) {
@@ -113,15 +120,10 @@ export default async function handler(req, res) {
     );
   }
 
-  await insertGithubEvent({
-    action: payload.action,
-    event_type: eventType,
-    payload: payload,
-  });
-
   switch (eventType) {
     case "pull_request": {
       if (payload.action === "opened") {
+        await insertEvent();
         const newBranch = {
           name: payload.pull_request.head.ref,
           project_id: project.data.id,
@@ -135,6 +137,7 @@ export default async function handler(req, res) {
           await supabase.from("Branches").upsert(newBranch).single()
         );
       } else if (payload.action === "closed") {
+        await insertEvent();
         const branch = await getBranchFromProject(
           project.data.id,
           payload.pull_request.head.ref
@@ -171,6 +174,7 @@ export default async function handler(req, res) {
           return skip(`workflow is ${payload.workflow_job.workflow_name}`);
         }
 
+        await insertEvent();
         const branchName = payload.workflow_job.head_branch;
         const projectId = project.data.id;
         log("getting branch", projectId, branchName);
@@ -271,6 +275,8 @@ export default async function handler(req, res) {
         ) {
           return skip(`workflow is ${payload.workflow_job.workflow_name}`);
         }
+
+        await insertEvent();
 
         const branchName = payload.workflow_job.head_branch;
         log("getting branch", project.data.id, branchName);

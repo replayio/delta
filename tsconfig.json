@@ -21,8 +21,8 @@
     "**/*.tsx",
     "pages/**/*.ts",
     "pages/api/github-event.ts",
-    "test/supabase.test.js",
-    "test/supabase.test.js"
+    "test/supabase.test.ts",
+    "test/supabase.test.ts"
   ],
   "exclude": ["node_modules"]
 }

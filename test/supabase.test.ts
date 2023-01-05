@@ -5,8 +5,9 @@ import {
   updateAction,
   incrementActionNumSnapshots,
   getAction,
+  getActionFromBranch,
 } from "../lib/server/supabase/actions";
-
+import omit from "lodash/omit";
 import { incrementActionNumSnapshotsChanged } from "../lib/server/supabase/incrementActionNumSnapshotsChanged";
 import {
   getSnapshotsFromBranch,
@@ -33,12 +34,12 @@ describe("supabase", () => {
     const branch = await getBranchFromProject(projectId, branchName);
     const snapshot = await getSnapshotFromBranch(file, projectId, branchName);
 
-    expect(snapshot.data).toMatchSnapshot();
+    expect(omit(snapshot.data, ["created_at", "id"])).toMatchSnapshot();
     expect(branch.data).toMatchSnapshot();
   });
 
   it("get action from run_id", async () => {
-    const action = await getActionFromRunId(3796486541);
+    const action = await getActionFromRunId("3796486541");
     expect(action.data.id).toEqual("1f11d17c-aa97-4c1f-b312-b1c1954c13f4");
   });
 
@@ -57,17 +58,12 @@ describe("supabase", () => {
   });
 
   it("can update action status", async () => {
-    const action = await updateAction(
-      "9ba81dd3-98c4-44a9-a013-5835a1931ae9",
-      "failure"
-    );
+    const actionId = "9ba81dd3-98c4-44a9-a013-5835a1931ae9";
+    const action = await updateAction(actionId, { status: "failure" });
 
     expect(action.data.status).toEqual("failure");
 
-    const action2 = await updateAction(
-      "9ba81dd3-98c4-44a9-a013-5835a1931ae9",
-      "success"
-    );
+    const action2 = await updateAction(actionId, { status: "success" });
 
     expect(action2.data.status).toEqual("success");
   });
@@ -84,7 +80,8 @@ describe("supabase", () => {
   });
 
   it("increments num_snapshots_changed", async () => {
-    const action = await getAction(actionId);
+    const branch = await getBranchFromProject(projectId, "visuals10");
+    const action = await getActionFromBranch(branch.data.id);
 
     const { num_snapshots_changed } = action.data;
     const { data } = await incrementActionNumSnapshotsChanged(

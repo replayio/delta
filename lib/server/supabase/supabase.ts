@@ -36,6 +36,7 @@ export type Action = {
   actor: string;
   status?: "success" | "failure" | "neutral";
   num_snapshots: number;
+  num_snapshots_changed: number;
 };
 
 export type Snapshot = {

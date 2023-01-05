@@ -13,6 +13,7 @@ export async function getBranchFromProject(
     .select("*")
     .eq("project_id", projectId)
     .like("name", `%${branch}`)
+    .order("created_at", { ascending: false })
     .limit(1)
     .single();
 }

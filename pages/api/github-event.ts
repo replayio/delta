@@ -225,7 +225,7 @@ export default async function handler(req, res) {
             check.data.id,
             check.status <= 299
               ? check.data
-              : JSON.stringify(check).slice(0, 200)
+              : JSON.stringify(check).slice(0, 100)
           );
 
           if (check.status <= 299) {
@@ -237,7 +237,8 @@ export default async function handler(req, res) {
             });
 
             log(
-              "updated branch",
+              "updated branch with new check ",
+              checkId,
               updatedBranch.status,
               updatedBranch.status <= 299 ? "success" : "error",
               updatedBranch.status <= 299

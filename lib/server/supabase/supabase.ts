@@ -63,6 +63,10 @@ export type GithubEvent = {
   event_type: string;
   action: string;
   payload: Object;
+  pr_number?: string;
+  branch_name?: string;
+  job_id?: string;
+  run_id?: string;
 };
 
 export const createError = (error: string): ResponseError => ({

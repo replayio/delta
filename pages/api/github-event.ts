@@ -9,6 +9,7 @@ import omit from "lodash/omit";
 
 import {
   getProjectFromRepo,
+  GithubEvent,
   insertGithubEvent,
   Project,
   Snapshot,
@@ -107,11 +108,12 @@ export default async function handler(req, res) {
     );
   };
 
-  const insertEvent = () =>
+  const insertEvent = (fields: Partial<GithubEvent> = {}) =>
     insertGithubEvent({
       action: payload.action,
       event_type: eventType,
       payload: payload,
+      ...fields,
     });
 
   log(`start`);
@@ -125,7 +127,10 @@ export default async function handler(req, res) {
   switch (eventType) {
     case "pull_request": {
       if (payload.action === "opened") {
-        await insertEvent();
+        await insertEvent({
+          pr_number: payload.number,
+          branch_name: payload.pull_request.head.ref,
+        });
         const newBranch = {
           name: payload.pull_request.head.ref,
           project_id: project.data.id,
@@ -137,7 +142,10 @@ export default async function handler(req, res) {
 
         return response(await insertBranch(newBranch));
       } else if (payload.action === "closed") {
-        await insertEvent();
+        await insertEvent({
+          pr_number: payload.number,
+          branch_name: payload.pull_request.head.ref,
+        });
         const branch = await getBranch(project.data.id, payload.number);
 
         if (branch.error) {
@@ -163,7 +171,12 @@ export default async function handler(req, res) {
           return skip(`workflow is ${payload.workflow_job.workflow_name}`);
         }
 
-        await insertEvent();
+        await insertEvent({
+          job_id: payload.workflow_job.id,
+          run_id: payload.workflow_job.run_id,
+          branch_name: payload.workflow_job.head_branch,
+        });
+
         const branchName = payload.workflow_job.head_branch;
         const projectId = project.data.id;
         log("getting branch", projectId, branchName);
@@ -265,7 +278,11 @@ export default async function handler(req, res) {
           return skip(`workflow is ${payload.workflow_job.workflow_name}`);
         }
 
-        await insertEvent();
+        await insertEvent({
+          job_id: payload.workflow_job.id,
+          run_id: payload.workflow_job.run_id,
+          branch_name: payload.workflow_job.head_branch,
+        });
 
         const branchName = payload.workflow_job.head_branch;
         log("getting branch", project.data.id, branchName);

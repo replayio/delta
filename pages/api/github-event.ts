@@ -15,7 +15,9 @@ import {
 } from "../../lib/server/supabase/supabase";
 import {
   getBranchFromProject,
+  insertBranch,
   updateBranch,
+  getBranch,
 } from "../../lib/server/supabase/branches";
 import {
   getActionFromRunId,
@@ -133,34 +135,21 @@ export default async function handler(req, res) {
         };
         log("creating branch", newBranch);
 
-        return response(
-          await supabase.from("Branches").upsert(newBranch).single()
-        );
+        return response(await insertBranch(newBranch));
       } else if (payload.action === "closed") {
         await insertEvent();
-        const branch = await getBranchFromProject(
-          project.data.id,
-          payload.pull_request.head.ref
-        );
+        const branch = await getBranch(project.data.id, payload.number);
 
         if (branch.error) {
           return skip(
-            `branch ${
-              payload.pull_request.head.ref
+            `branch ${payload.pull_request.head.ref} ${
+              payload.number
             } not found: ${JSON.stringify(branch.error)}`
           );
         }
 
         return response(
-          await supabase
-            .from("Branches")
-            .update({
-              name: payload.pull_request.head.ref,
-              project_id: project.data.id,
-              status: "closed",
-            })
-            .eq("id", branch.data.id)
-            .single()
+          await updateBranch(branch.data.id, { status: "closed" })
         );
       }
     }
@@ -230,7 +219,7 @@ export default async function handler(req, res) {
             checkId = check.data.id;
             newCheck = check.data;
 
-            const updatedBranch = await updateBranch(branch.data, {
+            const updatedBranch = await updateBranch(branch.data.id, {
               check_id: checkId,
             });
 
@@ -357,7 +346,7 @@ export default async function handler(req, res) {
             }
 
             log("created comment. updating branch", comment.data.id);
-            branch = await updateBranch(branch.data, {
+            branch = await updateBranch(branch.data.id, {
               comment_id: comment.data.id,
             });
 

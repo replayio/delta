@@ -24,7 +24,13 @@
     "test/supabase.test.ts",
     "test/supabase.test.ts",
     "cypress/e2e/view-branch.cy.js",
-    "cypress/e2e/view-branch.cy.js"
+    "cypress/e2e/view-branch.cy.js",
+    "cypress.config.js",
+    "cypress.config.js",
+    "cypress/support/e2e.js",
+    "cypress/support/e2e.js",
+    "cypress/support/commands.js",
+    "cypress/support/commands.js"
   ],
   "exclude": ["node_modules"]
 }

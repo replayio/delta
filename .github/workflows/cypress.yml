@@ -1,0 +1,55 @@
+name: Run Cypress tests
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+env:
+  RECORD_REPLAY_API_KEY: rwk_yaEG8jo6gcisGHHoMj8SNoOMIHSbT7REuU5E1QnKCiL
+
+jobs:
+  preview-branch:
+    name: Wait for Vercel Preview Branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Waiting for 200 from the Vercel Preview
+        uses: patrickedqvist/wait-for-vercel-preview@v1.2.0
+        id: waitFor200
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          max_timeout: 960
+          check_interval: 60
+          environment: ${{ fromJSON('["", "production"]')[github.ref == 'refs/heads/main'] }}
+    outputs:
+      url: ${{ steps.waitFor200.outputs.url }}
+
+  e2etests:
+    name: Cypress tests
+      runs-on: ubuntu-latest
+      needs: [preview-branch]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "18"
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn config get cacheFolder)"
+      - name: Restore yarn cache
+        uses: actions/cache@v3
+        id: yarn-cache
+        with:
+          path: |
+            ${{ steps.yarn-cache-dir-path.outputs.dir }}
+            **/node_modules
+          key: yarn-cache-folder-${{ hashFiles('**/yarn.lock', '.yarnrc.yml') }}
+          restore-keys: "yarn-cache-folder-"
+      - name: Install packages
+        run: yarn install
+        env:
+          YARN_CHECKSUM_BEHAVIOR: "update"
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+      - name: Run tests
+         run: node hello.js

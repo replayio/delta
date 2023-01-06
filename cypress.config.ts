@@ -1,5 +1,7 @@
 import { defineConfig } from "cypress";
 
+// preview branch in CI
+
 export default defineConfig({
   e2e: {
     baseUrl: "http://localhost:3000",

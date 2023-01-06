@@ -22,7 +22,9 @@
     "pages/**/*.ts",
     "pages/api/github-event.ts",
     "test/supabase.test.ts",
-    "test/supabase.test.ts"
+    "test/supabase.test.ts",
+    "cypress/e2e/view-branch.cy.js",
+    "cypress/e2e/view-branch.cy.js"
   ],
   "exclude": ["node_modules"]
 }

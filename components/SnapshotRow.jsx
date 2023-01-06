@@ -18,6 +18,7 @@ export function SnapshotRow({ snapshot, onSelect, index, selectedSnapshot }) {
           ? "bg-violet-500 text-white hover:bg-violet-600"
           : "text-gray-500 hover:bg-gray-100 "
       }`}
+      data-selected={isSelected}
       href={encodeURI(
         `/project/${short}?branch=${branch}&snapshot=${snapshot.id}`
       )}

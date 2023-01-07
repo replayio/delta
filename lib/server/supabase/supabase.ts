@@ -130,5 +130,14 @@ export async function updateGithubEvent(
   id: number,
   event: Partial<GithubEvent>
 ): Promise<PostgrestSingleResponse<GithubEvent>> {
-  return supabase.from("GithubEvent").update(event).eq("id", id).single();
+  console.log("updateGithubEvent", id, event);
+
+  const res = await supabase
+    .from("GithubEvent")
+    .update(event)
+    .eq("id", id)
+    .single();
+
+  console.log("updateGithubEvent (done)", res.status, res.data || res.error);
+  return res;
 }

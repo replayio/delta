@@ -222,13 +222,6 @@ export default async function handler(req, res) {
           }
         );
 
-        log(
-          "created check",
-          check.status,
-          check.data.id,
-          check.status <= 299 ? check.data : JSON.stringify(check).slice(0, 100)
-        );
-
         await updateGithubEvent(githubEvent.data.id, { check });
 
         if (check.status <= 299) {

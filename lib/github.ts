@@ -1,5 +1,6 @@
 import { App } from "@octokit/app";
 import dotenv from "dotenv";
+import omit from "lodash";
 
 dotenv.config({ path: "./.env.local" });
 
@@ -37,21 +38,30 @@ export async function createCheck(
 ) {
   const octokit = await getOctokit();
 
-  const check = octokit.request(`POST /repos/${owner}/${repo}/check-runs`, {
-    owner: owner,
-    repo: repo,
-    name: "Visuals",
-    head_sha,
-    status,
-    conclusion,
-    details_url,
-    started_at: new Date().toISOString(),
-    output: {
-      title,
-      summary,
-      text,
-    },
-  });
+  const check = await octokit.request(
+    `POST /repos/${owner}/${repo}/check-runs`,
+    {
+      owner: owner,
+      repo: repo,
+      name: "Visuals",
+      head_sha,
+      status,
+      conclusion,
+      details_url,
+      started_at: new Date().toISOString(),
+      output: {
+        title,
+        summary,
+        text,
+      },
+    }
+  );
+
+  if (check.status > 299) {
+    console.log("failed to create check", JSON.stringify(check).slice(0, 100));
+  }
+
+  console.log("created check", omit(check.data, ["app", "pull_requests"]));
 
   return check;
 }

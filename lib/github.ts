@@ -61,7 +61,7 @@ export async function createCheck(
     console.log("failed to create check", JSON.stringify(check).slice(0, 100));
   }
 
-  console.log("created check", omit(check.data, ["app", "pull_requests"]));
+  console.log("created check", check.data.output);
 
   return check;
 }

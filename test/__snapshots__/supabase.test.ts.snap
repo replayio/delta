@@ -20,6 +20,7 @@ exports[`supabase > get snapshot - warning-stack-collapsed.png 2`] = `
   "check_id": "10425425072",
   "comment_id": null,
   "created_at": "2023-01-03T19:21:46+00:00",
+  "head_sha": null,
   "id": "c481d064-f58c-4c6b-baa9-af2b888a361c",
   "name": "rebased/mbudayr/BAC-2510/use-focus-window-to-load-regions",
   "pr_number": "8464",

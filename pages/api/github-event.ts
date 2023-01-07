@@ -13,6 +13,7 @@ import {
   insertGithubEvent,
   Project,
   Snapshot,
+  updateGithubEvent,
 } from "../../lib/server/supabase/supabase";
 import {
   getBranchFromProject,
@@ -171,81 +172,79 @@ export default async function handler(req, res) {
           return skip(`workflow is ${payload.workflow_job.workflow_name}`);
         }
 
-        await insertEvent({
+        const githubEvent = await insertEvent({
           job_id: payload.workflow_job.id,
           run_id: payload.workflow_job.run_id,
           branch_name: payload.workflow_job.head_branch,
+          head_sha: payload.workflow_job.head_sha,
         });
 
         const branchName = payload.workflow_job.head_branch;
         const projectId = project.data.id;
         log("getting branch", projectId, branchName);
 
-        const branch = await getBranchFromProject(projectId, branchName);
+        let branch = await getBranchFromProject(projectId, branchName);
 
         if (branch.error) {
           return skip(`branch ${branchName} not found`);
         }
 
-        let checkId = branch.data.check_id;
-        let newCheck;
-        if (checkId) {
-          log("Check already exists", checkId);
-        } else {
-          log(
-            "creating check",
-            payload.organization.login,
-            payload.repository.name,
-            {
-              head_sha: payload.workflow_job.head_sha,
-              title: "Tests are running",
-              status: "in_progress",
-              conclusion: "neutral",
-              text: "",
-              summary: "",
-            }
-          );
+        branch = await updateBranch(branch.data.id, {
+          head_sha: payload.workflow_job.head_sha,
+        });
 
-          const check = await createCheck(
-            payload.organization.login,
-            payload.repository.name,
-            {
-              head_sha: payload.workflow_job.head_sha,
-              details_url: getDeltaBranchUrl(project.data, branchName),
-              title: "Tests are running",
-              status: "in_progress",
-              conclusion: "neutral",
-              text: "",
-              summary: "",
-            }
-          );
-          log(
-            "created check",
-            check.status,
-            check.data.id,
-            check.status <= 299
-              ? check.data
-              : JSON.stringify(check).slice(0, 100)
-          );
-
-          if (check.status <= 299) {
-            checkId = check.data.id;
-            newCheck = check.data;
-
-            const updatedBranch = await updateBranch(branch.data.id, {
-              check_id: checkId,
-            });
-
-            log(
-              "updated branch with new check ",
-              checkId,
-              updatedBranch.status,
-              updatedBranch.status <= 299 ? "success" : "error",
-              updatedBranch.status <= 299
-                ? updatedBranch.data
-                : updatedBranch.error
-            );
+        let checkId, newCheck;
+        log(
+          "creating check",
+          payload.organization.login,
+          payload.repository.name,
+          {
+            head_sha: payload.workflow_job.head_sha,
+            title: "Tests are running",
+            status: "in_progress",
+            conclusion: "neutral",
+            text: "",
+            summary: "",
           }
+        );
+
+        const check = await createCheck(
+          payload.organization.login,
+          payload.repository.name,
+          {
+            head_sha: payload.workflow_job.head_sha,
+            details_url: getDeltaBranchUrl(project.data, branchName),
+            title: "Tests are running",
+            status: "in_progress",
+            conclusion: "neutral",
+            text: "",
+            summary: "",
+          }
+        );
+
+        log(
+          "created check",
+          check.status,
+          check.data.id,
+          check.status <= 299 ? check.data : JSON.stringify(check).slice(0, 100)
+        );
+
+        await updateGithubEvent(githubEvent.data.id, { check });
+
+        if (check.status <= 299) {
+          checkId = check.data.id;
+          newCheck = check.data;
+
+          const updatedBranch = await updateBranch(branch.data.id, {
+            check_id: checkId,
+          });
+
+          log(
+            "updated branch ",
+            updatedBranch.status,
+            checkId,
+            updatedBranch.data.checkId
+          );
         }
 
         const insertActionArgs = {
@@ -283,6 +282,7 @@ export default async function handler(req, res) {
           job_id: payload.workflow_job.id,
           run_id: payload.workflow_job.run_id,
           branch_name: payload.workflow_job.head_branch,
+          head_sha: payload.workflow_job.head_sha,
         });
 
         const branchName = payload.workflow_job.head_branch;
@@ -301,7 +301,7 @@ export default async function handler(req, res) {
           return skip(`Branch ${branch.data.name} is missing a check_id`);
         }
 
-        log("found branch", branch.data.id, branch.data.check_id);
+        log("found branch with check", branch.data.id, branch.data.check_id);
         const runId = payload.workflow_job.run_id;
         const action = await getActionFromRunId(runId);
         if (action.error) {

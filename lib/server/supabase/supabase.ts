@@ -25,6 +25,7 @@ export type Branch = {
   check_id: string;
   comment_id: string;
   status: string;
+  head_sha: string;
 };
 
 export type Action = {
@@ -59,14 +60,17 @@ export type ResponseError = {
 };
 
 export type GithubEvent = {
-  id: string;
+  id: number;
   event_type: string;
   action: string;
   payload: Object;
   pr_number?: string;
+  head_sha: string;
   branch_name?: string;
   job_id?: string;
   run_id?: string;
+  check: Object;
+  comment: Object;
 };
 
 export const createError = (error: string): ResponseError => ({
@@ -120,4 +124,11 @@ export async function insertGithubEvent(
   event: Partial<GithubEvent>
 ): Promise<PostgrestSingleResponse<GithubEvent>> {
   return supabase.from("GithubEvent").insert(event).single();
+}
+
+export async function updateGithubEvent(
+  id: number,
+  event: Partial<GithubEvent>
+): Promise<PostgrestSingleResponse<GithubEvent>> {
+  return supabase.from("GithubEvent").update(event).eq("id", id).single();
 }

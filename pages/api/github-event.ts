@@ -216,7 +216,6 @@ export default async function handler(req, res) {
             details_url: getDeltaBranchUrl(project.data, branchName),
             title: "Tests are running",
             status: "in_progress",
-            conclusion: "neutral",
             text: "",
             summary: "",
           }

@@ -1,5 +1,24 @@
 // Vitest Snapshot v1
 
+exports[`github > create check 1`] = `
+{
+  "completed_at": null,
+  "conclusion": null,
+  "details_url": "https://replay-visuals.vercel.app/",
+  "external_id": "",
+  "head_sha": "8278ff37e846bb679f4f36da65acb8c6e78c9f28",
+  "name": "Delta",
+  "output": {
+    "annotations_count": 0,
+    "summary": "",
+    "text": "",
+    "title": "Tests are running",
+  },
+  "pull_requests": [],
+  "status": "in_progress",
+}
+`;
+
 exports[`github > create comment 1`] = `
 {
   "author_association": "NONE",

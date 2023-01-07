@@ -34,7 +34,7 @@ async function getOctokit() {
 export async function createCheck(
   owner,
   repo,
-  { head_sha, title, summary, conclusion, text, status, details_url }
+  { head_sha, title, summary, text, status, details_url }
 ) {
   const octokit = await getOctokit();
 
@@ -46,7 +46,6 @@ export async function createCheck(
       name: "Delta",
       head_sha,
       status,
-      conclusion,
       details_url,
       started_at: new Date().toISOString(),
       output: {
@@ -78,8 +77,8 @@ export async function updateCheck(
     owner,
     repo,
     check_run_id: checkRunId,
-    name: "Visuals",
-    head_sha: head_sha,
+    name: "Delta",
+    head_sha,
     status,
     conclusion,
     completed_at: new Date().toISOString(),

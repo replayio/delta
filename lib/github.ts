@@ -43,7 +43,7 @@ export async function createCheck(
     {
       owner: owner,
       repo: repo,
-      name: "Visuals",
+      name: "Delta",
       head_sha,
       status,
       conclusion,

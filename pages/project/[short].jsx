@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
-import { ArrowPathIcon } from "@heroicons/react/20/solid";
 import Image from "next/image";
+import { Loader } from "../../components/Loader";
 
 import useSWR from "swr";
 import uniqBy from "lodash/uniqBy";
@@ -170,6 +170,8 @@ export default function Home() {
     console.log("error", error, actionsQuery.error);
   }
 
+  const loading = isLoading || actionsQuery.isLoading || projectQuery.isLoading;
+
   const actionDuration = useMemo(() => {
     if (currentAction) {
       const actionAge =
@@ -200,7 +202,9 @@ export default function Home() {
         shownBranches={shownBranches}
       />
 
-      {lightSnapshots.length == 0 && darkSnapshots.length == 0 ? (
+      {loading ? (
+        <Loader />
+      ) : lightSnapshots.length == 0 && darkSnapshots.length == 0 ? (
         <div
           className="flex flex-col pt-32 items-center h-full"
           style={{ background: "#BA8BE0" }}
@@ -212,7 +216,7 @@ export default function Home() {
             src="/Robot.png"
             alt="Replay logo"
           />
-          <div className="text-3xl font-light text-violet-50">
+          <div className="text-2xl font-light text-violet-50">
             {getExpression()}
           </div>
         </div>

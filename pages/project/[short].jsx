@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { ArrowPathIcon } from "@heroicons/react/20/solid";
+import Image from "next/image";
 
 import useSWR from "swr";
 import uniqBy from "lodash/uniqBy";
@@ -14,6 +15,24 @@ import { useFetchSnapshots } from "../../hooks/useFetchSnapshots";
 import { snapshotsModeAtom } from "../../lib/client/state";
 
 const fetcher = (...args) => fetch(...args).then((res) => res.json());
+
+const listOfExpressions = [
+  "Same old, same old.",
+  "Nothing new to report.",
+  "No changes on the horizon.",
+  "Still status quo.",
+  "All quiet on the western front.",
+  "No surprises here.",
+  "Everything's business as usual.",
+  "The more things change, the more they stay the same.",
+  "No news is good news.",
+];
+
+function getExpression() {
+  return listOfExpressions[
+    Math.floor((new Date().getMinutes() / 60) * listOfExpressions.length)
+  ];
+}
 
 export default function Home() {
   const router = useRouter();
@@ -181,7 +200,23 @@ export default function Home() {
         shownBranches={shownBranches}
       />
 
-      {shownBranches.length == 0 ? (
+      {lightSnapshots.length == 0 && darkSnapshots.length == 0 ? (
+        <div
+          className="flex flex-col pt-32 items-center h-full"
+          style={{ background: "#BA8BE0" }}
+        >
+          <Image
+            className=""
+            width={199}
+            height={210}
+            src="/Robot.png"
+            alt="Replay logo"
+          />
+          <div className="text-3xl font-light text-violet-50">
+            {getExpression()}
+          </div>
+        </div>
+      ) : shownBranches.length == 0 ? (
         <div className="flex justify-center  h-full text-violet-500 mt-8">
           No open branches with changes...
         </div>

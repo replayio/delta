@@ -213,8 +213,8 @@ export default function Home() {
             className=""
             width={199}
             height={210}
-            src="/Robot.png"
-            alt="Replay logo"
+            src="/robot.png"
+            alt="Delta Robot"
           />
           <div className="text-2xl font-light text-violet-50">
             {getExpression()}

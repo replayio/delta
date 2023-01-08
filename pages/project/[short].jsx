@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
-import { Loader } from "../../components/Loader";
 
 import useSWR from "swr";
 import uniqBy from "lodash/uniqBy";
@@ -9,6 +8,7 @@ import sortBy from "lodash/sortBy";
 import { useAtom } from "jotai";
 import { Snapshot } from "../../components/Snapshot";
 import { SnapshotRow } from "../../components/SnapshotRow";
+import { Loader } from "../../components/Loader";
 
 import { Header } from "../../components/Header";
 import { useFetchSnapshots } from "../../hooks/useFetchSnapshots";

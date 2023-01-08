@@ -95,8 +95,6 @@ export default function Home() {
     [branches, projectQuery]
   );
 
-  console.log("shownBranches", shownBranches);
-
   useEffect(() => {
     const { short, branch, snapshot } = router.query;
     const newBranch = shownBranches[0]?.name;
@@ -192,6 +190,8 @@ export default function Home() {
     [snapshots]
   );
 
+  console.log({ lightSnapshots, darkSnapshots, shownBranches, currentAction });
+
   return (
     <div className={`h-full overflow-hidden`}>
       <Header
@@ -202,8 +202,22 @@ export default function Home() {
         shownBranches={shownBranches}
       />
 
-      {loading ? (
+      {currentAction?.status == "neutral" ? (
+        <div className="flex justify-center items-center mt-10 italic underline text-violet-600">
+          <a
+            target="_blank"
+            rel="noreferrer"
+            href={`https://github.com/${projectQuery.data.organization}/${projectQuery.data.repository}/actions/runs/${currentAction?.run_id}`}
+          >
+            Action running...
+          </a>
+        </div>
+      ) : loading ? (
         <Loader />
+      ) : shownBranches.length == 0 ? (
+        <div className="flex justify-center  h-full text-violet-500 mt-8">
+          No open branches with changes...
+        </div>
       ) : lightSnapshots.length == 0 && darkSnapshots.length == 0 ? (
         <div
           className="flex flex-col pt-32 items-center h-full"
@@ -219,24 +233,6 @@ export default function Home() {
           <div className="text-2xl font-light text-violet-50">
             {getExpression()}
           </div>
-        </div>
-      ) : shownBranches.length == 0 ? (
-        <div className="flex justify-center  h-full text-violet-500 mt-8">
-          No open branches with changes...
-        </div>
-      ) : currentAction?.status == "neutral" ? (
-        <div className="flex justify-center items-center mt-10 italic underline text-violet-600">
-          <a
-            target="_blank"
-            rel="noreferrer"
-            href={`https://github.com/${projectQuery.data.organization}/${projectQuery.data.repository}/actions/runs/${currentAction?.run_id}`}
-          >
-            Action running...
-          </a>
-        </div>
-      ) : !projectId || isLoading || actionsQuery.isLoading ? (
-        <div className="flex justify-center items-center mt-10">
-          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-violet-400"></div>
         </div>
       ) : error || actionsQuery.error ? (
         <div className="flex justify-center h-full text-violet-500 mt-8">

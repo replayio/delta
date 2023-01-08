@@ -40,19 +40,3 @@ h1 {
   font-weight: bold;
   display: block;
 }
-
-input[type="range"]#image-slider-scrubber {
-  -webkit-appearance: none;
-  background: transparent;
-}
-
-input[type="range"]#image-slider-scrubber::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  height: 12px;
-  width: 12px;
-  border-radius: 50%;
-  background: #f0f0f0;
-  cursor: ew-resize;
-  /* border: 1px solid rgb(229, 229, 229); */
-  /* transition: background 0.3s ease-in-out; */
-}

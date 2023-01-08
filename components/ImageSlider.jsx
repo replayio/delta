@@ -29,7 +29,7 @@ export function ImageSlider({ data, mainData }) {
       />
 
       <div
-        className="flex flex-col justify-center pt-4 "
+        className="flex flex-col justify-center "
         style={{ width: `${imageRect.width}px` }}
       >
         <div
@@ -40,33 +40,6 @@ export function ImageSlider({ data, mainData }) {
           }}
           className="mt-4"
         >
-          <input
-            id="image-slider-scrubber"
-            type="range"
-            min="0"
-            max="100"
-            value={scrubber}
-            style={{
-              top: "calc(50% - 6px)",
-              left: "-6px",
-              position: "absolute",
-              zIndex: 100,
-              width: "calc(100% + 12px)",
-            }}
-            onChange={(e) => {
-              setScrubber(e.target.value);
-            }}
-          />
-          <div
-            style={{
-              width: "1px",
-              height: "100%",
-              position: "absolute",
-              left: `calc(${scrubber}% )`,
-              background: "#f0f0f0",
-              zIndex: 99,
-            }}
-          />
           <div
             style={{
               position: "absolute",
@@ -129,6 +102,20 @@ export function ImageSlider({ data, mainData }) {
           </div>
         </div>
       </div>
+      <input
+        id="image-slider-scrubber"
+        type="range"
+        min="0"
+        max="100"
+        value={scrubber}
+        style={{
+          marginTop: "10px",
+          width: `${imageRect.width}px`,
+        }}
+        onChange={(e) => {
+          setScrubber(e.target.value);
+        }}
+      />
     </>
   );
 }

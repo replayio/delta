@@ -341,9 +341,11 @@ export default async function handler(req, res) {
         }
 
         // Create a comment if it doesn't already exist
+        // and there are differences
+        let comment;
         if (numDifferent > 0 && !branch.data.comment_id) {
           log("creating comment");
-          const comment = await createComment(
+          comment = await createComment(
             payload.organization.login,
             payload.repository.name,
             branch.data.pr_number
@@ -367,26 +369,34 @@ export default async function handler(req, res) {
           }
         }
 
-        log("updating comment", branch.data.comment_id, branch.data.pr_number);
-        const updatedComment = await updateComment(
-          payload.organization.login,
-          payload.repository.name,
-          branch.data.comment_id,
-          {
-            body: formatComment({
-              branchName,
-              project: project.data,
-              snapshots: snapshots.data,
-            }),
-          }
-        );
-
-        if (updatedComment.status != 200) {
-          return skip(
-            `check ${branch.data.check_id} not updated: ${JSON.stringify(
-              updatedComment
-            )}`
+        if (!branch.data.comment_id) {
+          log("skipping updating a comment");
+        } else {
+          log(
+            "updating comment",
+            branch.data.comment_id,
+            branch.data.pr_number
           );
+          comment = await updateComment(
+            payload.organization.login,
+            payload.repository.name,
+            branch.data.comment_id,
+            {
+              body: formatComment({
+                branchName,
+                project: project.data,
+                snapshots: snapshots.data,
+              }),
+            }
+          );
+
+          if (comment.status != 200) {
+            return skip(
+              `check ${branch.data.check_id} not updated: ${JSON.stringify(
+                comment
+              )}`
+            );
+          }
         }
 
         log("updating action status", action.data.id, conclusion);
@@ -407,6 +417,7 @@ export default async function handler(req, res) {
           data: {
             check: formatCheck(updatedCheck.data),
             action: updatedAction.data,
+            comment: comment?.data,
           },
         });
       }

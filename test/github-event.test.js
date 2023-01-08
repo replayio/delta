@@ -54,6 +54,13 @@ describe("github event", () => {
     );
   });
 
+  it("workflow completed (2)", async () => {
+    const res = await testEvent("workflow_job.completed2");
+    // console.log(res);
+    // expect(res.status).toEqual(200);
+    expect(res.check.output.title).toEqual("0 of 360 snapshots are different");
+  });
+
   it("format comments", async () => {
     const project = await getProject(projectId);
     const branchName = "visuals21";
@@ -83,7 +90,7 @@ describe("github event", () => {
       snapshots: snapshots.data,
       subTitle: "**(Approved)**",
     });
-    console.log(comment);
+    // console.log(comment);
 
     expect(comment).toMatchSnapshot();
   });

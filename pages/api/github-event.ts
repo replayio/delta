@@ -340,60 +340,53 @@ export default async function handler(req, res) {
           log("Check doesnt exist");
         }
 
-        // only create a comment if there are differences
-        if (numDifferent > 0) {
-          // Create a comment if it doesn't already exist
-          if (!branch.data.comment_id) {
-            log("creating comment");
-            const comment = await createComment(
-              payload.organization.login,
-              payload.repository.name,
-              branch.data.pr_number
-            );
-
-            if (comment.status != 201) {
-              return skip(`comment not created: ${JSON.stringify(comment)}`);
-            }
-
-            log("created comment. updating branch", comment.data.id);
-            branch = await updateBranch(branch.data.id, {
-              comment_id: comment.data.id,
-            });
-
-            if (branch.status != 200) {
-              return skip(
-                `branch ${branch.data.id} not updated: ${JSON.stringify(
-                  branch.error
-                )}`
-              );
-            }
-          }
-
-          log(
-            "updating comment",
-            branch.data.comment_id,
-            branch.data.pr_number
-          );
-          const updatedComment = await updateComment(
+        // Create a comment if it doesn't already exist
+        if (numDifferent > 0 && !branch.data.comment_id) {
+          log("creating comment");
+          const comment = await createComment(
             payload.organization.login,
             payload.repository.name,
-            branch.data.comment_id,
-            {
-              body: formatComment({
-                branchName,
-                project: project.data,
-                snapshots: snapshots.data,
-              }),
-            }
+            branch.data.pr_number
           );
 
-          if (updatedComment.status != 200) {
+          if (comment.status != 201) {
+            return skip(`comment not created: ${JSON.stringify(comment)}`);
+          }
+
+          log("created comment. updating branch", comment.data.id);
+          branch = await updateBranch(branch.data.id, {
+            comment_id: comment.data.id,
+          });
+
+          if (branch.status != 200) {
             return skip(
-              `check ${branch.data.check_id} not updated: ${JSON.stringify(
-                updatedComment
+              `branch ${branch.data.id} not updated: ${JSON.stringify(
+                branch.error
               )}`
             );
           }
+        }
+
+        log("updating comment", branch.data.comment_id, branch.data.pr_number);
+        const updatedComment = await updateComment(
+          payload.organization.login,
+          payload.repository.name,
+          branch.data.comment_id,
+          {
+            body: formatComment({
+              branchName,
+              project: project.data,
+              snapshots: snapshots.data,
+            }),
+          }
+        );
+
+        if (updatedComment.status != 200) {
+          return skip(
+            `check ${branch.data.check_id} not updated: ${JSON.stringify(
+              updatedComment
+            )}`
+          );
         }
 
         log("updating action status", action.data.id, conclusion);

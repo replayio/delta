@@ -56,8 +56,6 @@ describe("github event", () => {
 
   it("workflow completed (2)", async () => {
     const res = await testEvent("workflow_job.completed2");
-    // console.log(res);
-    // expect(res.status).toEqual(200);
     expect(res.check.output.title).toEqual("0 of 360 snapshots are different");
   });
 

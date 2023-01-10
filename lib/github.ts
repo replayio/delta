@@ -56,11 +56,11 @@ export async function createCheck(
     }
   );
 
-  if (check.status > 299) {
-    console.log("failed to create check", JSON.stringify(check).slice(0, 100));
-  }
+  // if (check.status > 299) {
+  //   console.log("failed to create check", JSON.stringify(check).slice(0, 100));
+  // }
 
-  console.log("created check", check.data.output);
+  // console.log("created check", check.data.output);
 
   return check;
 }
@@ -89,7 +89,7 @@ export async function updateCheck(
     },
   };
 
-  console.log("updateCheck", checkArgs);
+  // console.log("updateCheck", checkArgs);
   return octokit.request(
     `PATCH /repos/${owner}/${repo}/check-runs/${checkRunId}`,
     checkArgs

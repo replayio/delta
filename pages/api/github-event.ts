@@ -9,12 +9,15 @@ import omit from "lodash/omit";
 
 import {
   getProjectFromRepo,
-  GithubEvent,
-  insertGithubEvent,
   Project,
   Snapshot,
-  updateGithubEvent,
 } from "../../lib/server/supabase/supabase";
+import {
+  HTTPMetadata,
+  insertHTTPEvent,
+  insertHTTPMetadata,
+  updateHTTPMetadata,
+} from "../../lib/server/supabase/httpEvent";
 import {
   getBranchFromProject,
   insertBranch,
@@ -27,8 +30,10 @@ import {
 } from "../../lib/server/supabase/actions";
 import { getSnapshotsForAction } from "../../lib/server/supabase/snapshots";
 import { getDeltaBranchUrl } from "../../lib/delta";
+import { setupHook, getHTTPRequests } from "../../lib/server/http-replay";
 
 const supabase = createClient();
+setupHook();
 
 const formatCheck = (check) => omit(check, ["app", "pull_requests"]);
 
@@ -93,12 +98,26 @@ export default async function handler(req, res) {
     res.status(500).json({ skip: reason });
   };
 
-  const response = ({ data, status, error = null }) => {
+  const response = async ({ data, status, error = null }) => {
     console.log(
       `github-event ${eventType}.${payload.action} status:${status} project:${project.data.id}`,
       data,
       error
     );
+
+    if (httpMetadata && httpMetadata.id) {
+      await insertHTTPEvent(httpMetadata.id, project.data.id, {
+        request: {
+          body: req.body,
+        },
+        requests: getHTTPRequests(),
+        response: {
+          data,
+          error,
+          status,
+        },
+      });
+    }
     res.status(status).json([200, 201].includes(status) ? data : error);
   };
 
@@ -109,13 +128,20 @@ export default async function handler(req, res) {
     );
   };
 
-  const insertEvent = (fields: Partial<GithubEvent> = {}) =>
-    insertGithubEvent({
+  let httpMetadata: HTTPMetadata | void;
+  const insertMetadata = async (
+    fields: Partial<HTTPMetadata> = {}
+  ): Promise<HTTPMetadata | void> => {
+    const metadata = await insertHTTPMetadata({
       action: payload.action,
       event_type: eventType,
       payload: payload,
       ...fields,
     });
+
+    httpMetadata = metadata.data;
+    return metadata.data;
+  };
 
   log(`start`);
 
@@ -128,7 +154,7 @@ export default async function handler(req, res) {
   switch (eventType) {
     case "pull_request": {
       if (payload.action === "opened") {
-        await insertEvent({
+        await insertMetadata({
           pr_number: payload.number,
           branch_name: payload.pull_request.head.ref,
         });
@@ -143,7 +169,7 @@ export default async function handler(req, res) {
 
         return response(await insertBranch(newBranch));
       } else if (payload.action === "closed") {
-        await insertEvent({
+        await insertMetadata({
           pr_number: payload.number,
           branch_name: payload.pull_request.head.ref,
         });
@@ -172,7 +198,7 @@ export default async function handler(req, res) {
           return skip(`workflow is ${payload.workflow_job.workflow_name}`);
         }
 
-        const githubEvent = await insertEvent({
+        const httpEvent = await insertMetadata({
           job_id: payload.workflow_job.id,
           run_id: payload.workflow_job.run_id,
           branch_name: payload.workflow_job.head_branch,
@@ -221,7 +247,7 @@ export default async function handler(req, res) {
           }
         );
 
-        await updateGithubEvent(githubEvent.data.id, { check });
+        await updateHTTPMetadata(httpEvent.data.id, { check });
 
         if (check.status <= 299) {
           checkId = check.data.id;
@@ -270,7 +296,7 @@ export default async function handler(req, res) {
           return skip(`workflow is ${payload.workflow_job.workflow_name}`);
         }
 
-        await insertEvent({
+        await insertMetadata({
           job_id: payload.workflow_job.id,
           run_id: payload.workflow_job.run_id,
           branch_name: payload.workflow_job.head_branch,

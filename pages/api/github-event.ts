@@ -247,7 +247,7 @@ export default async function handler(req, res) {
           }
         );
 
-        await updateHTTPMetadata(httpEvent.data.id, { check });
+        await updateHTTPMetadata(httpMetadata, { check });
 
         if (check.status <= 299) {
           checkId = check.data.id;

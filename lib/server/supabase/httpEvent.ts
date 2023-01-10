@@ -24,10 +24,17 @@ export async function insertHTTPMetadata(
 }
 
 export async function updateHTTPMetadata(
-  id: number,
+  httpMetadata: HTTPMetadata | void,
   event: Partial<HTTPMetadata>
 ): Promise<PostgrestSingleResponse<HTTPMetadata>> {
-  return supabase.from("GithubEvent").update(event).eq("id", id).single();
+  if (!httpMetadata) {
+    return;
+  }
+  return supabase
+    .from("GithubEvent")
+    .update(event)
+    .eq("id", httpMetadata.id)
+    .single();
 }
 
 export async function insertHTTPEvent(id: number, projectId, data) {

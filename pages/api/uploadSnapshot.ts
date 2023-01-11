@@ -36,7 +36,8 @@ export default async function handler(req, res) {
       branchName,
       projectId,
       image,
-      status
+      status,
+      runId
     );
 
     let snapshot = snapshotResponse.data;

@@ -3,17 +3,14 @@ import { useMemo } from "react";
 
 const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
-export function useFetchSnapshots(branch, projectQuery) {
+export function useFetchSnapshots(currentAction, projectQuery) {
   const selectedKey = encodeURI(
-    (branch && projectQuery.isLoading) ||
-      projectQuery.error ||
-      !projectQuery.data
-      ? null
-      : `/api/getSnapshotsForBranch?branch=${branch}&project_id=${projectQuery.data.id}`
+    currentAction && projectQuery.data
+      ? `/api/getSnapshotsForAction?action=${currentAction.id}&project_id=${projectQuery.data.id}`
+      : null
   );
 
   const { data, error, isLoading } = useSWR(selectedKey, fetcher);
-
   const primaryBranch = projectQuery.data?.primary_branch;
   const primaryKey =
     projectQuery.isLoading || projectQuery.error

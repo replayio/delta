@@ -5,15 +5,16 @@ import {
 import { Action, supabase } from "./supabase";
 
 export async function getActionFromBranch(
-  branch_id: string
+  branch_id: string,
+  runId?: string
 ): Promise<PostgrestSingleResponse<Action>> {
-  return supabase
-    .from("Actions")
-    .select("*")
-    .eq("branch_id", branch_id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
+  let query = supabase.from("Actions").select("*").eq("branch_id", branch_id);
+
+  if (runId) {
+    query = query.eq("run_id", runId);
+  }
+
+  return query.order("created_at", { ascending: false }).limit(1).single();
 }
 
 export async function getActionFromRunId(

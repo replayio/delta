@@ -2,8 +2,15 @@ import Dropdown from "./Dropdown";
 import Image from "next/image";
 import { Github } from "./SVGs";
 import { ApproveButton } from "./ApproveButton";
+import moment from "moment";
 
-export function Header({ branch, projectQuery, shownBranches, currentAction }) {
+export function Header({
+  branch,
+  projectQuery,
+  shownBranches,
+  currentAction,
+  branchActions,
+}) {
   return (
     <div className="flex text-black justify-between border-b-2 border-b-slate-100 ">
       <div className="flex items-center py-2 pl-4">
@@ -18,12 +25,34 @@ export function Header({ branch, projectQuery, shownBranches, currentAction }) {
         </div>
         <Dropdown
           selected={branch}
-          project={projectQuery.data}
-          options={shownBranches}
+          options={shownBranches.map((branch) => ({
+            name: branch.name,
+            href: `/project/${projectQuery.data.short}/?branch=${branch.name}`,
+            badge:
+              branch.action_status != "neutral"
+                ? branch.num_snapshots_changed
+                : "-",
+          }))}
         />
       </div>
-      <div className="flex items-center">
-        {currentAction && (
+
+      {currentAction && (
+        <div className="flex items-center">
+          <div className={`font-medium px-2 mr-4 text-violet-400  `}>
+            {
+              <Dropdown
+                selected={relativeTime(currentAction.created_at)}
+                options={branchActions.map((branch) => ({
+                  key: branch.id,
+                  name: relativeTime(branch.created_at),
+                  href: `/project/${projectQuery.data.short}/?branch=${branch.Branches?.name}&action=${branch.id}`,
+                  isSelected: branch.id == currentAction.id,
+                  badge: branch.num_snapshots_changed || "-",
+                }))}
+              />
+            }
+          </div>
+
           <a
             _target="blank"
             href={`https://github.com/${projectQuery.data?.organization}/${projectQuery.data?.repository}/pull/${currentAction?.Branches?.pr_number}`}
@@ -31,13 +60,20 @@ export function Header({ branch, projectQuery, shownBranches, currentAction }) {
           >
             <Github />
           </a>
-        )}
-        <ApproveButton
-          branch={branch}
-          projectQuery={projectQuery}
-          currentAction={currentAction}
-        />
-      </div>
+
+          <ApproveButton
+            branch={branch}
+            projectQuery={projectQuery}
+            currentAction={currentAction}
+          />
+        </div>
+      )}
     </div>
   );
+}
+
+// transfor a date into a relative time from now
+// e.g. 2 days ago
+export function relativeTime(date) {
+  return moment(date).fromNow();
 }

@@ -1,14 +1,18 @@
 import useSWR from "swr";
 import { useState } from "react";
 import { useAtom } from "jotai";
-import { comparisonModeAtom } from "../lib/client/state";
+import {
+  comparisonModeAtom,
+  themeAtom,
+  themeEnabledAtom,
+} from "../lib/client/state";
 import { Toggle } from "./Toggle";
 import { ImageSlider } from "./ImageSlider";
 import { Loader } from "./Loader";
 
 const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
-export function Snapshot({ snapshot, project, branch }) {
+function SnapshotItem({ snapshot, project, branch }) {
   const [mode, setMode] = useAtom(comparisonModeAtom);
   const { data, error, isLoading } = useSWR(
     encodeURI(`/api/downloadSnapshot?path=${snapshot?.path}`),
@@ -43,19 +47,11 @@ export function Snapshot({ snapshot, project, branch }) {
     return <div className="flex justify-center items-center h-full">error</div>;
   }
 
-  console.log(
-    "selected snapshot",
-    snapshot.primary_diff_path,
-    snapshot.primary_num_pixels,
-    snapshot
-  );
-
   return (
     <div
       className="flex flex-col mt-4 overflow-y-auto overflow-x-auto  pb-20  items-center"
       style={{ width: "calc(100% - 20px)" }}
     >
-      <Toggle mode={mode} setMode={setMode} />
       {error || mainError || diffError || diffFailed ? (
         <div className="flex justify-center items-center h-full text-violet-500 mt-8">
           Could not load...
@@ -87,6 +83,35 @@ export function Snapshot({ snapshot, project, branch }) {
           alt=""
         />
       )}
+    </div>
+  );
+}
+
+export function Snapshot({ selectedSnapshots, project, branch }) {
+  const [mode, setMode] = useAtom(comparisonModeAtom);
+  const [theme] = useAtom(themeAtom);
+  const [themeEnabled] = useAtom(themeEnabledAtom);
+
+  const shownSnapshots = themeEnabled
+    ? selectedSnapshots.filter((snapshot) => snapshot.file.includes(theme))
+    : selectedSnapshots;
+
+  return (
+    <div
+      className="flex flex-col mt-4 overflow-y-auto overflow-x-auto  pb-20  items-center"
+      style={{ width: "calc(100% - 20px)" }}
+    >
+      <Toggle mode={mode} setMode={setMode} />
+      <div className="w-full flex flex-col">
+        {shownSnapshots.map((snapshot) => (
+          <SnapshotItem
+            key={snapshot.id}
+            snapshot={snapshot}
+            project={project}
+            branch={branch}
+          />
+        ))}
+      </div>
     </div>
   );
 }

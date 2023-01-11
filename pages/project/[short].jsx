@@ -12,9 +12,14 @@ import { Loader } from "../../components/Loader";
 
 import { Header } from "../../components/Header";
 import { useFetchSnapshots } from "../../hooks/useFetchSnapshots";
-import { snapshotsModeAtom } from "../../lib/client/state";
+import { snapshotsModeAtom, themeAtom } from "../../lib/client/state";
 
 const fetcher = (...args) => fetch(...args).then((res) => res.json());
+
+const getSnapshotFile = (snapshot) => {
+  // if (!snapshot) debugger;
+  return snapshot.file?.split("/").pop();
+};
 
 const listOfExpressions = [
   "Same old, same old.",
@@ -38,7 +43,7 @@ export default function Home() {
   const router = useRouter();
   const { short, snapshot, branch } = router.query;
 
-  const [mode] = useAtom(snapshotsModeAtom);
+  const [mode, setMode] = useAtom(snapshotsModeAtom);
   const projectQuery = useSWR(
     encodeURI(`/api/getProject?projectShort=${short}`),
     fetcher
@@ -74,13 +79,21 @@ export default function Home() {
         : [],
     [actionsQuery.data]
   );
-  const currentAction = useMemo(
+
+  const branchActions = useMemo(
     () =>
       sortBy(
         actionsQuery.data,
         (action) => -new Date(action.created_at)
-      )?.filter((action) => action.Branches?.name == branch)[0],
+      )?.filter((action) => action.Branches?.name == branch),
     [actionsQuery, branch]
+  );
+  const currentAction = useMemo(
+    () =>
+      router.query.action
+        ? branchActions.find((branch) => branch.id === router.query.action)
+        : branchActions?.[0],
+    [branchActions, router.query]
   );
 
   const shownBranches = useMemo(
@@ -96,68 +109,90 @@ export default function Home() {
   );
 
   useEffect(() => {
-    const { short, branch, snapshot } = router.query;
+    if (router.query.mode) {
+      setMode(router.query.mode);
+    }
+  }, [router.query.mode]);
+
+  useEffect(() => {
+    const { short, branch, snapshot, action } = router.query;
     const newBranch = shownBranches[0]?.name;
     if (!branch && newBranch) {
       router.push(
-        `/project/${short}?branch=${newBranch}${
+        `/project/${short}${newBranch ? `?branch=${newBranch}` : ""}${
           snapshot ? `&snapshot=${snapshot}` : ""
-        }`,
+        }${action ? `&action=${currentAction.id}` : ""}`,
         undefined,
         { shallow: true }
       );
     }
-  }, [router, shownBranches]);
+  }, [router, shownBranches, currentAction]);
 
-  const { data, error, isLoading } = useFetchSnapshots(branch, projectQuery);
+  const { data, error, isLoading } = useFetchSnapshots(
+    currentAction,
+    projectQuery
+  );
 
-  const { snapshots, selectedSnapshot, changedSnapshots } = useMemo(() => {
-    let snapshots = sortBy(data || [], (snapshot) => snapshot.file);
+  const { snapshots, selectedSnapshot, selectedSnapshots, changedSnapshots } =
+    useMemo(() => {
+      let snapshots = sortBy(data || [], (snapshot) => snapshot.file);
 
-    const newSnapshots = snapshots.filter((snapshot) => !snapshot.mainSnapshot);
-    const changedSnapshots = snapshots.filter(
-      (snapshot) => snapshot.primary_changed
-    );
+      const newSnapshots = snapshots.filter(
+        (snapshot) => !snapshot.mainSnapshot
+      );
+      const changedSnapshots = snapshots.filter(
+        (snapshot) => snapshot.primary_changed
+      );
 
-    const unchangedSnapshots = snapshots.filter(
-      (snapshot) => !snapshot.primary_changed
-    );
+      const unchangedSnapshots = snapshots.filter(
+        (snapshot) => !snapshot.primary_changed
+      );
 
-    snapshots =
-      mode == "new"
-        ? newSnapshots
-        : mode == "changed"
-        ? changedSnapshots
-        : mode == "unchanged"
-        ? unchangedSnapshots
-        : data;
+      snapshots =
+        mode == "new"
+          ? newSnapshots
+          : mode == "changed"
+          ? changedSnapshots
+          : mode == "unchanged"
+          ? unchangedSnapshots
+          : data;
 
-    const selectedSnapshot = snapshots.find(
-      (_snapshot) => _snapshot.id == snapshot
-    );
+      const selectedSnapshot = snapshots.find(
+        (_snapshot) => _snapshot.id == snapshot
+      );
 
-    console.log("snapshots", {
-      newSnapshots,
-      snapshots,
-      changedSnapshots,
-      unchangedSnapshots,
-      selectedSnapshot,
-    });
+      const selectedSnapshots = snapshots.filter(
+        (_snapshot) =>
+          selectedSnapshot &&
+          getSnapshotFile(_snapshot) == getSnapshotFile(selectedSnapshot)
+      );
 
-    return {
-      snapshots,
-      newSnapshots,
-      changedSnapshots,
-      unchangedSnapshots,
-      selectedSnapshot,
-    };
-  }, [data, mode, snapshot]);
+      console.log("snapshots", {
+        newSnapshots,
+        snapshots,
+        changedSnapshots,
+        unchangedSnapshots,
+        selectedSnapshot,
+        selectedSnapshots,
+      });
+
+      return {
+        snapshots,
+        newSnapshots,
+        changedSnapshots,
+        unchangedSnapshots,
+        selectedSnapshot,
+        selectedSnapshots,
+      };
+    }, [data, mode, snapshot]);
 
   useEffect(() => {
-    const { short, branch, snapshot } = router.query;
+    const { short, branch, snapshot, action } = router.query;
     if (!snapshot && branch && snapshots.length > 0) {
       router.push(
-        `/project/${short}?branch=${branch}&snapshot=${snapshots[0].id}`,
+        `/project/${short}?branch=${branch}&snapshot=${snapshots[0].id}${
+          action ? `&action=${action}` : ""
+        }`,
         undefined,
         { shallow: true }
       );
@@ -180,6 +215,11 @@ export default function Home() {
     }
   }, [currentAction]);
 
+  const uniqSnapshots = useMemo(
+    () => uniqBy(snapshots, getSnapshotFile),
+    [snapshots]
+  );
+
   const lightSnapshots = useMemo(
     () => snapshots.filter((snapshot) => snapshot.file.includes("light")),
     [snapshots]
@@ -190,7 +230,14 @@ export default function Home() {
     [snapshots]
   );
 
-  console.log({ lightSnapshots, darkSnapshots, shownBranches, currentAction });
+  console.log({
+    lightSnapshots,
+    darkSnapshots,
+    shownBranches,
+    currentAction,
+    actions: actionsQuery.data,
+    branchActions,
+  });
 
   return (
     <div className={`h-full overflow-hidden`}>
@@ -200,6 +247,7 @@ export default function Home() {
         projectQuery={projectQuery}
         changedSnapshots={changedSnapshots}
         shownBranches={shownBranches}
+        branchActions={branchActions}
       />
 
       {currentAction?.status == "neutral" ? (
@@ -245,8 +293,7 @@ export default function Home() {
               className="flex flex-col h-full overflow-y-auto overflow-x-hidden"
               style={{ width: "300px" }}
             >
-              <div className="ml-4 text-sm  text-gray-700 mt-4 mb-2">Light</div>
-              {lightSnapshots.map((snapshot, index) => (
+              {uniqSnapshots.map((snapshot, index) => (
                 <SnapshotRow
                   key={snapshot.id}
                   branch={branch}
@@ -254,17 +301,7 @@ export default function Home() {
                   snapshot={snapshot}
                   selectedSnapshot={selectedSnapshot}
                   project={projectQuery.data}
-                />
-              ))}
-              <div className="ml-4 text-sm  text-gray-700 mt-4 mb-2">Dark</div>
-              {darkSnapshots.map((snapshot, index) => (
-                <SnapshotRow
-                  key={snapshot.id}
-                  branch={branch}
-                  index={index}
-                  snapshot={snapshot}
-                  selectedSnapshot={selectedSnapshot}
-                  project={projectQuery.data}
+                  currentAction={currentAction}
                 />
               ))}
             </div>
@@ -276,6 +313,7 @@ export default function Home() {
                 branch={branch}
                 project={projectQuery.data}
                 snapshot={selectedSnapshot}
+                selectedSnapshots={selectedSnapshots}
               />
             )}
           </div>

@@ -1,6 +1,12 @@
 import { useRouter } from "next/router";
 import Link from "next/link";
-export function SnapshotRow({ snapshot, onSelect, index, selectedSnapshot }) {
+export function SnapshotRow({
+  snapshot,
+  onSelect,
+  index,
+  selectedSnapshot,
+  currentAction,
+}) {
   const filename = snapshot.file
     ?.split("/")
     .pop()
@@ -9,7 +15,7 @@ export function SnapshotRow({ snapshot, onSelect, index, selectedSnapshot }) {
 
   const isSelected = snapshot.id === selectedSnapshot?.id;
   const router = useRouter();
-  const { short, branch } = router.query;
+  const { short, branch, action } = router.query;
 
   return (
     <Link
@@ -19,7 +25,7 @@ export function SnapshotRow({ snapshot, onSelect, index, selectedSnapshot }) {
           : "text-gray-500 hover:bg-gray-100 "
       }`}
       href={encodeURI(
-        `/project/${short}?branch=${branch}&snapshot=${snapshot.id}`
+        `/project/${short}?branch=${branch}&snapshot=${snapshot.id}&action=${currentAction.id}`
       )}
       key={snapshot.id}
     >

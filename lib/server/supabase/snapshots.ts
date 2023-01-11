@@ -54,16 +54,7 @@ export async function getSnapshotsFromBranch(
   }
 
   for (const action of actions.data) {
-    console.log(
-      `getSnapshotsFromBranch(${projectId}, ${branchName})`,
-      action.id
-    );
-
-    const snapshots = await supabase
-      .from("Snapshots")
-      .select("*")
-      .eq("action_id", action.id);
-
+    const snapshots = await getSnapshotsForAction(action.id);
     if (snapshots.error) {
       continue;
     }
@@ -76,6 +67,10 @@ export async function getSnapshotsFromBranch(
   return createError("No snapshots found");
 }
 
+export async function getSnapshotFromAction(action) {
+  return supabase.from("Snapshots").select("*").eq("action_id", action.id);
+}
+
 export async function getSnapshotsForAction(
   actionId: string
 ): Promise<PostgrestResponse<Snapshot>> {
@@ -86,13 +81,15 @@ export async function insertSnapshot(
   branchName,
   projectId,
   image,
-  status
+  status,
+  runId
 ): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
   const branch = await getBranchFromProject(projectId, branchName);
   if (branch.error) {
     return createError(`Branch not found for ${branchName}`);
   }
-  const action = await getActionFromBranch(branch.data.id);
+
+  const action = await getActionFromBranch(branch.data.id, runId);
   if (action.error) {
     return createError(
       `Action not found for ${branchName} and ${

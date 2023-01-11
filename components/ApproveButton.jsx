@@ -2,7 +2,10 @@ import { useState } from "react";
 import { useFetchSnapshots } from "../hooks/useFetchSnapshots";
 
 export function ApproveButton({ branch, projectQuery, currentAction }) {
-  const { data } = useFetchSnapshots(branch, projectQuery);
+  const { data, isLoading, error } = useFetchSnapshots(
+    currentAction,
+    projectQuery
+  );
   const [currentBranch, setBranch] = useState(null);
   const [isUpdating, setUpdating] = useState(false);
 
@@ -31,6 +34,10 @@ export function ApproveButton({ branch, projectQuery, currentAction }) {
     console.log("res", body.action);
     setBranch(body.action);
   };
+
+  if (isLoading || error || data.error) {
+    return null;
+  }
 
   const hasChanged = data?.some((snapshot) => snapshot.primary_changed);
 

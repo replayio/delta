@@ -6,11 +6,10 @@ import { useRouter } from "next/router";
 import { useEffect, useMemo } from "react";
 import useSWR from "swr";
 
+import { Header } from "../../components/Header";
+import { Loader } from "../../components/Loader";
 import { Snapshot } from "../../components/Snapshot";
 import { SnapshotRow } from "../../components/SnapshotRow";
-import { Loader } from "../../components/Loader";
-
-import { Header } from "../../components/Header";
 import { useFetchSnapshots } from "../../hooks/useFetchSnapshots";
 import { snapshotsModeAtom } from "../../lib/client/state";
 import { fetchJSON } from "../../utils/fetchJSON";
@@ -108,8 +107,9 @@ export default function Home() {
   );
 
   useEffect(() => {
-    if (router.query.mode) {
-      setMode(router.query.mode);
+    const queryMode = router.query.mode;
+    if (queryMode) {
+      setMode(Array.isArray(queryMode) ? queryMode[0] : queryMode);
     }
   }, [router.query.mode, setMode]);
 
@@ -204,16 +204,6 @@ export default function Home() {
 
   const loading = isLoading || actionsQuery.isLoading || projectQuery.isLoading;
 
-  const actionDuration = useMemo(() => {
-    if (currentAction) {
-      const actionAge =
-        (new Date() - new Date(currentAction.created_at)) / 1000;
-      const actionMinutes = Math.floor(actionAge / 60);
-      const actionSeconds = Math.floor(actionAge % 60);
-      return `${actionMinutes}m ${actionSeconds}s`;
-    }
-  }, [currentAction]);
-
   const uniqSnapshots = useMemo(
     () => uniqBy(snapshots, getSnapshotFile),
     [snapshots]
@@ -244,7 +234,6 @@ export default function Home() {
         currentAction={currentAction}
         branch={branch}
         projectQuery={projectQuery}
-        changedSnapshots={changedSnapshots}
         shownBranches={shownBranches}
         branchActions={branchActions}
       />
@@ -295,11 +284,8 @@ export default function Home() {
               {uniqSnapshots.map((snapshot, index) => (
                 <SnapshotRow
                   key={snapshot.id}
-                  branch={branch}
-                  index={index}
                   snapshot={snapshot}
                   selectedSnapshot={selectedSnapshot}
-                  project={projectQuery.data}
                   currentAction={currentAction}
                 />
               ))}
@@ -311,7 +297,6 @@ export default function Home() {
                 key={selectedSnapshot.id}
                 branch={branch}
                 project={projectQuery.data}
-                snapshot={selectedSnapshot}
                 selectedSnapshots={selectedSnapshots}
               />
             )}

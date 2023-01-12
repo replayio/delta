@@ -11,13 +11,15 @@ export function ApproveButton({ branch, projectQuery, currentAction }) {
   const [isUpdating, setUpdating] = useState(false);
 
   const toggleBranchStatus = async (status) => {
-    console.log({
+    console.log("toggleBranchStatus() request:", {
       branch,
       status: "success",
       projectId: projectQuery.data.id,
     });
 
-    const res = await fetch("/api/updateBranchStatus", {
+    setUpdating(true);
+
+    const response = await fetch("/api/updateBranchStatus", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -29,11 +31,14 @@ export function ApproveButton({ branch, projectQuery, currentAction }) {
       }),
     });
 
-    setUpdating(true);
-    const body = await res.json();
+    console.log("toggleBranchStatus() response:", await response.text());
+
     setUpdating(false);
-    console.log("res", body.action);
-    setBranch(body.action);
+
+    try {
+      const body = await response.json();
+      setBranch(body.action);
+    } catch (error) {}
   };
 
   if (isLoading || error || data.error) {
@@ -51,7 +56,7 @@ export function ApproveButton({ branch, projectQuery, currentAction }) {
 
   if (isUpdating) {
     return (
-      <div className="font-medium px-2 mr-4 text-violet-400  border-2 border-transparent">
+      <div className="font-medium mr-4 text-white bg-violet-300 py-1 px-3 rounded border-transparent">
         Updating
       </div>
     );
@@ -66,7 +71,7 @@ export function ApproveButton({ branch, projectQuery, currentAction }) {
       <div className="flex items-center">
         <button
           onClick={() => toggleBranchStatus("failure")}
-          className="font-medium px-2 mr-4 text-violet-400  border-2 border-violet-400 hover:border-violet-500 hover:text-violet-500 rounded-md"
+          className="font-medium mr-4 text-white bg-violet-500 py-1 px-3 rounded border-transparent hover:bg-violet-600"
         >
           Reject
         </button>
@@ -78,7 +83,7 @@ export function ApproveButton({ branch, projectQuery, currentAction }) {
     <div className="flex items-center">
       <button
         onClick={() => toggleBranchStatus("success")}
-        className="font-medium px-2 mr-4 text-violet-400  border-2 border-violet-400 hover:border-violet-500 hover:text-violet-500 rounded-md"
+        className="font-medium mr-4 text-white bg-violet-500 py-1 px-3 rounded border-transparent hover:bg-violet-600"
       >
         Approve
       </button>

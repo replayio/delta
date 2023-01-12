@@ -14,10 +14,8 @@ export function SnapshotRow({ snapshot, selectedSnapshot, currentAction }) {
 
   return (
     <Link
-      className={`mt-1 flex items-center w-full px-4 text-sm cursor-pointer  text-ellipsis ${
-        isSelected
-          ? "bg-violet-500 text-white hover:bg-violet-600"
-          : "text-gray-500 hover:bg-gray-100 "
+      className={`items-center px-4 text-sm cursor-pointer text-ellipsis truncate shrink-0 block font-light text-violet-900 leading-6 capitalize ${
+        isSelected ? "bg-violet-200" : "hover:bg-violet-100"
       }`}
       href={encodeURI(
         `/project/${short}?branch=${branch}&snapshot=${snapshot.id}&action=${currentAction.id}`

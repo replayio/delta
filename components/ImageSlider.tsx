@@ -38,7 +38,6 @@ export function ImageSlider({ data, mainData }) {
             width: `100%`,
             height: `${imageRect.height}px`,
           }}
-          className="mt-4"
         >
           <div
             style={{

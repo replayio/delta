@@ -15,10 +15,12 @@ type Option = {
 };
 
 export default function Dropdown({
+  align,
   onChange,
   options,
   selected,
 }: {
+  align: "left" | "right";
   onChange?: FormEventHandler<HTMLButtonElement>;
   options: Option[];
   selected: string;
@@ -28,7 +30,7 @@ export default function Dropdown({
       <div>
         <Menu.Button
           onChange={onChange}
-          className="inline-flex text-violet-500 w-full justify-center rounded-md items-center py-2 text-md hover:underline  focus:outline-none "
+          className="inline-flex text-violet-500 w-full justify-center rounded-md items-center py-2 text-md hover:underline focus:outline-none "
         >
           {selected}
           {/* <ChevronDownIcon className="ml-1 h-5 w-5" aria-hidden="true" /> */}
@@ -44,7 +46,11 @@ export default function Dropdown({
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items className="absolute left-0 z-10 mt-2 w-56 flex flex-col truncate origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+        <Menu.Items
+          className={`absolute z-10 w-56 flex flex-col truncate origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none ${
+            align === "left" ? "left-0" : "right-0"
+          }`}
+        >
           {options.map((option) => (
             <Menu.Item key={option.key}>
               {({ active }) => (

@@ -1,3 +1,5 @@
+const colors = require("tailwindcss/colors");
+
 module.exports = {
   future: {
     removeDeprecatedGapUtilities: true,
@@ -6,6 +8,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        ...colors,
         "accent-1": "#333",
       },
     },

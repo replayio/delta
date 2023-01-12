@@ -48,12 +48,9 @@ function SnapshotItem({ branch, mode, project, snapshot }) {
   }
 
   return (
-    <div
-      className="flex flex-col mt-4 overflow-y-auto overflow-x-auto  pb-20  items-center"
-      style={{ width: "calc(100% - 20px)" }}
-    >
+    <div className="flex flex-col overflow-y-auto overflow-x-auto items-center p-2 bg-slate-100 rounded">
       {error || mainError || diffError || diffFailed ? (
-        <div className="flex justify-center items-center h-full text-violet-500 mt-8">
+        <div className="flex justify-center items-center h-full text-violet-500">
           Could not load...
         </div>
       ) : isLoading || mainIsLoading || diffIsLoading ? (
@@ -62,16 +59,10 @@ function SnapshotItem({ branch, mode, project, snapshot }) {
         <ImageSlider data={data} mainData={mainData} />
       ) : snapshot.primary_diff_path ? (
         /* eslint-disable-next-line @next/next/no-img-element */
-        <img
-          className="mt-8"
-          alt=""
-          src={`data:image/png;base64,${diffData}`}
-        />
+        <img alt="" src={`data:image/png;base64,${diffData}`} />
       ) : (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
-          className="mt-8"
-          placeholder="blur"
           onError={(e) => {
             setDiffFailed(true);
             console.log("cannot show diff", e);
@@ -96,12 +87,9 @@ export function Snapshot({ selectedSnapshots, project, branch }) {
     : selectedSnapshots;
 
   return (
-    <div
-      className="flex flex-col mt-4 overflow-y-auto overflow-x-auto  pb-20  items-center"
-      style={{ width: "calc(100% - 20px)" }}
-    >
+    <div className="flex flex-col items-center grow p-2 gap-2">
       <Toggle mode={mode} setMode={setMode} />
-      <div className="w-full flex flex-col">
+      <div className="w-full flex flex-col center gap-2 items-stretch">
         {shownSnapshots.map((snapshot) => (
           <SnapshotItem
             key={snapshot.id}

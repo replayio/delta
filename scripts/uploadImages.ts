@@ -1,16 +1,17 @@
-const fs = require("fs");
-const fetch = require("node-fetch");
-const chunk = require("lodash/chunk");
+import { readdirSync, readFileSync, statSync } from "fs";
+import chunk from "lodash/chunk";
 
-function getFiles(dir) {
-  // Use the fs.readdirSync() method to get a list of files in the directory
-  const files = fs.readdirSync(dir);
+import { fetchURI } from "../utils/fetchURI";
+
+function getFiles(dir: string): string[] {
+  // Use the readdirSync() method to get a list of files in the directory
+  const files = readdirSync(dir);
 
   // Create an empty array to store the list of all files
-  const allFiles = [];
+  const allFiles: string[] = [];
 
   files.forEach((file) => {
-    const stats = fs.statSync(`${dir}/${file}`);
+    const stats = statSync(`${dir}/${file}`);
 
     if (stats.isDirectory()) {
       allFiles.push(...getFiles(`${dir}/${file}`));
@@ -25,32 +26,17 @@ function getFiles(dir) {
   return allFiles;
 }
 
-async function uploadImage(file, projectId, branch) {
-  const content = fs.readFileSync(file, { encoding: "base64" });
+async function uploadImage(file: string, projectId: string, branch: string) {
+  const content = readFileSync(file, { encoding: "base64" });
   const image = { content, file };
 
-  let res;
-
-  try {
-    res = await fetch("http://localhost:3000/api/uploadSnapshot", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ image, projectId, branch }),
-    });
-
-    // const json = await body.json();
-    if (res.status !== 200) {
-      const body = await res.text();
-      console.log(res.status, body);
-      return body;
-    }
-    const body = await res.json();
-    return body;
-  } catch (e) {
-    console.error("error", e);
-  }
+  return await fetchURI("http://localhost:3000/api/uploadSnapshot", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ image, projectId, branch }),
+  });
 }
 
 (async () => {

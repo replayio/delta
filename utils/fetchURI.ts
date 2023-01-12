@@ -1,12 +1,15 @@
-import fetch from "node-fetch";
+import fetch, { RequestInit } from "node-fetch";
 
-export async function fetchURI(uri: string): Promise<JSON | string | null> {
+export async function fetchURI(
+  uri: string,
+  init?: RequestInit
+): Promise<JSON | string | null> {
   try {
     const encodedURI = encodeURI(uri);
-    const response = await fetch(encodedURI);
+    const response = await fetch(encodedURI, init);
     console.log(`fetchUrl() Response status: "${response.status}"`);
 
-    if (response.status !== 200) {
+    if (response.status > 299) {
       const text = await response.text();
       console.log("fetchUrl() Response text:\n", text);
       return text;

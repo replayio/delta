@@ -1,11 +1,11 @@
 import Image from "next/image";
-import useSWR from "swr";
 import Link from "next/link";
+import useSWR from "swr";
 
-const fetcher = (...args) => fetch(...args).then((res) => res.json());
+import { fetchJSON } from "../utils/fetchJSON";
 
 export default function Home() {
-  const projectsQuery = useSWR(encodeURI(`/api/getPublicProjects`), fetcher);
+  const projectsQuery = useSWR(encodeURI(`/api/getPublicProjects`), fetchJSON);
   console.log(projectsQuery.data);
   return (
     <div className={` h-full`}>

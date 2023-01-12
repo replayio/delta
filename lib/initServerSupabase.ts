@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
-import dotenv from "dotenv";
-dotenv.config({ path: "./.env.local" });
+import { config } from "dotenv";
+
+config({ path: "./.env.local" });
 
 export default function initSupabase() {
   return createClient(

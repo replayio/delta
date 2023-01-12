@@ -1,7 +1,7 @@
 import { DarkModeSwitch } from "react-toggle-dark-mode";
-import { useState } from "react";
-import { themeAtom, themeEnabledAtom } from "../lib/client/state";
 import { useAtom } from "jotai";
+
+import { themeAtom, themeEnabledAtom } from "../lib/client/state";
 
 function ToggleButton({ isSelected, onToggle, children }) {
   return (

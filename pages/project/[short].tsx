@@ -1,20 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/router";
-import Image from "next/image";
-
-import useSWR from "swr";
+import { useAtom } from "jotai";
 import uniqBy from "lodash/uniqBy";
 import sortBy from "lodash/sortBy";
-import { useAtom } from "jotai";
-import { Snapshot } from "../../components/Snapshot";
-import { SnapshotRow } from "../../components/SnapshotRow";
-import { Loader } from "../../components/Loader";
+import Image from "next/image";
+import { useRouter } from "next/router";
+import { useEffect, useMemo } from "react";
+import useSWR from "swr";
 
 import { Header } from "../../components/Header";
+import { Loader } from "../../components/Loader";
+import { Snapshot } from "../../components/Snapshot";
+import { SnapshotRow } from "../../components/SnapshotRow";
 import { useFetchSnapshots } from "../../hooks/useFetchSnapshots";
-import { snapshotsModeAtom, themeAtom } from "../../lib/client/state";
-
-const fetcher = (...args) => fetch(...args).then((res) => res.json());
+import { snapshotsModeAtom } from "../../lib/client/state";
+import { fetchJSON } from "../../utils/fetchJSON";
 
 const getSnapshotFile = (snapshot) => {
   // if (!snapshot) debugger;
@@ -46,7 +44,7 @@ export default function Home() {
   const [mode, setMode] = useAtom(snapshotsModeAtom);
   const projectQuery = useSWR(
     encodeURI(`/api/getProject?projectShort=${short}`),
-    fetcher
+    fetchJSON
   );
 
   const projectId = projectQuery.data?.id;
@@ -59,7 +57,7 @@ export default function Home() {
             : `/api/getActions?projectId=${projectId}`
         )
       : null,
-    fetcher
+    fetchJSON
   );
 
   const branches = useMemo(
@@ -109,10 +107,11 @@ export default function Home() {
   );
 
   useEffect(() => {
-    if (router.query.mode) {
-      setMode(router.query.mode);
+    const queryMode = router.query.mode;
+    if (queryMode) {
+      setMode(Array.isArray(queryMode) ? queryMode[0] : queryMode);
     }
-  }, [router.query.mode]);
+  }, [router.query.mode, setMode]);
 
   useEffect(() => {
     const { short, branch, snapshot, action } = router.query;
@@ -205,16 +204,6 @@ export default function Home() {
 
   const loading = isLoading || actionsQuery.isLoading || projectQuery.isLoading;
 
-  const actionDuration = useMemo(() => {
-    if (currentAction) {
-      const actionAge =
-        (new Date() - new Date(currentAction.created_at)) / 1000;
-      const actionMinutes = Math.floor(actionAge / 60);
-      const actionSeconds = Math.floor(actionAge % 60);
-      return `${actionMinutes}m ${actionSeconds}s`;
-    }
-  }, [currentAction]);
-
   const uniqSnapshots = useMemo(
     () => uniqBy(snapshots, getSnapshotFile),
     [snapshots]
@@ -245,7 +234,6 @@ export default function Home() {
         currentAction={currentAction}
         branch={branch}
         projectQuery={projectQuery}
-        changedSnapshots={changedSnapshots}
         shownBranches={shownBranches}
         branchActions={branchActions}
       />
@@ -296,11 +284,8 @@ export default function Home() {
               {uniqSnapshots.map((snapshot, index) => (
                 <SnapshotRow
                   key={snapshot.id}
-                  branch={branch}
-                  index={index}
                   snapshot={snapshot}
                   selectedSnapshot={selectedSnapshot}
-                  project={projectQuery.data}
                   currentAction={currentAction}
                 />
               ))}
@@ -312,7 +297,6 @@ export default function Home() {
                 key={selectedSnapshot.id}
                 branch={branch}
                 project={projectQuery.data}
-                snapshot={selectedSnapshot}
                 selectedSnapshots={selectedSnapshots}
               />
             )}

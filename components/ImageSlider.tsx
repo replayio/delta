@@ -12,7 +12,7 @@ export function ImageSlider({ data, mainData }) {
         width: testImage.current.offsetWidth,
       });
     }
-  }, [testImage.current, mainData, data]);
+  }, []);
 
   return (
     <>

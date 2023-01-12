@@ -1,6 +1,6 @@
+import { writeFileSync } from "fs";
 import * as pako from "pako";
-import fs from "fs";
-import path from "path";
+import { join } from "path";
 
 const async_hooks = require("async_hooks");
 
@@ -13,7 +13,7 @@ let requests = {};
 
 export function setupHook() {
   const hook = async_hooks.createHook({
-    init(asyncId, type, triggerAsyncId, resource) {
+    init(asyncId, type, _triggerAsyncId, resource) {
       if ("HTTPCLIENTREQUEST" == type) {
         log(`::: req ${asyncId}`, resource.req.method, resource.req.path);
 
@@ -63,10 +63,10 @@ export function setupHook() {
 }
 
 export const writeRequests = () => {
-  const filepath = path.join(__dirname, "../../../../requests.json");
+  const filepath = join(__dirname, "../../../../requests.json");
 
   console.log("writing requests", filepath);
-  fs.writeFileSync(filepath, JSON.stringify(requests, null, 2));
+  writeFileSync(filepath, JSON.stringify(requests, null, 2));
 };
 
 export function getHTTPRequests() {

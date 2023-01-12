@@ -1,12 +1,7 @@
-import { useRouter } from "next/router";
 import Link from "next/link";
-export function SnapshotRow({
-  snapshot,
-  onSelect,
-  index,
-  selectedSnapshot,
-  currentAction,
-}) {
+import { useRouter } from "next/router";
+
+export function SnapshotRow({ snapshot, selectedSnapshot, currentAction }) {
   const filename = snapshot.file
     ?.split("/")
     .pop()
@@ -15,7 +10,7 @@ export function SnapshotRow({
 
   const isSelected = snapshot.id === selectedSnapshot?.id;
   const router = useRouter();
-  const { short, branch, action } = router.query;
+  const { short, branch } = router.query;
 
   return (
     <Link

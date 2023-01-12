@@ -1,22 +1,22 @@
-import useSWR from "swr";
-import { useState } from "react";
 import { useAtom } from "jotai";
+import { useState } from "react";
+import useSWR from "swr";
+
 import {
   comparisonModeAtom,
   themeAtom,
   themeEnabledAtom,
 } from "../lib/client/state";
-import { Toggle } from "./Toggle";
+import { fetchJSON } from "../utils/fetchJSON";
+
 import { ImageSlider } from "./ImageSlider";
 import { Loader } from "./Loader";
+import { Toggle } from "./Toggle";
 
-const fetcher = (...args) => fetch(...args).then((res) => res.json());
-
-function SnapshotItem({ snapshot, project, branch }) {
-  const [mode, setMode] = useAtom(comparisonModeAtom);
+function SnapshotItem({ branch, mode, project, snapshot }) {
   const { data, error, isLoading } = useSWR(
     encodeURI(`/api/downloadSnapshot?path=${snapshot?.path}`),
-    fetcher
+    fetchJSON
   );
 
   const {
@@ -27,7 +27,7 @@ function SnapshotItem({ snapshot, project, branch }) {
     snapshot?.mainSnapshot?.path
       ? encodeURI(`/api/downloadSnapshot?path=${snapshot?.mainSnapshot?.path}`)
       : null,
-    fetcher
+    fetchJSON
   );
 
   const {
@@ -38,7 +38,7 @@ function SnapshotItem({ snapshot, project, branch }) {
     snapshot?.primary_diff_path
       ? encodeURI(`/api/downloadSnapshot?path=${snapshot?.primary_diff_path}`)
       : null,
-    fetcher
+    fetchJSON
   );
 
   const [diffFailed, setDiffFailed] = useState(false);
@@ -71,7 +71,6 @@ function SnapshotItem({ snapshot, project, branch }) {
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
           className="mt-8"
-          fallback="loading"
           placeholder="blur"
           onError={(e) => {
             setDiffFailed(true);
@@ -106,9 +105,10 @@ export function Snapshot({ selectedSnapshots, project, branch }) {
         {shownSnapshots.map((snapshot) => (
           <SnapshotItem
             key={snapshot.id}
-            snapshot={snapshot}
-            project={project}
             branch={branch}
+            mode={mode}
+            project={project}
+            snapshot={snapshot}
           />
         ))}
       </div>

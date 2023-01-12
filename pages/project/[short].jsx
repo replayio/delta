@@ -1,20 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/router";
-import Image from "next/image";
-
-import useSWR from "swr";
+import { useAtom } from "jotai";
 import uniqBy from "lodash/uniqBy";
 import sortBy from "lodash/sortBy";
-import { useAtom } from "jotai";
+import Image from "next/image";
+import { useRouter } from "next/router";
+import { useEffect, useMemo } from "react";
+import useSWR from "swr";
+
 import { Snapshot } from "../../components/Snapshot";
 import { SnapshotRow } from "../../components/SnapshotRow";
 import { Loader } from "../../components/Loader";
 
 import { Header } from "../../components/Header";
 import { useFetchSnapshots } from "../../hooks/useFetchSnapshots";
-import { snapshotsModeAtom, themeAtom } from "../../lib/client/state";
-
-const fetcher = (...args) => fetch(...args).then((res) => res.json());
+import { snapshotsModeAtom } from "../../lib/client/state";
+import { fetchJSON } from "../../utils/fetchJSON";
 
 const getSnapshotFile = (snapshot) => {
   // if (!snapshot) debugger;
@@ -46,7 +45,7 @@ export default function Home() {
   const [mode, setMode] = useAtom(snapshotsModeAtom);
   const projectQuery = useSWR(
     encodeURI(`/api/getProject?projectShort=${short}`),
-    fetcher
+    fetchJSON
   );
 
   const projectId = projectQuery.data?.id;
@@ -59,7 +58,7 @@ export default function Home() {
             : `/api/getActions?projectId=${projectId}`
         )
       : null,
-    fetcher
+    fetchJSON
   );
 
   const branches = useMemo(
@@ -112,7 +111,7 @@ export default function Home() {
     if (router.query.mode) {
       setMode(router.query.mode);
     }
-  }, [router.query.mode]);
+  }, [router.query.mode, setMode]);
 
   useEffect(() => {
     const { short, branch, snapshot, action } = router.query;

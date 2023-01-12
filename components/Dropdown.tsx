@@ -1,12 +1,28 @@
-import { Fragment } from "react";
 import { Menu, Transition } from "@headlessui/react";
+import { FormEventHandler, Fragment } from "react";
 import Link from "next/link";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-export default function Dropdown({ selected, options, onChange }) {
+type Option = {
+  badge: string;
+  key: string;
+  href: string;
+  isSelected: string;
+  name: string;
+};
+
+export default function Dropdown({
+  onChange,
+  options,
+  selected,
+}: {
+  onChange?: FormEventHandler<HTMLButtonElement>;
+  options: Option[];
+  selected: string;
+}) {
   return (
     <Menu as="div" className="relative inline-block text-left">
       <div>

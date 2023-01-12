@@ -1,7 +1,7 @@
 import useSWR from "swr";
 import { useMemo } from "react";
 
-const fetcher = (...args) => fetch(...args).then((res) => res.json());
+import { fetchJSON } from "../utils/fetchJSON";
 
 export function useFetchSnapshots(currentAction, projectQuery) {
   const selectedKey = encodeURI(
@@ -10,7 +10,7 @@ export function useFetchSnapshots(currentAction, projectQuery) {
       : null
   );
 
-  const { data, error, isLoading } = useSWR(selectedKey, fetcher);
+  const { data, error, isLoading } = useSWR(selectedKey, fetchJSON);
   const primaryBranch = projectQuery.data?.primary_branch;
   const primaryKey =
     projectQuery.isLoading || projectQuery.error
@@ -23,7 +23,7 @@ export function useFetchSnapshots(currentAction, projectQuery) {
     data: mainData,
     error: mainError,
     isLoading: mainLoading,
-  } = useSWR(primaryKey, fetcher);
+  } = useSWR(primaryKey, fetchJSON);
 
   const snapshots = useMemo(() => {
     if (!data || !mainData) return [];

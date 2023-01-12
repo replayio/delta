@@ -56,9 +56,10 @@ export function Header({
           </div>
 
           <a
-            _target="blank"
-            href={`https://github.com/${projectQuery.data?.organization}/${projectQuery.data?.repository}/pull/${currentAction?.Branches?.pr_number}`}
             className="mr-4 fill-violet-400 hover:fill-violet-500 "
+            href={`https://github.com/${projectQuery.data?.organization}/${projectQuery.data?.repository}/pull/${currentAction?.Branches?.pr_number}`}
+            rel="noreferrer noopener"
+            target="_blank"
           >
             <Github />
           </a>

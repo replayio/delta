@@ -1,8 +1,8 @@
 import fetch, { RequestInit } from "node-fetch";
 
 export async function fetchURI(
-  uri: string,
-  init?: RequestInit
+     uri: string,
+  init?:     RequestInit
 ): Promise<JSON | string | null> {
   try {
     const encodedURI = encodeURI(uri);

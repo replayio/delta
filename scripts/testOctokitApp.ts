@@ -1,7 +1,7 @@
-const { App } = require("@octokit/app");
-const dotenv = require("dotenv");
+import { App } from "@octokit/app";
+import { config } from "dotenv";
 
-dotenv.config({ path: "./.env.local" });
+config({ path: "./.env.local" });
 
 (async () => {
   const appId = 274973;

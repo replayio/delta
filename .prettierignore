@@ -1,0 +1,5 @@
+.next
+node_modules
+test/__image_snapshots__
+test/__snapshots__
+test/fixtures

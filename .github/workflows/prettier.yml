@@ -1,0 +1,13 @@
+name: "Prettier"
+on: [pull_request]
+jobs:
+  tests_e2e:
+    name: Run Prettier to verify formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - name: Install package dependencies
+        run: yarn install
+      - name: Run Prettier
+        run: yarn prettier:ci

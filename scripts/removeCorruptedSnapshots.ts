@@ -1,7 +1,7 @@
-const {
+import {
   listCorruptedSnapshots,
   removeCorruptedSnapshots,
-} = require("../lib/supabase-storage");
+} from "../lib/server/supabase/storage";
 
 (async () => {
   const projectId = "dcb5df26-b418-4fe2-9bdf-5a838e604ec4";

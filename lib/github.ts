@@ -1,16 +1,16 @@
 import { App } from "@octokit/app";
 import dotenv from "dotenv";
-import omit from "lodash";
 
 dotenv.config({ path: "./.env.local" });
 
 type CheckArgs = {
+  conclusion?: string;
+  details_url?: string;
   head_sha?: string;
   status?: string;
-  conclusion?: string;
-  title?: string;
   summary?: string;
   text?: string;
+  title?: string;
 };
 
 async function getOctokit() {
@@ -34,7 +34,7 @@ async function getOctokit() {
 export async function createCheck(
   owner,
   repo,
-  { head_sha, title, summary, text, status, details_url }
+  { head_sha, title, summary, text, status, details_url, conclusion }: CheckArgs
 ) {
   const octokit = await getOctokit();
 
@@ -47,6 +47,7 @@ export async function createCheck(
       head_sha,
       status,
       details_url,
+      conclusion,
       started_at: new Date().toISOString(),
       output: {
         title,

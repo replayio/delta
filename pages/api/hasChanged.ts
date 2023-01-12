@@ -1,4 +1,4 @@
-const fetch = require("node-fetch");
+import fetch from "node-fetch";
 const dotenv = require("dotenv");
 
 dotenv.config({ path: "./.env.local" });
@@ -21,13 +21,13 @@ async function get(path) {
 export default async function handler(req, res) {
   const { branch, primaryBranch } = req.query;
 
-  const branchSnapshots = await get(
+  const branchSnapshots = (await get(
     encodeURI(`/api/getSnapshotsForBranch/?branch=${branch}`)
-  );
+  )) as any;
 
-  const primaryBranchSnapshots = await get(
+  const primaryBranchSnapshots = (await get(
     encodeURI(`/api/getSnapshotsForBranch/?branch=${primaryBranch}`)
-  );
+  )) as any;
 
   const snapshots = branchSnapshots.snapshots
     .map((snapshot) => {

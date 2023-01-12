@@ -1,6 +1,6 @@
 const fetch = require("node-fetch");
 const dotenv = require("dotenv");
-const { diffImages } = require("../lib/diff");
+const { diffImages } = require("../lib/server/diff");
 const fs = require("fs");
 
 dotenv.config({ path: "./.env.local" });

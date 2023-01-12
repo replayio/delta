@@ -19,10 +19,8 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "pages/**/*.ts",
-    "pages/api/github-event.ts",
-    "test/supabase.test.ts",
-    "test/supabase.test.ts"
+    "lib/**/*.ts",
+    "test/fixtures/github.json"
   ],
   "exclude": ["node_modules"]
 }

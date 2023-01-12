@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "prettier": "prettier --write \"**/*.{css,html,js,json,jsx,ts,tsx}\"",
+    "prettier:ci": "prettier --check \"**/*.{css,html,js,json,jsx,ts,tsx}\"",
     "test": "vitest",
     "typecheck": "tsc",
     "typecheck:watch": "yarn typecheck --watch"

@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "prettier": "prettier --write \"**/*.{css,html,js,json,jsx,ts,tsx}\"",
     "test": "vitest",
     "typecheck": "tsc",
     "typecheck:watch": "yarn typecheck --watch"
@@ -51,6 +52,7 @@
     "@vitest/ui": "^0.26.3",
     "eslint": "8.30.0",
     "eslint-config-next": "13.0.7",
+    "prettier": "latest",
     "typescript": "^4.8.3",
     "vitest": "^0.26.2"
   }

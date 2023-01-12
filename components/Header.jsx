@@ -11,7 +11,7 @@ export function Header({
   currentAction,
   branchActions,
 }) {
-  console.log('<Header>', {shownBranches, branchActions})
+  console.log("<Header>", { shownBranches, branchActions });
   return (
     <div className="flex text-black justify-between border-b-2 border-b-slate-100 ">
       <div className="flex items-center py-2 pl-4">
@@ -27,7 +27,7 @@ export function Header({
         <Dropdown
           selected={branch}
           options={shownBranches.map((branch, index) => ({
-            key: branch.id??index,
+            key: branch.id ?? index,
             name: branch.name,
             href: `/project/${projectQuery.data.short}/?branch=${branch.name}`,
             badge:
@@ -45,7 +45,7 @@ export function Header({
               <Dropdown
                 selected={relativeTime(currentAction.created_at)}
                 options={branchActions.map((branch, index) => ({
-                  key: branch.id??index,
+                  key: branch.id ?? index,
                   name: relativeTime(branch.created_at),
                   href: `/project/${projectQuery.data.short}/?branch=${branch.Branches?.name}&action=${branch.id}`,
                   isSelected: branch.id == currentAction.id,

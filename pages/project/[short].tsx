@@ -229,7 +229,7 @@ export default function Home() {
   });
 
   return (
-    <div className={`h-full overflow-hidden`}>
+    <div className="h-full flex flex-col overflow-hidden">
       <Header
         currentAction={currentAction}
         branch={branch}
@@ -251,12 +251,12 @@ export default function Home() {
       ) : loading ? (
         <Loader />
       ) : shownBranches.length == 0 ? (
-        <div className="flex justify-center  h-full text-violet-500 mt-8">
+        <div className="flex justify-center grow text-violet-500 mt-8">
           No open branches with changes...
         </div>
       ) : lightSnapshots.length == 0 && darkSnapshots.length == 0 ? (
         <div
-          className="flex flex-col pt-32 items-center h-full"
+          className="flex flex-col pt-32 items-center grow"
           style={{ background: "#BA8BE0" }}
         >
           <Image
@@ -271,14 +271,14 @@ export default function Home() {
           </div>
         </div>
       ) : error || actionsQuery.error ? (
-        <div className="flex justify-center h-full text-violet-500 mt-8">
+        <div className="flex justify-center grow text-violet-500 mt-8">
           Error
         </div>
       ) : (
-        <div className="flex  h-full">
+        <div className="flex grow overflow-auto">
           <div className="flex flex-col">
             <div
-              className="flex flex-col h-full overflow-y-auto overflow-x-hidden"
+              className="flex flex-col h-full overflow-y-auto overflow-x-hidden bg-slate-100 py-1"
               style={{ width: "300px" }}
             >
               {uniqSnapshots.map((snapshot, index) => (
@@ -291,7 +291,7 @@ export default function Home() {
               ))}
             </div>
           </div>
-          <div className="flex flex-col flex-grow overflow-x-hidden  items-center ">
+          <div className="flex flex-col flex-grow overflow-y-auto overflow-x-hidden items-center">
             {selectedSnapshot && (
               <Snapshot
                 key={selectedSnapshot.id}

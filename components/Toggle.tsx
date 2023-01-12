@@ -6,8 +6,10 @@ import { themeAtom, themeEnabledAtom } from "../lib/client/state";
 function ToggleButton({ isSelected, onToggle, children }) {
   return (
     <div
-      className={`flex justify-center cursor-pointer py-2 px-4 hover:bg-slate-200 ${
-        isSelected ? "fill-violet-500" : "fill-slate-500"
+      className={`flex justify-center cursor-pointer py-2 px-4 ${
+        isSelected
+          ? "fill-white bg-violet-500"
+          : "fill-slate-500 hover:bg-slate-200"
       } `}
       onClick={onToggle}
     >
@@ -20,12 +22,7 @@ export function Toggle({ mode, setMode }) {
   const [themeEnabled] = useAtom(themeEnabledAtom);
   return (
     <div className="flex flex-row items-center">
-      <div
-        className="flex justify-between  bg-slate-100 border-slate-300 border"
-        style={{
-          borderRadius: "5px",
-        }}
-      >
+      <div className="flex justify-between bg-slate-100 rounded overflow-hidden">
         <ToggleButton
           isSelected={mode == "slider"}
           onToggle={() => setMode("slider")}

@@ -13,7 +13,7 @@ export function Header({
 }) {
   console.log("<Header>", { shownBranches, branchActions });
   return (
-    <div className="flex text-black justify-between border-b-2 border-b-slate-100 ">
+    <div className="flex text-black justify-between bg-slate-100">
       <div className="flex items-center py-2 pl-4">
         <div className="mr-2">
           <Image
@@ -25,7 +25,7 @@ export function Header({
           />
         </div>
         <Dropdown
-          selected={branch}
+          align="left"
           options={shownBranches.map((branch, index) => ({
             key: branch.id ?? index,
             name: branch.name,
@@ -35,6 +35,7 @@ export function Header({
                 ? branch.num_snapshots_changed
                 : "-",
           }))}
+          selected={branch}
         />
       </div>
 
@@ -43,7 +44,7 @@ export function Header({
           <div className={`font-medium px-2 mr-4 text-violet-400  `}>
             {
               <Dropdown
-                selected={relativeTime(currentAction.created_at)}
+                align="right"
                 options={branchActions.map((branch, index) => ({
                   key: branch.id ?? index,
                   name: relativeTime(branch.created_at),
@@ -51,12 +52,13 @@ export function Header({
                   isSelected: branch.id == currentAction.id,
                   badge: branch.num_snapshots_changed || "-",
                 }))}
+                selected={relativeTime(currentAction.created_at)}
               />
             }
           </div>
 
           <a
-            className="mr-4 fill-violet-400 hover:fill-violet-500 "
+            className="mr-4 fill-violet-500 hover:fill-violet-600 "
             href={`https://github.com/${projectQuery.data?.organization}/${projectQuery.data?.repository}/pull/${currentAction?.Branches?.pr_number}`}
             rel="noreferrer noopener"
             target="_blank"

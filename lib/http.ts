@@ -1,4 +1,6 @@
-async function post(path, body) {
+const HOST = process.env.HOST;
+
+export async function post(path: string, body: any) {
   const res = await fetch(`${HOST}${path}`, {
     method: "POST",
     headers: {
@@ -13,7 +15,3 @@ async function post(path, body) {
 
   return { status: res.status, error: await res.text() };
 }
-
-module.exports = {
-  post,
-};

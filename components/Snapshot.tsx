@@ -72,7 +72,6 @@ export function Snapshot({ selectedSnapshots, project, branch }) {
 }
 
 function Fallback({ error }) {
-  console.log("!!! Fallback arguments:", arguments);
   return (
     <div className="flex flex-col bg-red-100 text-red-700 rounded border border-red-200 max-w-sm py-1 px-2 mx-auto">
       <strong className="mb-2 text-lg">Error</strong>

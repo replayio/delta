@@ -166,15 +166,6 @@ export default function Home() {
           getSnapshotFile(_snapshot) == getSnapshotFile(selectedSnapshot)
       );
 
-      console.log("snapshots", {
-        newSnapshots,
-        snapshots,
-        changedSnapshots,
-        unchangedSnapshots,
-        selectedSnapshot,
-        selectedSnapshots,
-      });
-
       return {
         snapshots,
         newSnapshots,
@@ -219,14 +210,16 @@ export default function Home() {
     [snapshots]
   );
 
-  console.log({
-    lightSnapshots,
-    darkSnapshots,
-    shownBranches,
-    currentAction,
-    actions: actionsQuery.data,
-    branchActions,
-  });
+  if (process.env.NODE_ENV === "development") {
+    console.groupCollapsed("[short].tsx");
+    console.log("lightSnapshots:", lightSnapshots);
+    console.log("darkSnapshots:", darkSnapshots);
+    console.log("shownBranches:", shownBranches);
+    console.log("currentAction:", currentAction);
+    console.log("actionsQuery:", actionsQuery);
+    console.log("branchActions:", branchActions);
+    console.groupEnd();
+  }
 
   return (
     <div className="h-full flex flex-col overflow-hidden">

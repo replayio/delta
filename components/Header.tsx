@@ -11,7 +11,6 @@ export function Header({
   currentAction,
   branchActions,
 }) {
-  console.log("<Header>", { shownBranches, branchActions });
   return (
     <div className="flex text-black justify-between bg-slate-100">
       <div className="flex items-center py-2 pl-4">

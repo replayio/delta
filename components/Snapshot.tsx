@@ -1,77 +1,44 @@
 import { useAtom } from "jotai";
-import { useState } from "react";
-import useSWR from "swr";
+import { Suspense } from "react";
+import { ErrorBoundary } from "react-error-boundary";
 
 import {
   comparisonModeAtom,
   themeAtom,
   themeEnabledAtom,
 } from "../lib/client/state";
-import { fetchJSON } from "../utils/fetchJSON";
 
 import { ImageSlider } from "./ImageSlider";
 import { Loader } from "./Loader";
+import SnapshotDiffImage from "./SnapshotDiffImage";
+import SnapshotImage from "./SnapshotImage";
 import { Toggle } from "./Toggle";
 
 function SnapshotItem({ branch, mode, project, snapshot }) {
-  const { data, error, isLoading } = useSWR(
-    encodeURI(`/api/downloadSnapshot?path=${snapshot?.path}`),
-    fetchJSON
-  );
-
-  const {
-    data: mainData,
-    error: mainError,
-    isLoading: mainIsLoading,
-  } = useSWR(
-    snapshot?.mainSnapshot?.path
-      ? encodeURI(`/api/downloadSnapshot?path=${snapshot?.mainSnapshot?.path}`)
-      : null,
-    fetchJSON
-  );
-
-  const {
-    data: diffData,
-    error: diffError,
-    isLoading: diffIsLoading,
-  } = useSWR(
-    snapshot?.primary_diff_path
-      ? encodeURI(`/api/downloadSnapshot?path=${snapshot?.primary_diff_path}`)
-      : null,
-    fetchJSON
-  );
-
-  const [diffFailed, setDiffFailed] = useState(false);
-
-  if (error || mainError) {
-    return <div className="flex justify-center items-center h-full">error</div>;
-  }
-
   return (
     <div className="flex flex-col overflow-y-auto overflow-x-auto items-center p-2 bg-slate-100 rounded">
-      {error || mainError || diffError || diffFailed ? (
-        <div className="flex justify-center items-center h-full text-violet-500">
-          Could not load...
-        </div>
-      ) : isLoading || mainIsLoading || diffIsLoading ? (
-        <Loader />
-      ) : mode == "slider" ? (
-        <ImageSlider data={data} mainData={mainData} />
-      ) : snapshot.primary_diff_path ? (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img alt="" src={`data:image/png;base64,${diffData}`} />
+      {mode == "slider" ? (
+        <ErrorBoundary key="slider" FallbackComponent={Fallback}>
+          <Suspense fallback={<Loader />}>
+            <ImageSlider snapshot={snapshot} />
+          </Suspense>
+        </ErrorBoundary>
+      ) : snapshot?.primary_diff_path ? (
+        <ErrorBoundary key="snapshot" FallbackComponent={Fallback}>
+          <Suspense fallback={<Loader />}>
+            <SnapshotImage path={snapshot?.primary_diff_path} />
+          </Suspense>
+        </ErrorBoundary>
       ) : (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
-          onError={(e) => {
-            setDiffFailed(true);
-            console.log("cannot show diff", e);
-          }}
-          src={encodeURI(
-            `/api/snapshot-diff/?projectId=${project?.id}&branch=${branch}&file=${snapshot.file}`
-          )}
-          alt=""
-        />
+        <ErrorBoundary key="snapshot-diff" FallbackComponent={Fallback}>
+          <Suspense fallback={<Loader />}>
+            <SnapshotDiffImage
+              branch={branch}
+              file={snapshot?.file}
+              projectId={project?.id}
+            />
+          </Suspense>
+        </ErrorBoundary>
       )}
     </div>
   );
@@ -92,14 +59,26 @@ export function Snapshot({ selectedSnapshots, project, branch }) {
       <div className="w-full flex flex-col center gap-2 items-stretch">
         {shownSnapshots.map((snapshot) => (
           <SnapshotItem
-            key={snapshot.id}
             branch={branch}
+            key={snapshot.id}
             mode={mode}
             project={project}
             snapshot={snapshot}
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+function Fallback({ error }) {
+  console.log("!!! Fallback arguments:", arguments);
+  return (
+    <div className="flex flex-col bg-red-100 text-red-700 rounded border border-red-200 max-w-sm py-1 px-2 mx-auto">
+      <strong className="mb-2 text-lg">Error</strong>
+      <pre className="break-all whitespace-pre-wrap max-h-32 overflow-y-auto">
+        {error.message}
+      </pre>
     </div>
   );
 }

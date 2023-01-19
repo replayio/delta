@@ -1,42 +1,50 @@
-const { useState, useRef, useEffect } = require("react");
+import { Snapshot } from "../lib/server/supabase/supabase";
+import { fetchSnapshot } from "../suspense/SnapshotCache";
+import SnapshotImage from "./SnapshotImage";
 
-export function ImageSlider({ data, mainData }) {
-  const testImage = useRef(null);
+const { useState } = require("react");
+
+export function ImageSlider({ snapshot }: { snapshot: Snapshot }) {
   const [scrubber, setScrubber] = useState(50);
-  const [imageRect, setImageRect] = useState({ width: 0, height: 0 });
 
-  useEffect(() => {
-    if (testImage.current) {
-      setImageRect({
-        height: testImage.current.offsetHeight,
-        width: testImage.current.offsetWidth,
-      });
+  let mainSnapshotPath = null;
+  let path = null;
+  if (snapshot) {
+    path = snapshot.path;
+    // @ts-ignore What is this? It's not defined on the type.
+    const mainSnapshot = snapshot.mainSnapshot;
+    if (mainSnapshot) {
+      mainSnapshotPath = mainSnapshot.path;
     }
-  }, []);
+  }
+
+  const data = path ? fetchSnapshot(path) : null;
+  if (data == null) {
+    return null;
+  }
+
+  const { height = 0, width = 0 } = data;
 
   return (
     <>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        ref={testImage}
+      <SnapshotImage
+        path={path}
         style={{
           position: "absolute",
           top: "-1000px",
           right: "-10000px",
         }}
-        alt=""
-        src={`data:image/png;base64,${data}`}
       />
 
       <div
         className="flex flex-col justify-center "
-        style={{ width: `${imageRect.width}px` }}
+        style={{ width: `${width}px` }}
       >
         <div
           style={{
             position: "relative",
             width: `100%`,
-            height: `${imageRect.height}px`,
+            height: `${height}px`,
           }}
         >
           <div
@@ -53,19 +61,17 @@ export function ImageSlider({ data, mainData }) {
                 position: "relative",
                 width: `${scrubber}%`,
                 overflow: "hidden",
-                height: `${imageRect.height}px`,
+                height: `${height}px`,
               }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <SnapshotImage
+                path={path}
                 style={{
                   position: "absolute",
                   left: "0px",
                   top: "0px",
-                  minWidth: `${imageRect.width}px`,
+                  minWidth: `${width}px`,
                 }}
-                alt=""
-                src={`data:image/png;base64,${data}`}
               />
             </div>
           </div>
@@ -83,19 +89,17 @@ export function ImageSlider({ data, mainData }) {
                 position: "relative",
                 width: `100%`,
                 overflow: "hidden",
-                height: `${imageRect.height}px`,
+                height: `${height}px`,
               }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <SnapshotImage
+                path={mainSnapshotPath}
                 style={{
                   position: "absolute",
                   top: "0px",
                   right: "0px",
-                  minWidth: `${imageRect.width}px`,
+                  minWidth: `${width}px`,
                 }}
-                alt=""
-                src={`data:image/png;base64,${mainData}`}
               />
             </div>
           </div>
@@ -109,7 +113,7 @@ export function ImageSlider({ data, mainData }) {
         value={scrubber}
         style={{
           marginTop: "10px",
-          width: `${imageRect.width}px`,
+          width: `${width}px`,
         }}
         onChange={(e) => {
           setScrubber(e.target.value);

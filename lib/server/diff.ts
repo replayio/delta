@@ -1,9 +1,8 @@
-import { PNG } from "pngjs";
+import { subClass } from "gm";
 import pixelmatch from "pixelmatch";
-import gm from "gm";
-import fs from "fs";
+import { PNG } from "pngjs";
 
-const imageMagick = gm.subClass({ imageMagick: true });
+const imageMagick = subClass({ imageMagick: true });
 
 function cropImage(img, width, height) {
   return new Promise((resolve, reject) => {
@@ -24,6 +23,16 @@ function cropImage(img, width, height) {
 }
 
 async function resizeImage(png1, png2, img1, img2) {
+  console.log(
+    "resizeImage\nimg1:",
+    img1,
+    "\nimg2:",
+    img2,
+    "\npng1:",
+    png1,
+    "\npng2:",
+    png2
+  );
   try {
     if (png1.width > png2.width) {
       console.log(

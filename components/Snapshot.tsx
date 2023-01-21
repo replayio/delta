@@ -1,5 +1,5 @@
 import { useAtom } from "jotai";
-import { Suspense, unstable_Offscreen as Offscreen } from "react";
+import { ReactNode, Suspense, unstable_Offscreen as Offscreen } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
 import { comparisonModeAtom } from "../lib/client/state";
@@ -52,14 +52,14 @@ function SnapshotVariant({
     pathMainData == null ||
     pathBranchData === pathMainData
   ) {
-    let header = null;
-    let image = null;
+    let header: ReactNode = null;
+    let image: ReactNode = null;
     switch (status) {
       case "added":
         header = <div className="font-bold	text-xs text-green-600">Added</div>;
         image = (
           <div className="border-solid border border-green-600">
-            <SnapshotImage path={pathBranchData} />
+            <SnapshotImage path={pathBranchData!} />
           </div>
         );
         break;
@@ -67,7 +67,7 @@ function SnapshotVariant({
         header = <div className="font-bold	text-xs text-red-600">Deleted</div>;
         image = (
           <div className="border-solid border border-red-600">
-            <SnapshotImage path={pathMainData} />
+            <SnapshotImage path={pathMainData!} />
           </div>
         );
         break;
@@ -77,7 +77,7 @@ function SnapshotVariant({
         );
         image = (
           <div className="border-solid border border-slate-500">
-            <SnapshotImage path={pathBranchData} />
+            <SnapshotImage path={pathBranchData!} />
           </div>
         );
         break;
@@ -138,29 +138,22 @@ function SubViewCompare({
 
   return (
     <div className="flex flex-row items-start gap-1">
-      {pathMainData ? (
-        <ErrorBoundary FallbackComponent={Fallback}>
-          <Suspense fallback={<Loader />}>
-            <div className="flex flex-col items-center gap-1">
-              <div className="font-bold	text-xs text-red-600">Deleted</div>
-              <div className="border-solid border border-red-600">
-                <SnapshotImage path={pathMainData} />
-              </div>
+      <ErrorBoundary FallbackComponent={Fallback}>
+        <Suspense fallback={<Loader />}>
+          <div className="flex flex-col items-center gap-1">
+            <div className="font-bold	text-xs text-red-600">Deleted</div>
+            <div className="border-solid border border-red-600">
+              <SnapshotImage path={pathMainData!} />
             </div>
-          </Suspense>
-        </ErrorBoundary>
-      ) : (
-        <div className="flex flex-col items-center gap-1">
-          <div className="font-bold	text-xs text-red-600">&nbsp;</div>
-          <PlaceholderImage iconType="image" />
-        </div>
-      )}
+          </div>
+        </Suspense>
+      </ErrorBoundary>
       <ErrorBoundary FallbackComponent={Fallback}>
         <Suspense fallback={<Loader />}>
           <div className="flex flex-col items-center gap-1">
             <div className="font-bold	text-xs text-green-600">Added</div>
             <div className="border-solid border border-green-600">
-              <SnapshotImage path={pathBranchData} />
+              <SnapshotImage path={pathBranchData!} />
             </div>
           </div>
         </Suspense>
@@ -175,9 +168,9 @@ function NoDiffData({
   snapshotVariant: SnapshotVariantType;
 }) {
   const { pathBranchData, pathMainData } = snapshotVariant;
-  const { height, width } = fetchSnapshotSuspense(
-    pathBranchData || pathMainData
-  );
+
+  const path = pathBranchData || pathMainData;
+  const { height = 0, width = 0 } = path ? fetchSnapshotSuspense(path) : {};
 
   return (
     <div
@@ -221,8 +214,8 @@ function SubViewSlider({
     <ErrorBoundary FallbackComponent={Fallback}>
       <Suspense fallback={<Loader />}>
         <ImageSlider
-          pathBranchData={pathBranchData}
-          pathMainData={pathMainData}
+          pathBranchData={pathBranchData!}
+          pathMainData={pathMainData!}
         />
       </Suspense>
     </ErrorBoundary>

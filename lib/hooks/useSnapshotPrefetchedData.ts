@@ -38,10 +38,12 @@ function prefetchSnapshotVariant(snapshotVariant: SnapshotVariant) {
   prefetchSnapshot(snapshotVariant.pathMainData);
 }
 
-async function prefetchSnapshot(path: string) {
-  try {
-    await fetchSnapshotAsync(path);
-  } catch (error) {
-    // Ignore pre-fetch errors.
+async function prefetchSnapshot(path: string | null) {
+  if (path !== null) {
+    try {
+      await fetchSnapshotAsync(path);
+    } catch (error) {
+      // Ignore pre-fetch errors.
+    }
   }
 }

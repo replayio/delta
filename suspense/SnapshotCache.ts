@@ -33,7 +33,6 @@ export type SnapshotVariant = {
 };
 
 export type SnapshotFile = {
-  file: string;
   fileName: string;
   variants: {
     dark: SnapshotVariant | null;
@@ -166,24 +165,6 @@ export const {
       const record = getOrCreateRecord(fileName);
       record.primarySnapshots[theme] = snapshot;
     });
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    console.group("SNAP");
-    console.log(
-      "change:",
-      fileNameToBranchSnapshotsMap.get("context-menu-position-one.png")
-    );
-    console.log(
-      "deleted:",
-      fileNameToBranchSnapshotsMap.get("context-menu-position-two.png")
-    );
-    console.log(
-      "added:",
-      fileNameToBranchSnapshotsMap.get(
-        "context-menu-position-two-new-image.png"
-      )
-    );
-    console.groupEnd();
-    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     const snapshotFiles: SnapshotFile[] = [];
 
@@ -241,7 +222,6 @@ export const {
 
     fileNameToBranchSnapshotsMap.forEach((record, fileName) => {
       const snapshotFile: SnapshotFile = {
-        file: null, // TODO ???
         fileName,
         variants: {
           dark: null,
@@ -269,16 +249,6 @@ export const {
         ({ fileName }) => fileName
       );
       snapshotFiles.splice(index, 0, snapshotFile);
-
-      ////////////////////////////////////////////////////////////////////////////////////////////////
-      if (
-        fileName === "context-menu-position-one.png" ||
-        fileName === "context-menu-position-two.png" ||
-        fileName === "context-menu-position-two-new-image.png"
-      ) {
-        console.log(snapshotFile);
-      }
-      ////////////////////////////////////////////////////////////////////////////////////////////////
     });
 
     return snapshotFiles;

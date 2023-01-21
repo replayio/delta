@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { Action, Branch, Project } from "../lib/server/supabase/supabase";
 
+// TODO Is pending status
 export function ApproveButton({
   currentAction,
   currentBranch,

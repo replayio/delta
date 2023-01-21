@@ -199,7 +199,7 @@ function SubViewLoadedData({
   }
 
   const [currentSnapshotFile, snapshotFileIndex] = useMemo(() => {
-    let currentSnapshotFile = null;
+    let currentSnapshotFile: SnapshotFile | null = null;
     let index = -1;
     if (currentFileName != null) {
       index = filteredSnapshotFiles.findIndex(

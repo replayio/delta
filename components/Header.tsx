@@ -63,8 +63,8 @@ export function Header({
               align="right"
               options={actions.map((action) => ({
                 badge: action.num_snapshots_changed || "-",
-                href: `/project/${project.short}/?branch=${currentBranch.name}&action=${action.id}`,
-                isSelected: action.id == currentAction.id,
+                href: `/project/${project.short}/?branch=${currentBranch?.name}&action=${action.id}`,
+                isSelected: action.id == currentAction?.id,
                 key: action.id,
                 name: relativeTime(action.created_at),
               }))}
@@ -84,7 +84,7 @@ export function Header({
           <Github />
         </a>
 
-        {currentAction && (
+        {currentAction && currentBranch && (
           <ApproveButton
             currentAction={currentAction}
             currentBranch={currentBranch}

@@ -1,5 +1,10 @@
 import { useAtom } from "jotai";
-import { ReactNode, Suspense, unstable_Offscreen as Offscreen } from "react";
+import {
+  ReactNode,
+  Suspense,
+  unstable_Offscreen as Offscreen,
+  useState,
+} from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
 import { comparisonModeAtom } from "../lib/client/state";
@@ -14,22 +19,40 @@ import Icon, { IconType } from "./Icon";
 import { ImageSlider } from "./ImageSlider";
 import { Loader } from "./Loader";
 import SnapshotImage from "./SnapshotImage";
+import { SnapshotImageSlider } from "./SnapshotSliderImage";
 import { Toggle } from "./Toggle";
 
 export function Snapshot({ snapshotFile }: { snapshotFile: SnapshotFile }) {
+  const [mode] = useAtom(comparisonModeAtom);
+
+  const [sliderPercentage, setSliderPercentage] = useState(50);
+
+  const pathData =
+    snapshotFile.variants.dark?.pathBranchData ||
+    snapshotFile.variants.light?.pathBranchData;
+
   return (
     <div className="flex flex-col items-center grow p-2 gap-2">
       <Toggle />
+      {pathData && mode === "slider" && (
+        <ImageSlider
+          onChange={setSliderPercentage}
+          pathData={pathData}
+          value={sliderPercentage}
+        />
+      )}
       <div className="w-full flex flex-col center gap-2 items-stretch">
         {snapshotFile.variants.dark && (
           <SnapshotVariant
             key="dark"
+            sliderPercentage={sliderPercentage}
             snapshotVariant={snapshotFile.variants.dark}
           />
         )}
         {snapshotFile.variants.light && (
           <SnapshotVariant
             key="light"
+            sliderPercentage={sliderPercentage}
             snapshotVariant={snapshotFile.variants.light}
           />
         )}
@@ -39,8 +62,10 @@ export function Snapshot({ snapshotFile }: { snapshotFile: SnapshotFile }) {
 }
 
 function SnapshotVariant({
+  sliderPercentage,
   snapshotVariant,
 }: {
+  sliderPercentage: number;
   snapshotVariant: SnapshotVariantType;
 }) {
   const [mode] = useAtom(comparisonModeAtom);
@@ -97,7 +122,10 @@ function SnapshotVariant({
     return (
       <div className="flex flex-col overflow-y-auto overflow-x-auto items-center p-2 bg-slate-100 rounded">
         <Offscreen mode={mode == "slider" ? "visible" : "hidden"}>
-          <SubViewSlider snapshotVariant={snapshotVariant} />
+          <SubViewSlider
+            sliderPercentage={sliderPercentage}
+            snapshotVariant={snapshotVariant}
+          />
         </Offscreen>
         <Offscreen mode={mode == "compare" ? "visible" : "hidden"}>
           <SubViewCompare snapshotVariant={snapshotVariant} />
@@ -117,14 +145,6 @@ function Fallback({ error }) {
       <pre className="break-all whitespace-pre-wrap max-h-32 overflow-y-auto">
         {error?.message ?? error}
       </pre>
-    </div>
-  );
-}
-
-function PlaceholderImage({ iconType }: { iconType: IconType }) {
-  return (
-    <div className="border border-slate-200 p-2 rounded bg-white text-slate-600">
-      <Icon type={iconType} />
     </div>
   );
 }
@@ -205,17 +225,20 @@ function SubViewDiff({
 }
 
 function SubViewSlider({
+  sliderPercentage,
   snapshotVariant,
 }: {
+  sliderPercentage: number;
   snapshotVariant: SnapshotVariantType;
 }) {
   const { pathBranchData, pathMainData } = snapshotVariant;
   return (
     <ErrorBoundary FallbackComponent={Fallback}>
       <Suspense fallback={<Loader />}>
-        <ImageSlider
+        <SnapshotImageSlider
           pathBranchData={pathBranchData!}
           pathMainData={pathMainData!}
+          percentage={sliderPercentage}
         />
       </Suspense>
     </ErrorBoundary>

@@ -30,6 +30,12 @@ export async function getBranch(
     .single();
 }
 
+export async function getBranchByName(
+  name: number
+): Promise<PostgrestSingleResponse<Branch>> {
+  return supabase.from("Branches").select("*").eq("name", name).single();
+}
+
 export async function getBranchesFromProject(
   projectId: string
 ): Promise<PostgrestResponse<Branch>> {

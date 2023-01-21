@@ -3,12 +3,13 @@ import createClient from "../../lib/initServerSupabase";
 const supabase = createClient();
 
 export default async function handler(req, res) {
-  const { projectId } = req.query;
+  const { branchId } = req.query;
+  console.log("getActions() branchId:", branchId);
 
   const { data, error } = await supabase
     .from("Actions")
-    .select("*, Branches(project_id, name, status, pr_number)")
-    .eq("Branches.project_id", projectId)
+    .select("*")
+    .eq("branch_id", branchId)
     .order("created_at", { ascending: false })
     .limit(1000);
 

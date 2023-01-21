@@ -1,22 +1,19 @@
 import { useState } from "react";
 
-import { useFetchSnapshots } from "../hooks/useFetchSnapshots";
+import { Action, Branch, Project } from "../lib/server/supabase/supabase";
 
-export function ApproveButton({ branch, projectQuery, currentAction }) {
-  const { data, isLoading, error } = useFetchSnapshots(
-    currentAction,
-    projectQuery
-  );
-  const [currentBranch, setBranch] = useState(null);
+export function ApproveButton({
+  currentAction,
+  currentBranch,
+  project,
+}: {
+  currentAction: Action;
+  currentBranch: Branch;
+  project: Project;
+}) {
   const [isUpdating, setUpdating] = useState(false);
 
   const toggleBranchStatus = async (status) => {
-    console.log("toggleBranchStatus() request:", {
-      branch,
-      status: "success",
-      projectId: projectQuery.data.id,
-    });
-
     setUpdating(true);
 
     const response = await fetch("/api/updateBranchStatus", {
@@ -25,32 +22,24 @@ export function ApproveButton({ branch, projectQuery, currentAction }) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        branch,
+        branch: currentBranch,
+        projectId: project.id,
         status,
-        projectId: projectQuery.data.id,
       }),
     });
 
     console.log("toggleBranchStatus() response:", await response.text());
 
     setUpdating(false);
-
-    try {
-      const body = await response.json();
-      setBranch(body.action);
-    } catch (error) {}
   };
-
-  if (isLoading || error || data.error) {
-    return null;
-  }
-
-  const hasChanged = data?.some((snapshot) => snapshot.primary_changed);
 
   // Don't show the approve button if:
   // - the branch has no changes
   // - the branch has a currently running action
-  if (!hasChanged || currentBranch?.status == "neutral") {
+  if (
+    currentAction.num_snapshots_changed === 0 ||
+    currentBranch?.status == "neutral"
+  ) {
     return null;
   }
 

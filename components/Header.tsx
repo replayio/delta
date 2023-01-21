@@ -1,16 +1,34 @@
-import Dropdown from "./Dropdown";
-import Image from "next/image";
-import { Github } from "./SVGs";
-import { ApproveButton } from "./ApproveButton";
 import moment from "moment";
+import Image from "next/image";
+import { Action, Branch, Project } from "../lib/server/supabase/supabase";
+import { ApproveButton } from "./ApproveButton";
+import Dropdown from "./Dropdown";
+import { Github } from "./SVGs";
 
 export function Header({
-  branch,
-  projectQuery,
-  shownBranches,
+  actions,
+  branches,
   currentAction,
-  branchActions,
+  currentBranch,
+  project,
+}: {
+  actions: Action[];
+  branches: Branch[];
+  currentAction: Action | null;
+  currentBranch: Branch | null;
+  project: Project;
 }) {
+  // Debug logging
+  // if (process.env.NODE_ENV === "development") {
+  //   console.groupCollapsed("<Header>");
+  //   console.log("branches:", branches);
+  //   console.log("current branch:", currentBranch);
+  //   console.log("actions:", actions);
+  //   console.log("current action:", currentAction);
+  //   console.log("project:", project);
+  //   console.groupEnd();
+  // }
+
   return (
     <div className="flex text-black justify-between bg-slate-100">
       <div className="flex items-center py-2 pl-4">
@@ -25,53 +43,55 @@ export function Header({
         </div>
         <Dropdown
           align="left"
-          options={shownBranches.map((branch, index) => ({
-            key: branch.id ?? index,
+          options={branches.map((branch) => ({
+            // TODO Show number of changed snapshots in a branch;
+            // This will require a merged data type from the server
+            badge: branch.pr_number,
+            href: `/project/${project.short}/?branch=${branch.name}`,
+            isSelected: branch.name === currentBranch?.name,
+            key: branch.id,
             name: branch.name,
-            href: `/project/${projectQuery.data.short}/?branch=${branch.name}`,
-            badge:
-              branch.action_status != "neutral"
-                ? branch.num_snapshots_changed
-                : "-",
           }))}
-          selected={branch}
+          selected={currentBranch?.name ?? "–"}
         />
       </div>
 
-      {currentAction && (
-        <div className="flex items-center">
-          <div className={`font-medium px-2 mr-4 text-violet-400  `}>
-            {
-              <Dropdown
-                align="right"
-                options={branchActions.map((branch, index) => ({
-                  key: branch.id ?? index,
-                  name: relativeTime(branch.created_at),
-                  href: `/project/${projectQuery.data.short}/?branch=${branch.Branches?.name}&action=${branch.id}`,
-                  isSelected: branch.id == currentAction.id,
-                  badge: branch.num_snapshots_changed || "-",
-                }))}
-                selected={relativeTime(currentAction.created_at)}
-              />
-            }
-          </div>
-
-          <a
-            className="mr-4 fill-violet-500 hover:fill-violet-600 "
-            href={`https://github.com/${projectQuery.data?.organization}/${projectQuery.data?.repository}/pull/${currentAction?.Branches?.pr_number}`}
-            rel="noreferrer noopener"
-            target="_blank"
-          >
-            <Github />
-          </a>
-
-          <ApproveButton
-            branch={branch}
-            projectQuery={projectQuery}
-            currentAction={currentAction}
-          />
+      <div className="flex items-center">
+        <div className={`font-medium px-2 mr-4 text-violet-400  `}>
+          {
+            <Dropdown
+              align="right"
+              options={actions.map((action) => ({
+                badge: action.num_snapshots_changed || "-",
+                href: `/project/${project.short}/?branch=${currentBranch.name}&action=${action.id}`,
+                isSelected: action.id == currentAction.id,
+                key: action.id,
+                name: relativeTime(action.created_at),
+              }))}
+              selected={
+                currentAction ? relativeTime(currentAction.created_at) : "-"
+              }
+            />
+          }
         </div>
-      )}
+
+        <a
+          className="mr-4 fill-violet-500 hover:fill-violet-600 "
+          href={`https://github.com/${project?.organization}/${project?.repository}/pull/${currentBranch?.pr_number}`}
+          rel="noreferrer noopener"
+          target="_blank"
+        >
+          <Github />
+        </a>
+
+        {currentAction && (
+          <ApproveButton
+            currentAction={currentAction}
+            currentBranch={currentBranch}
+            project={project}
+          />
+        )}
+      </div>
     </div>
   );
 }

@@ -47,17 +47,25 @@ async function uploadImage(file: string, projectId: string, branch: string) {
   const branch = "visuals10";
   let results = [];
   for (const files of chunk(allFiles, 20)) {
-    const res = await Promise.all(
+    const responses = await Promise.all(
       files.map((file) => uploadImage(file, projectId, branch))
     );
-    const failedCount = res.filter((r) => r?.error).length;
-    const passCount = res.filter((r) => r?.data).length;
+
+    let failedCount = 0;
+    let passCount = 0;
+    responses.forEach((response: any) => {
+      if (response?.error) {
+        failedCount++;
+      } else if (response?.data) {
+        passCount++;
+      }
+    });
     console.log(`uploaded ${passCount} images`);
 
     if (failedCount > 0) {
       console.log(`failed to uploaded ${failedCount} images`);
     }
-    results.push(...res);
+    results.push(...responses);
   }
 
   console.log(

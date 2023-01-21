@@ -7,12 +7,13 @@ import createClient from "../../initServerSupabase";
 export const supabase = createClient();
 
 export type Project = {
-  id: string;
-  short: string;
-  repository: string;
-  organization: string;
   created_at: string;
+  id: string;
+  name: string;
+  organization: string;
   primary_branch: string;
+  repository: string;
+  short: string;
 };
 
 export type Branch = {
@@ -40,17 +41,31 @@ export type Action = {
   num_snapshots_changed: number;
 };
 
+export type getActionsResponse = Action[];
+export type getBranchByNameResponse = Branch;
+export type getBranchesResponse = Branch[];
+export type getProjectResponse = Project;
+export type getPublicProjectsResponse = Project[];
+export type getSnapshotsForActionResponse = Snapshot[];
+export type getSnapshotsForBranchResponse = Snapshot[];
+
 export type Snapshot = {
   id: string;
-  sha: string;
-  action_id: string;
-  path: string;
-  file: string;
-  status: string;
+  // Has the snapshot changed from the prior action for this branch?
   action_changed: boolean;
-  primary_changed: boolean;
+  // GitHub action.
+  action_id: string;
   created_at: string;
+  // Key; used to associate snapshots between branches.
+  file: string;
+  // used to load snapshot image data (base64 string).
+  path: string;
+  // Has the snapshot changed from the primary/main branch?
+  primary_changed: boolean;
+  // used to load diff image data (base64 string).
   primary_diff_path?: string;
+  // Number of pixels that have changed from the primary/main branch.
+  // Used for debugging; not exposed in the web UI.
   primary_num_pixels?: number;
 };
 

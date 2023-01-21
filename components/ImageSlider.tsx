@@ -1,40 +1,30 @@
-import { Snapshot } from "../lib/server/supabase/supabase";
-import { fetchSnapshot } from "../suspense/SnapshotCache";
+import { fetchSnapshotSuspense } from "../suspense/SnapshotCache";
 import SnapshotImage from "./SnapshotImage";
 
 const { useState } = require("react");
 
-export function ImageSlider({ snapshot }: { snapshot: Snapshot }) {
+export function ImageSlider({
+  pathBranchData,
+  pathMainData,
+}: {
+  pathBranchData: string;
+  pathMainData: string;
+}) {
   const [scrubber, setScrubber] = useState(50);
 
-  let mainSnapshotPath = null;
-  let path = null;
-  if (snapshot) {
-    path = snapshot.path;
-    // @ts-ignore What is this? It's not defined on the type.
-    const mainSnapshot = snapshot.mainSnapshot;
-    if (mainSnapshot) {
-      mainSnapshotPath = mainSnapshot.path;
-    }
-  }
-
-  const data = path ? fetchSnapshot(path) : null;
-  if (data == null) {
-    return null;
-  }
-
-  const { height = 0, width = 0 } = data;
+  const { height = 0, width = 0 } = fetchSnapshotSuspense(pathBranchData);
 
   return (
     <>
-      <SnapshotImage
-        path={path}
+      <div
         style={{
           position: "absolute",
           top: "-1000px",
           right: "-10000px",
         }}
-      />
+      >
+        <SnapshotImage path={pathBranchData} />
+      </div>
 
       <div
         className="flex flex-col justify-center "
@@ -64,15 +54,16 @@ export function ImageSlider({ snapshot }: { snapshot: Snapshot }) {
                 height: `${height}px`,
               }}
             >
-              <SnapshotImage
-                path={path}
+              <div
                 style={{
                   position: "absolute",
                   left: "0px",
                   top: "0px",
                   minWidth: `${width}px`,
                 }}
-              />
+              >
+                <SnapshotImage path={pathBranchData} />
+              </div>
             </div>
           </div>
           <div
@@ -92,15 +83,16 @@ export function ImageSlider({ snapshot }: { snapshot: Snapshot }) {
                 height: `${height}px`,
               }}
             >
-              <SnapshotImage
-                path={mainSnapshotPath}
+              <div
                 style={{
                   position: "absolute",
                   top: "0px",
                   right: "0px",
                   minWidth: `${width}px`,
                 }}
-              />
+              >
+                <SnapshotImage path={pathMainData} />
+              </div>
             </div>
           </div>
         </div>

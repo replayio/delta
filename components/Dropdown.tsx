@@ -1,5 +1,5 @@
 import { Menu, Transition } from "@headlessui/react";
-import { FormEventHandler, Fragment } from "react";
+import { FormEventHandler, Fragment, ReactNode } from "react";
 import Link from "next/link";
 
 function classNames(...classes) {
@@ -7,10 +7,10 @@ function classNames(...classes) {
 }
 
 type Option = {
-  badge: string;
+  badge: ReactNode;
   key: string;
   href: string;
-  isSelected: string;
+  isSelected: boolean;
   name: string;
 };
 

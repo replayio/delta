@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     .select("*")
     .eq("project_id", projectId)
     .eq("status", "open")
-    .order("created_at", { ascending: false })
+    .order("name", { ascending: true })
     .limit(1000);
 
   if (error) {

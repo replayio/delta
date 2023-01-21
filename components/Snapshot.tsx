@@ -14,13 +14,12 @@ import {
   SnapshotVariant,
   SnapshotVariant as SnapshotVariantType,
 } from "../suspense/SnapshotCache";
-import Icon, { IconType } from "./Icon";
+import Icon from "./Icon";
 
 import { ImageSlider } from "./ImageSlider";
 import { Loader } from "./Loader";
 import SnapshotImage from "./SnapshotImage";
 import { SnapshotImageSlider } from "./SnapshotSliderImage";
-import { Toggle } from "./Toggle";
 
 export function Snapshot({ snapshotFile }: { snapshotFile: SnapshotFile }) {
   const [mode] = useAtom(comparisonModeAtom);
@@ -33,7 +32,6 @@ export function Snapshot({ snapshotFile }: { snapshotFile: SnapshotFile }) {
 
   return (
     <div className="flex flex-col items-center grow p-2 gap-2">
-      <Toggle />
       {pathData && mode === "slider" && (
         <ImageSlider
           onChange={setSliderPercentage}

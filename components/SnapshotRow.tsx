@@ -21,7 +21,7 @@ export function SnapshotRow({
 
   return (
     <Link
-      className={`items-center px-4 text-sm cursor-pointer text-ellipsis truncate shrink-0 block font-light text-violet-900 leading-6 capitalize ${
+      className={`items-center px-2 text-sm cursor-pointer text-ellipsis truncate shrink-0 block font-light text-violet-900 leading-6 capitalize ${
         isSelected ? "bg-violet-200" : "hover:bg-violet-100"
       }`}
       href={encodeURI(

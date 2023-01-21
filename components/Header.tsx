@@ -4,6 +4,7 @@ import { Action, Branch, Project } from "../lib/server/supabase/supabase";
 import { ApproveButton } from "./ApproveButton";
 import Dropdown from "./Dropdown";
 import { Github } from "./SVGs";
+import { Toggle } from "./Toggle";
 
 export function Header({
   actions,
@@ -30,8 +31,8 @@ export function Header({
   // }
 
   return (
-    <div className="flex text-black justify-between bg-slate-100">
-      <div className="flex items-center py-2 pl-4">
+    <div className="flex text-black justify-between bg-slate-100 py-1 px-4 whitespace-nowrap">
+      <div className="flex-1 flex items-center">
         <div className="mr-2">
           <Image
             className="fill-violet-500"
@@ -56,27 +57,27 @@ export function Header({
         />
       </div>
 
-      <div className="flex items-center">
-        <div className={`font-medium px-2 mr-4 text-violet-400  `}>
-          {
-            <Dropdown
-              align="right"
-              options={actions.map((action) => ({
-                badge: action.num_snapshots_changed || "-",
-                href: `/project/${project.short}/?branch=${currentBranch?.name}&action=${action.id}`,
-                isSelected: action.id == currentAction?.id,
-                key: action.id,
-                name: relativeTime(action.created_at),
-              }))}
-              selected={
-                currentAction ? relativeTime(currentAction.created_at) : "-"
-              }
-            />
+      <div className="flex-1 flex items-center justify-center">
+        <Toggle />
+      </div>
+
+      <div className="flex-1 flex justify-end items-center gap-2 text-violet-400">
+        <Dropdown
+          align="right"
+          options={actions.map((action) => ({
+            badge: action.num_snapshots_changed || "-",
+            href: `/project/${project.short}/?branch=${currentBranch?.name}&action=${action.id}`,
+            isSelected: action.id == currentAction?.id,
+            key: action.id,
+            name: relativeTime(action.created_at),
+          }))}
+          selected={
+            currentAction ? relativeTime(currentAction.created_at) : "-"
           }
-        </div>
+        />
 
         <a
-          className="mr-4 fill-violet-500 hover:fill-violet-600 "
+          className="fill-violet-500 hover:fill-violet-600 "
           href={`https://github.com/${project?.organization}/${project?.repository}/pull/${currentBranch?.pr_number}`}
           rel="noreferrer noopener"
           target="_blank"

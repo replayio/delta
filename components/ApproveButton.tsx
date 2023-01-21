@@ -2,7 +2,6 @@ import { useState } from "react";
 
 import { Action, Branch, Project } from "../lib/server/supabase/supabase";
 
-// TODO Is pending status
 export function ApproveButton({
   currentAction,
   currentBranch,
@@ -46,7 +45,7 @@ export function ApproveButton({
 
   if (isUpdating) {
     return (
-      <div className="font-medium mr-4 text-white bg-violet-300 py-1 px-3 rounded border-transparent">
+      <div className="text-white bg-violet-300 py-1 px-3 rounded border-transparent">
         Updating
       </div>
     );
@@ -61,7 +60,7 @@ export function ApproveButton({
       <div className="flex items-center">
         <button
           onClick={() => toggleBranchStatus("failure")}
-          className="font-medium mr-4 text-white bg-violet-500 py-1 px-3 rounded border-transparent hover:bg-violet-600"
+          className="text-white bg-violet-500 py-1 px-3 rounded border-transparent hover:bg-violet-600"
         >
           Reject
         </button>
@@ -73,7 +72,7 @@ export function ApproveButton({
     <div className="flex items-center">
       <button
         onClick={() => toggleBranchStatus("success")}
-        className="font-medium mr-4 text-white bg-violet-500 py-1 px-3 rounded border-transparent hover:bg-violet-600"
+        className="text-white bg-violet-500 py-1 px-3 rounded border-transparent hover:bg-violet-600"
       >
         Approve
       </button>

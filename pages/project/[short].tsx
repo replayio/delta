@@ -1,7 +1,9 @@
 import Image from "next/image";
 import { useRouter } from "next/router";
 import { Suspense, useMemo, useRef } from "react";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { Header } from "../../components/Header";
+import Icon from "../../components/Icon";
 import { Loader } from "../../components/Loader";
 import { Snapshot } from "../../components/Snapshot";
 import { SnapshotRow } from "../../components/SnapshotRow";
@@ -76,7 +78,7 @@ function ShortSuspends({
   }
 
   const currentAction = actionId
-    ? actions.find((action) => action.id === actionId) ?? null
+    ? actions?.find((action) => action.id === actionId) ?? null
     : null;
 
   const snapshotFiles = currentAction
@@ -117,7 +119,7 @@ function ShortWithData({
   project,
   snapshotFiles,
 }: {
-  actions: Action[];
+  actions: Action[] | null;
   branches: Branch[];
   currentAction: Action | null;
   currentBranch: Branch | null;
@@ -224,29 +226,33 @@ function SubViewLoadedData({
 
   return (
     <div className="flex grow overflow-auto">
-      <div className="flex flex-col">
-        <div
-          className="flex flex-col h-full overflow-y-auto overflow-x-hidden bg-slate-100 py-1"
-          style={{ width: "300px" }}
-        >
-          {filteredSnapshotFiles.map((snapshotFile) => (
-            <SnapshotRow
-              currentAction={currentAction}
-              isSelected={snapshotFile.fileName === currentFileName}
-              key={snapshotFile.fileName}
-              snapshotFile={snapshotFile}
-            />
-          ))}
-        </div>
-      </div>
-      <div className="flex flex-col flex-grow overflow-y-auto overflow-x-hidden items-center">
-        {currentSnapshotFile && (
-          <Snapshot
-            key={currentSnapshotFile.fileName}
-            snapshotFile={currentSnapshotFile}
-          />
-        )}
-      </div>
+      <PanelGroup direction="horizontal">
+        <Panel minSize={5} maxSize={25} defaultSize={15} order={1}>
+          <div className="w-full h-full flex flex-col h-full overflow-y-auto overflow-x-hidden bg-slate-100 py-1">
+            {filteredSnapshotFiles.map((snapshotFile) => (
+              <SnapshotRow
+                currentAction={currentAction}
+                isSelected={snapshotFile.fileName === currentFileName}
+                key={snapshotFile.fileName}
+                snapshotFile={snapshotFile}
+              />
+            ))}
+          </div>
+        </Panel>
+        <PanelResizeHandle className="w-2 h-full flex items-center justify-center overflow-visible bg-slate-100 text-slate-400">
+          <Icon type="drag-handle" />
+        </PanelResizeHandle>
+        <Panel order={2}>
+          <div className="w-full h-full flex flex-col flex-grow overflow-y-auto overflow-x-hidden items-center">
+            {currentSnapshotFile && (
+              <Snapshot
+                key={currentSnapshotFile.fileName}
+                snapshotFile={currentSnapshotFile}
+              />
+            )}
+          </div>
+        </Panel>
+      </PanelGroup>
     </div>
   );
 }

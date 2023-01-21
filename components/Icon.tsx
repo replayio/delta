@@ -7,7 +7,7 @@ export type IconType =
   | "slider";
 
 export default function Icon({
-  className = "fill-current h-4 w-4",
+  className = "fill-current h-4 w-4 grow-0 shrink-0",
   type,
 }: {
   className?: string;

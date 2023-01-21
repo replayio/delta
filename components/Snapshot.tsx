@@ -53,16 +53,32 @@ function SnapshotVariant({
     pathBranchData === pathMainData
   ) {
     let header = null;
+    let image = null;
     switch (status) {
       case "added":
         header = <div className="font-bold	text-xs text-green-600">Added</div>;
+        image = (
+          <div className="border-solid border border-green-600">
+            <SnapshotImage path={pathBranchData} />
+          </div>
+        );
         break;
       case "deleted":
         header = <div className="font-bold	text-xs text-red-600">Deleted</div>;
+        image = (
+          <div className="border-solid border border-red-600">
+            <SnapshotImage path={pathMainData} />
+          </div>
+        );
         break;
       case "unchanged":
         header = (
           <div className="font-bold	text-xs text-slate-500">Not changed</div>
+        );
+        image = (
+          <div className="border-solid border border-slate-500">
+            <SnapshotImage path={pathBranchData} />
+          </div>
         );
         break;
     }
@@ -72,9 +88,7 @@ function SnapshotVariant({
         <Suspense fallback={<Loader />}>
           <div className="flex flex-col overflow-y-auto overflow-x-auto items-center p-2 bg-slate-100 rounded">
             {header}
-            <div className="border-solid border border-slate-500">
-              <SnapshotImage path={pathBranchData} />
-            </div>
+            {image}
           </div>
         </Suspense>
       </ErrorBoundary>
@@ -168,12 +182,12 @@ function NoDiffData({
   return (
     <div
       className="flex flex-col bg-red-100 text-red-700 rounded items-center justify-center gap-1"
-      style={{ height, width }}
+      style={{ minHeight: height, width }}
     >
-      <div className="text-center w-full whitespace-pre overflow-hidden text-ellipsis">
+      <div className="text-center w-full whitespace-pre overflow-hidden text-ellipsis shrink-0">
         No diff data found.
       </div>
-      <Icon className="fill-current h-6 w-6" type="image-off" />
+      <Icon className="fill-current h-6 w-6 shrink-0" type="image-off" />
     </div>
   );
 }

@@ -25,9 +25,9 @@ export type SnapshotStatus =
 
 export type SnapshotVariant = {
   changed: boolean;
-  pathBranchData: string;
+  pathBranchData: string | null;
   pathMainData: string | null;
-  pathDiffData: string;
+  pathDiffData: string | null;
   status: SnapshotStatus;
   theme: SnapshotTheme;
 };
@@ -122,70 +122,112 @@ export const {
       actionId
     );
 
-    const fileNameToSnapshotMap: Map<string, SnapshotFile> = new Map();
+    // Gather the unique set of snapshots;
+    // Be sure to scan both arrays to handle added and deleted snapshots.
+    const fileNameToBranchSnapshotsMap: Map<
+      string,
+      {
+        branchSnapshots: {
+          dark: Snapshot | null;
+          light: Snapshot | null;
+        };
+        primarySnapshots: {
+          dark: Snapshot | null;
+          light: Snapshot | null;
+        };
+      }
+    > = new Map();
+
+    const getOrCreateRecord = (fileName: string) => {
+      if (!fileNameToBranchSnapshotsMap.has(fileName)) {
+        fileNameToBranchSnapshotsMap.set(fileName, {
+          branchSnapshots: {
+            dark: null,
+            light: null,
+          },
+          primarySnapshots: {
+            dark: null,
+            light: null,
+          },
+        });
+      }
+      return fileNameToBranchSnapshotsMap.get(fileName)!;
+    };
+
+    snapshotsForAction.forEach((snapshot) => {
+      const [fileName, theme] = parseFilePath(snapshot.file);
+
+      const record = getOrCreateRecord(fileName);
+      record.branchSnapshots[theme] = snapshot;
+    });
+    snapshotsForPrimaryBranch.forEach((snapshot) => {
+      const [fileName, theme] = parseFilePath(snapshot.file);
+
+      const record = getOrCreateRecord(fileName);
+      record.primarySnapshots[theme] = snapshot;
+    });
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    console.group("SNAP");
+    console.log(
+      "change:",
+      fileNameToBranchSnapshotsMap.get("context-menu-position-one.png")
+    );
+    console.log(
+      "deleted:",
+      fileNameToBranchSnapshotsMap.get("context-menu-position-two.png")
+    );
+    console.log(
+      "added:",
+      fileNameToBranchSnapshotsMap.get(
+        "context-menu-position-two-new-image.png"
+      )
+    );
+    console.groupEnd();
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
     const snapshotFiles: SnapshotFile[] = [];
 
-    snapshotsForAction.forEach((datum) => {
-      const [fileName, theme] = parseFilePath(datum.file);
-
-      const snapshotFile: SnapshotFile = fileNameToSnapshotMap.get(
-        fileName
-      ) ?? {
-        file: datum.file,
-        fileName,
-        variants: {
-          dark: null,
-          light: null,
-        },
-      };
-
-      if (!fileNameToSnapshotMap.has(fileName)) {
-        fileNameToSnapshotMap.set(fileName, snapshotFile);
-
-        const index = sortedIndexBy(
-          snapshotFiles,
-          snapshotFile,
-          ({ fileName }) => fileName
-        );
-        snapshotFiles.splice(index, 0, snapshotFile);
-      }
-
+    const addVariant = (
+      theme: SnapshotTheme,
+      snapshotFile: SnapshotFile,
+      snapshotMain: Snapshot | null,
+      snapshotBranch: Snapshot | null
+    ) => {
       let changed = false;
       let status: SnapshotStatus = "unchanged";
-      if (datum.status === "Uploaded") {
+      if (snapshotBranch === null) {
+        changed = true;
+        status = "deleted";
+      } else if (snapshotMain === null) {
         changed = true;
         status = "added";
-      } else if (datum.action_changed) {
+      } else if (snapshotBranch.action_changed) {
         changed = true;
         status = "changed-action";
-      } else if (datum.primary_changed) {
+      } else if (snapshotBranch.primary_changed) {
         changed = true;
         status = "changed-primary";
-      } else {
-        // TODO status "deleted"
       }
 
       // TODO This is weird but "new" images also have entries for the main branch.
       // I think this is likely a backend bug.
       // We can work around it for now though to avoid the frontend showing confusing state.
-      let snapshotMain = null;
+      let pathMainData: string | null = null;
       if (status !== "added") {
-        snapshotMain =
-          snapshotsForPrimaryBranch.find(({ file }) => file === datum.file) ??
-          null;
+        pathMainData = snapshotMain?.path ?? null;
       }
 
       // TODO This is another edge case I've seen in the data that probably indicates a bug on the server.
-      if (datum.path === snapshotMain?.path) {
+      if (snapshotBranch?.path === snapshotMain?.path) {
         changed = false;
         status = "unchanged";
       }
 
       const snapshotVariant: SnapshotVariant = {
         changed,
-        pathBranchData: datum.path,
-        pathMainData: snapshotMain?.path ?? null,
-        pathDiffData: datum.primary_diff_path,
+        pathBranchData: snapshotBranch?.path ?? null,
+        pathMainData,
+        pathDiffData: snapshotBranch?.primary_diff_path ?? null,
         status,
         theme,
       };
@@ -195,6 +237,48 @@ export const {
       } else {
         snapshotFile.variants.light = snapshotVariant;
       }
+    };
+
+    fileNameToBranchSnapshotsMap.forEach((record, fileName) => {
+      const snapshotFile: SnapshotFile = {
+        file: null, // TODO ???
+        fileName,
+        variants: {
+          dark: null,
+          light: null,
+        },
+      };
+
+      addVariant(
+        "dark",
+        snapshotFile,
+        record.primarySnapshots.dark,
+        record.branchSnapshots.dark
+      );
+
+      addVariant(
+        "light",
+        snapshotFile,
+        record.primarySnapshots.light,
+        record.branchSnapshots.light
+      );
+
+      const index = sortedIndexBy(
+        snapshotFiles,
+        snapshotFile,
+        ({ fileName }) => fileName
+      );
+      snapshotFiles.splice(index, 0, snapshotFile);
+
+      ////////////////////////////////////////////////////////////////////////////////////////////////
+      if (
+        fileName === "context-menu-position-one.png" ||
+        fileName === "context-menu-position-two.png" ||
+        fileName === "context-menu-position-two-new-image.png"
+      ) {
+        console.log(snapshotFile);
+      }
+      ////////////////////////////////////////////////////////////////////////////////////////////////
     });
 
     return snapshotFiles;

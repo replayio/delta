@@ -17,8 +17,8 @@ export function ImageSlider({
   return (
     <>
       <div
+        className="absolute"
         style={{
-          position: "absolute",
           top: "-1000px",
           right: "-10000px",
         }}
@@ -31,34 +31,22 @@ export function ImageSlider({
         style={{ width: `${width}px` }}
       >
         <div
+          className="relative w-full"
           style={{
-            position: "relative",
-            width: `100%`,
             height: `${height}px`,
           }}
         >
-          <div
-            style={{
-              position: "absolute",
-              left: "0px",
-              height: "100%",
-              top: "0px",
-              width: "100%",
-            }}
-          >
+          <div className="absolute h-full w-full top-0 left-0">
             <div
+              className="relative overflow-hidden"
               style={{
-                position: "relative",
                 width: `${scrubber}%`,
-                overflow: "hidden",
                 height: `${height}px`,
               }}
             >
               <div
+                className="absolute top-0 left-0"
                 style={{
-                  position: "absolute",
-                  left: "0px",
-                  top: "0px",
                   minWidth: `${width}px`,
                 }}
               >
@@ -67,27 +55,20 @@ export function ImageSlider({
             </div>
           </div>
           <div
+            className="absolute h-full top-0 right-0"
             style={{
-              position: "absolute",
-              right: "0px",
-              height: "100%",
-              top: "0px",
               width: `${100 - scrubber}%`,
             }}
           >
             <div
+              className="relative w-full overflow-hidden"
               style={{
-                position: "relative",
-                width: `100%`,
-                overflow: "hidden",
                 height: `${height}px`,
               }}
             >
               <div
+                className="absolute top-0 right-0"
                 style={{
-                  position: "absolute",
-                  top: "0px",
-                  right: "0px",
                   minWidth: `${width}px`,
                 }}
               >
@@ -98,18 +79,18 @@ export function ImageSlider({
         </div>
       </div>
       <input
+        className="mt-1"
         id="image-slider-scrubber"
-        type="range"
-        min="0"
         max="100"
-        value={scrubber}
-        style={{
-          marginTop: "10px",
-          width: `${width}px`,
-        }}
+        min="0"
         onChange={(e) => {
           setScrubber(e.target.value);
         }}
+        style={{
+          width: `${width}px`,
+        }}
+        type="range"
+        value={scrubber}
       />
     </>
   );

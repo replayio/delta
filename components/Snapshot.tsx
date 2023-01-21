@@ -15,20 +15,20 @@ import { Toggle } from "./Toggle";
 function SnapshotItem({
   branch,
   file,
-  mode,
   project,
   snapshotVariant,
 }: {
   branch: Branch;
   file: string;
-  mode: string;
   project: Project;
   snapshotVariant: SnapshotVariant;
 }) {
+  const [mode] = useAtom(comparisonModeAtom);
+
   return (
     <div className="flex flex-col overflow-y-auto overflow-x-auto items-center p-2 bg-slate-100 rounded">
       <Offscreen mode={mode == "slider" ? "visible" : "hidden"}>
-        <ErrorBoundary key="slider" FallbackComponent={Fallback}>
+        <ErrorBoundary FallbackComponent={Fallback}>
           <Suspense fallback={<Loader />}>
             <ImageSlider
               pathBranchData={snapshotVariant.pathBranchData}
@@ -38,15 +38,40 @@ function SnapshotItem({
         </ErrorBoundary>
       </Offscreen>
 
-      <Offscreen mode={mode == "slider" ? "hidden" : "visible"}>
+      <Offscreen mode={mode == "compare" ? "visible" : "hidden"}>
+        <div className="flex flex-row items-center gap-1">
+          <ErrorBoundary FallbackComponent={Fallback}>
+            <Suspense fallback={<Loader />}>
+              <div className="flex flex-col items-center gap-1">
+                <div className="font-bold	text-xs text-red-600">Deleted</div>
+                <div className="border-solid border border-red-600">
+                  <SnapshotImage path={snapshotVariant.pathMainData} />
+                </div>
+              </div>
+            </Suspense>
+          </ErrorBoundary>
+          <ErrorBoundary FallbackComponent={Fallback}>
+            <Suspense fallback={<Loader />}>
+              <div className="flex flex-col items-center gap-1">
+                <div className="font-bold	text-xs text-green-600">Added</div>
+                <div className="border-solid border border-green-600">
+                  <SnapshotImage path={snapshotVariant.pathBranchData} />
+                </div>
+              </div>
+            </Suspense>
+          </ErrorBoundary>
+        </div>
+      </Offscreen>
+
+      <Offscreen mode={mode == "diff" ? "visible" : "hidden"}>
         {snapshotVariant.pathDiffData ? (
-          <ErrorBoundary key="snapshot" FallbackComponent={Fallback}>
+          <ErrorBoundary FallbackComponent={Fallback}>
             <Suspense fallback={<Loader />}>
               <SnapshotImage path={snapshotVariant.pathDiffData} />
             </Suspense>
           </ErrorBoundary>
         ) : (
-          <ErrorBoundary key="snapshot-diff" FallbackComponent={Fallback}>
+          <ErrorBoundary FallbackComponent={Fallback}>
             <Suspense fallback={<Loader />}>
               <SnapshotDiffImage
                 branch={branch}
@@ -70,19 +95,15 @@ export function Snapshot({
   project: Project;
   snapshotFile: SnapshotFile;
 }) {
-  const [mode, setMode] = useAtom(comparisonModeAtom);
-
-  // TODO Tri-mode: slider, new, diff
   return (
     <div className="flex flex-col items-center grow p-2 gap-2">
-      <Toggle mode={mode} setMode={setMode} />
+      <Toggle />
       <div className="w-full flex flex-col center gap-2 items-stretch">
         {snapshotFile.variants.dark && (
           <SnapshotItem
             branch={branch}
             file={snapshotFile.file}
             key="dark"
-            mode={mode}
             project={project}
             snapshotVariant={snapshotFile.variants.dark}
           />
@@ -92,7 +113,6 @@ export function Snapshot({
             branch={branch}
             file={snapshotFile.file}
             key="light"
-            mode={mode}
             project={project}
             snapshotVariant={snapshotFile.variants.light}
           />

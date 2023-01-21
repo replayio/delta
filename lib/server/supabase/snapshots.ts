@@ -81,7 +81,6 @@ export async function insertSnapshot(
   branchName,
   projectId,
   image,
-  status,
   runId
 ): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
   const branch = await getBranchFromProject(projectId, branchName);
@@ -102,16 +101,13 @@ export async function insertSnapshot(
 
   await incrementActionNumSnapshots(action.data.id);
 
-  return supabase
-    .from("Snapshots")
-    .insert({
-      sha,
-      action_id: action.data.id,
-      path: `${projectId}/${sha}.png`,
-      file: image.file,
-      status,
-    })
-    .single();
+  const snapshot: Partial<Snapshot> = {
+    action_id: action.data.id,
+    path: `${projectId}/${sha}.png`,
+    file: image.file,
+  };
+
+  return supabase.from("Snapshots").insert(snapshot).single();
 }
 
 export async function updateSnapshot(

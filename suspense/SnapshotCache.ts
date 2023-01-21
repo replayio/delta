@@ -1,109 +1,291 @@
-import { fetchJSON } from "../utils/fetchJSON";
-import createWakeable from "./createWakeable";
+import sortedIndexBy from "lodash/sortedIndexBy";
 import {
-  Record,
-  STATUS_PENDING,
-  STATUS_REJECTED,
-  STATUS_RESOLVED,
-} from "./types";
+  getSnapshotsForActionResponse,
+  getSnapshotsForBranchResponse,
+  Snapshot,
+} from "../lib/server/supabase/supabase";
+import { fetchJSON } from "../utils/fetchJSON";
+import { createGenericCache } from "./createGenericCache";
+import { fetchProjectAsync } from "./ProjectCache";
 
-export type Snapshot = {
+export type SnapshotTheme = "dark" | "light";
+
+export type SnapshotImage = {
   base64String: string;
   height: number;
   width: number;
 };
 
-const snapshotDiffRecords: Map<string, Record<Snapshot>> = new Map();
-const snapshotRecords: Map<string, Record<Snapshot>> = new Map();
+export type SnapshotStatus =
+  | "added"
+  | "changed-action"
+  | "changed-primary"
+  | "deleted"
+  | "unchanged";
 
-export function fetchSnapshot(snapshotPath: string): Snapshot {
-  let record = snapshotRecords.get(snapshotPath);
-  if (record == null) {
-    const wakeable = createWakeable<Snapshot>(snapshotPath);
+export type SnapshotVariant = {
+  changed: boolean;
+  pathBranchData: string | null;
+  pathMainData: string | null;
+  pathDiffData: string | null;
+  status: SnapshotStatus;
+  theme: SnapshotTheme;
+};
 
-    record = {
-      status: STATUS_PENDING,
-      value: wakeable,
-    };
+export type SnapshotFile = {
+  fileName: string;
+  variants: {
+    dark: SnapshotVariant | null;
+    light: SnapshotVariant | null;
+  };
+};
 
-    snapshotRecords.set(snapshotPath, record);
+// Fetch base64 encoded snapshot image (with dimensions)
+export const {
+  getValueSuspense: fetchSnapshotSuspense,
+  getValueAsync: fetchSnapshotAsync,
+  getValueIfCached: fetchSnapshotIfCached,
+} = createGenericCache<[snapshotPath: string], SnapshotImage>(
+  (snapshotPath: string) =>
+    fetchBase64Snapshot(
+      `/api/downloadSnapshot?path=${encodeURI(snapshotPath)}`
+    ),
+  (snapshotPath: string) => snapshotPath
+);
 
-    // Suspense caches fire and forget; errors will be handled within the fetch function.
-    fetchHelper(`/api/downloadSnapshot?path=${snapshotPath}`, record);
-  }
+// Fetch base64 encoded snapshot diff image (with dimensions)
+export const {
+  getValueSuspense: fetchSnapshotDiffSuspense,
+  getValueAsync: fetchSnapshotDiffAsync,
+  getValueIfCached: fetchSnapshotDiffIfCached,
+} = createGenericCache<
+  [projectId: string, branchName: string, snapshotFile: string],
+  SnapshotImage
+>(
+  (projectId: string, branchName: string, snapshotFile: string) =>
+    fetchBase64Snapshot(
+      `/api/snapshot-diff/?projectId=${projectId}&branch=${encodeURI(
+        branchName
+      )}&file=${snapshotFile}`
+    ),
+  (projectId: string, branchName: string, snapshotFile: string) =>
+    JSON.stringify({ branchName, projectId, snapshotFile })
+);
 
-  if (record!.status === STATUS_RESOLVED) {
-    return record!.value;
-  } else {
-    throw record!.value;
-  }
-}
+// Fetch list of snapshots for an action
+export const {
+  getValueSuspense: fetchSnapshotsForActionSuspense,
+  getValueAsync: fetchSnapshotsForActionAsync,
+  getValueIfCached: fetchSnapshotsForActionIfCached,
+} = createGenericCache<[projectId: string, actionId: string], Snapshot[]>(
+  (projectId: string, actionId: string) =>
+    fetchJSON<getSnapshotsForActionResponse>(
+      `/api/getSnapshotsForAction?action=${actionId}&project_id=${projectId}`
+    ),
+  (projectId: string, actionId: string) =>
+    JSON.stringify({ actionId, projectId })
+);
 
-export function fetchSnapshotDiff(
-  projectId: string,
-  branch: string,
-  snapshotFile: string
-): Snapshot {
-  const key = `${projectId}/${branch}/${snapshotFile}`;
-  let record = snapshotDiffRecords.get(key);
-  if (record == null) {
-    const wakeable = createWakeable<Snapshot>(key);
+// Fetch list of snapshots for a branch
+export const {
+  getValueSuspense: fetchSnapshotsForBranchSuspense,
+  getValueAsync: fetchSnapshotsForBranchAsync,
+  getValueIfCached: fetchSnapshotsForBranchIfCached,
+} = createGenericCache<[projectId: string, branchName: string], Snapshot[]>(
+  (projectId: string, branchName: string) =>
+    fetchJSON<getSnapshotsForBranchResponse>(
+      `/api/getSnapshotsForBranch?branch=${encodeURI(
+        branchName
+      )}&project_id=${projectId}`
+    ),
+  (projectId: string, branchName: string) =>
+    JSON.stringify({ branchName, projectId })
+);
 
-    record = {
-      status: STATUS_PENDING,
-      value: wakeable,
-    };
-
-    snapshotDiffRecords.set(key, record);
-
-    // Suspense caches fire and forget; errors will be handled within the fetch function.
-    fetchHelper(
-      `/api/snapshot-diff/?projectId=${projectId}&branch=${branch}&file=${snapshotFile}`,
-      record
+// Fetch list of snapshots and their change metadata, grouped by file
+export const {
+  getValueSuspense: fetchSnapshotFilesSuspense,
+  getValueAsync: fetchSnapshotFilesAsync,
+  getValueIfCached: fetchSnapshotFilesIfCached,
+} = createGenericCache<[projectId: string, actionId: string], SnapshotFile[]>(
+  async (projectId: string, actionId: string) => {
+    // TODO We could parallelize some of the requests below.
+    const project = await fetchProjectAsync(projectId, null);
+    const primaryBranch = project.primary_branch;
+    const snapshotsForPrimaryBranch = await fetchSnapshotsForBranchAsync(
+      projectId,
+      primaryBranch
     );
-  }
+    const snapshotsForAction = await fetchSnapshotsForActionAsync(
+      projectId,
+      actionId
+    );
 
-  if (record!.status === STATUS_RESOLVED) {
-    return record!.value;
-  } else {
-    throw record!.value;
-  }
-}
+    // Gather the unique set of snapshots;
+    // Be sure to scan both arrays to handle added and deleted snapshots.
+    const fileNameToBranchSnapshotsMap: Map<
+      string,
+      {
+        branchSnapshots: {
+          dark: Snapshot | null;
+          light: Snapshot | null;
+        };
+        primarySnapshots: {
+          dark: Snapshot | null;
+          light: Snapshot | null;
+        };
+      }
+    > = new Map();
 
-async function fetchHelper(uri: string, record: Record<Snapshot>) {
-  const wakeable = record.value;
+    const getOrCreateRecord = (fileName: string) => {
+      if (!fileNameToBranchSnapshotsMap.has(fileName)) {
+        fileNameToBranchSnapshotsMap.set(fileName, {
+          branchSnapshots: {
+            dark: null,
+            light: null,
+          },
+          primarySnapshots: {
+            dark: null,
+            light: null,
+          },
+        });
+      }
+      return fileNameToBranchSnapshotsMap.get(fileName)!;
+    };
 
-  try {
-    const response = await fetchJSON(encodeURI(uri));
+    snapshotsForAction.forEach((snapshot) => {
+      const [fileName, theme] = parseFilePath(snapshot.file);
 
-    if (response.hasOwnProperty("error")) {
-      throw response.error;
-    }
-
-    const base64String = response;
-
-    const image = new Image();
-    image.addEventListener("error", (event) => {
-      record.status = STATUS_REJECTED;
-      record.value = event.error;
-
-      wakeable.reject(record.value);
+      const record = getOrCreateRecord(fileName);
+      record.branchSnapshots[theme] = snapshot;
     });
-    image.addEventListener("load", () => {
-      record.status = STATUS_RESOLVED;
-      record.value = {
-        base64String,
-        height: image.naturalHeight,
-        width: image.naturalWidth,
+    snapshotsForPrimaryBranch.forEach((snapshot) => {
+      const [fileName, theme] = parseFilePath(snapshot.file);
+
+      const record = getOrCreateRecord(fileName);
+      record.primarySnapshots[theme] = snapshot;
+    });
+
+    const snapshotFiles: SnapshotFile[] = [];
+
+    const addVariant = (
+      theme: SnapshotTheme,
+      snapshotFile: SnapshotFile,
+      snapshotMain: Snapshot | null,
+      snapshotBranch: Snapshot | null
+    ) => {
+      let changed = false;
+      let status: SnapshotStatus = "unchanged";
+      if (snapshotBranch === null) {
+        changed = true;
+        status = "deleted";
+      } else if (snapshotMain === null) {
+        changed = true;
+        status = "added";
+      } else if (snapshotBranch.action_changed) {
+        changed = true;
+        status = "changed-action";
+      } else if (snapshotBranch.primary_changed) {
+        changed = true;
+        status = "changed-primary";
+      }
+
+      // TODO This is weird but "new" images also have entries for the main branch.
+      // I think this is likely a backend bug.
+      // We can work around it for now though to avoid the frontend showing confusing state.
+      let pathMainData: string | null = null;
+      if (status !== "added") {
+        pathMainData = snapshotMain?.path ?? null;
+      }
+
+      // TODO This is another edge case I've seen in the data that probably indicates a bug on the server.
+      if (snapshotBranch?.path === snapshotMain?.path) {
+        changed = false;
+        status = "unchanged";
+      }
+
+      const snapshotVariant: SnapshotVariant = {
+        changed,
+        pathBranchData: snapshotBranch?.path ?? null,
+        pathMainData,
+        pathDiffData: snapshotBranch?.primary_diff_path ?? null,
+        status,
+        theme,
       };
 
-      wakeable.resolve(record.value);
-    });
-    image.src = `data:image/png;base64,${base64String}`;
-  } catch (error) {
-    record.status = STATUS_REJECTED;
-    record.value = Error(`Failed to download Snapshot at "${uri}"`);
+      if (theme === "dark") {
+        snapshotFile.variants.dark = snapshotVariant;
+      } else {
+        snapshotFile.variants.light = snapshotVariant;
+      }
+    };
 
-    wakeable.reject(record.value);
-  }
+    fileNameToBranchSnapshotsMap.forEach((record, fileName) => {
+      const snapshotFile: SnapshotFile = {
+        fileName,
+        variants: {
+          dark: null,
+          light: null,
+        },
+      };
+
+      addVariant(
+        "dark",
+        snapshotFile,
+        record.primarySnapshots.dark,
+        record.branchSnapshots.dark
+      );
+
+      addVariant(
+        "light",
+        snapshotFile,
+        record.primarySnapshots.light,
+        record.branchSnapshots.light
+      );
+
+      const index = sortedIndexBy(
+        snapshotFiles,
+        snapshotFile,
+        ({ fileName }) => fileName
+      );
+      snapshotFiles.splice(index, 0, snapshotFile);
+    });
+
+    return snapshotFiles;
+  },
+  (projectId: string, actionId: string) =>
+    JSON.stringify({ actionId, projectId })
+);
+
+async function fetchBase64Snapshot(uri: string): Promise<SnapshotImage> {
+  const base64String = await fetchJSON<string>(encodeURI(uri));
+
+  const snapshot = new Promise<SnapshotImage>((resolve, reject) => {
+    try {
+      const image = new Image();
+      image.addEventListener("error", (event) => {
+        reject(event.error);
+      });
+      image.addEventListener("load", () => {
+        resolve({
+          base64String,
+          height: image.naturalHeight,
+          width: image.naturalWidth,
+        });
+      });
+      image.src = `data:image/png;base64,${base64String}`;
+    } catch (error) {
+      throw Error(`Failed to download Snapshot at "${uri}"`);
+    }
+  });
+
+  return snapshot;
+}
+
+function parseFilePath(
+  path: string
+): [fileName: string, theme: "dark" | "light"] {
+  const fileName = path.split("/").pop()!;
+  const theme = path.includes("/light/") ? "light" : "dark";
+  return [fileName, theme];
 }

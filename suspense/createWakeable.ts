@@ -7,7 +7,7 @@ let CIRCULAR_THENABLE_CHECK_MAX_COUNT = 1_000;
 // An advantage to creating a custom thennable is synchronous resolution (or rejection).
 //
 // A "wakeable" is a "thennable" that has convenience resolve/reject methods.
-export default function createWakeable<T>(debugLabel: string): Wakeable<T> {
+export default function createWakeable<T>(debugLabel?: string): Wakeable<T> {
   const resolveCallbacks: Set<(value: T) => void> = new Set();
   const rejectCallbacks: Set<(error: Error) => void> = new Set();
 
@@ -26,7 +26,9 @@ export default function createWakeable<T>(debugLabel: string): Wakeable<T> {
       CIRCULAR_THENABLE_CHECK_MAX_COUNT
     ) {
       throw Error(
-        `Circular thenable chain detected (infinite loop) for resource:\n${debugLabel}`
+        `Circular thenable chain detected (infinite loop) for resource${
+          debugLabel ? `\n"${debugLabel}"` : ""
+        }`
       );
     }
   };

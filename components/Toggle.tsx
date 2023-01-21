@@ -1,55 +1,65 @@
 import { DarkModeSwitch } from "react-toggle-dark-mode";
 import { useAtom } from "jotai";
 
-import { themeAtom, themeEnabledAtom } from "../lib/client/state";
+import {
+  comparisonModeAtom,
+  themeAtom,
+  themeEnabledAtom,
+} from "../lib/client/state";
+import Icon from "./Icon";
+import { ReactNode } from "react";
 
-function ToggleButton({ isSelected, onToggle, children }) {
+function ToggleButton({
+  icon,
+  isSelected,
+  label,
+  onToggle,
+}: {
+  icon: ReactNode;
+  isSelected: boolean;
+  label: string;
+  onToggle: () => void;
+}) {
   return (
     <div
-      className={`flex justify-center cursor-pointer py-2 px-4 ${
+      className={`flex flex-row items-center justify-center cursor-pointer h-8 px-4 gap-1 ${
         isSelected
-          ? "fill-white bg-violet-500"
-          : "fill-slate-500 hover:bg-slate-200"
+          ? "text-white bg-violet-500"
+          : "text-slate-500 bg-slate-200 hover:bg-slate-200"
       } `}
       onClick={onToggle}
     >
-      {children}
+      <div className="text-sm">{label}</div>
+      {icon}
     </div>
   );
 }
-export function Toggle({ mode, setMode }) {
+export function Toggle() {
+  const [mode, setMode] = useAtom(comparisonModeAtom);
   const [theme, setTheme] = useAtom(themeAtom);
   const [themeEnabled] = useAtom(themeEnabledAtom);
+
   return (
     <div className="flex flex-row items-center">
-      <div className="flex justify-between bg-slate-100 rounded overflow-hidden">
+      <div className="flex gap-px rounded overflow-hidden">
         <ToggleButton
+          icon={<Icon className="fill-current h-6 w-6" type="slider" />}
           isSelected={mode == "slider"}
+          label="swipe"
           onToggle={() => setMode("slider")}
-        >
-          <svg
-            width="18"
-            height="14"
-            viewBox="0 0 18 14"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path d="M18 4L14 0V3H7V5H14V8M4 6L0 10L4 14V11H11V9H4V6Z" />
-          </svg>
-        </ToggleButton>
-
+        />
         <ToggleButton
+          icon={<Icon className="fill-current h-6 w-6" type="compare" />}
+          isSelected={mode == "compare"}
+          label="2-up"
+          onToggle={() => setMode("compare")}
+        />
+        <ToggleButton
+          icon={<Icon className="fill-current h-5 w-5" type="delta" />}
           isSelected={mode == "diff"}
+          label="diff"
           onToggle={() => setMode("diff")}
-        >
-          <svg
-            width="15"
-            height="12"
-            viewBox="0 0 15 12"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path d="M7.5 2.8275L12.2925 10.5H2.7075L7.5 2.8275ZM7.5 0L0 12H15" />
-          </svg>
-        </ToggleButton>
+        />
       </div>
 
       {themeEnabled && (

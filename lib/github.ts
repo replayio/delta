@@ -14,7 +14,7 @@ type CheckArgs = {
 };
 
 async function getOctokit() {
-  const pem = process.env.PEM;
+  const pem = process.env.PEM!;
   const appId = 274973;
   const owner = "replayio";
   const repo = "devtools";

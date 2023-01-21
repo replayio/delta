@@ -1,308 +1,306 @@
-import { useAtom } from "jotai";
-import uniqBy from "lodash/uniqBy";
-import sortBy from "lodash/sortBy";
 import Image from "next/image";
 import { useRouter } from "next/router";
-import { useEffect, useMemo } from "react";
-import useSWR from "swr";
-
+import { Suspense, useMemo, useRef } from "react";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { Header } from "../../components/Header";
+import Icon from "../../components/Icon";
 import { Loader } from "../../components/Loader";
 import { Snapshot } from "../../components/Snapshot";
 import { SnapshotRow } from "../../components/SnapshotRow";
-import { useFetchSnapshots } from "../../hooks/useFetchSnapshots";
-import { snapshotsModeAtom } from "../../lib/client/state";
-import { fetchJSON } from "../../utils/fetchJSON";
+import useSnapshotPrefetchedData from "../../lib/hooks/useSnapshotPrefetchedData";
+import { Action, Branch, Project } from "../../lib/server/supabase/supabase";
 
-const getSnapshotFile = (snapshot) => {
-  // if (!snapshot) debugger;
-  return snapshot.file?.split("/").pop();
-};
+import { fetchActionsSuspense } from "../../suspense/ActionCache";
+import {
+  fetchBranchesSuspense,
+  fetchBranchSuspense,
+} from "../../suspense/BranchCache";
+import { fetchProjectSuspense } from "../../suspense/ProjectCache";
+import {
+  fetchSnapshotFilesSuspense,
+  SnapshotFile,
+} from "../../suspense/SnapshotCache";
 
-const listOfExpressions = [
-  "Same old, same old.",
-  "Nothing new to report.",
-  "No changes on the horizon.",
-  "Still status quo.",
-  "All quiet on the western front.",
-  "No surprises here.",
-  "Everything's business as usual.",
-  "The more things change, the more they stay the same.",
-  "No news is good news.",
-];
-
-function getExpression() {
-  return listOfExpressions[
-    Math.floor((new Date().getMinutes() / 60) * listOfExpressions.length)
-  ];
-}
-
-export default function Home() {
+export default function Short() {
   const router = useRouter();
-  const { short, snapshot, branch } = router.query;
+  const {
+    action: actionIdFromUrl,
+    branch: branchName,
+    fileName: currentFileName,
+    short: shortProjectId,
+  } = router.query as { [key: string]: string };
 
-  const [mode, setMode] = useAtom(snapshotsModeAtom);
-  const projectQuery = useSWR(
-    encodeURI(`/api/getProject?projectShort=${short}`),
-    fetchJSON
-  );
-
-  const projectId = projectQuery.data?.id;
-
-  const actionsQuery = useSWR(
-    projectId
-      ? encodeURI(
-          projectQuery.isLoading
-            ? null
-            : `/api/getActions?projectId=${projectId}`
-        )
-      : null,
-    fetchJSON
-  );
-
-  const branches = useMemo(
-    () =>
-      actionsQuery.data
-        ? sortBy(
-            uniqBy(
-              actionsQuery.data.map((action) => ({
-                ...action.Branches,
-                num_snapshots: action.num_snapshots,
-                num_snapshots_changed: action.num_snapshots_changed,
-                action_status: action.status,
-              })),
-              (b) => b.name
-            )
-          )
-        : [],
-    [actionsQuery.data]
-  );
-
-  const branchActions = useMemo(
-    () =>
-      sortBy(
-        actionsQuery.data,
-        (action) => -new Date(action.created_at)
-      )?.filter((action) => action.Branches?.name == branch),
-    [actionsQuery, branch]
-  );
-  const currentAction = useMemo(
-    () =>
-      router.query.action
-        ? branchActions.find((branch) => branch.id === router.query.action)
-        : branchActions?.[0],
-    [branchActions, router.query]
-  );
-
-  const shownBranches = useMemo(
-    () =>
-      branches
-        .filter(
-          (i) =>
-            (i.status == "open" && i.num_snapshots_changed > 0) ||
-            i.action_status == "neutral"
-        )
-        .filter((i) => i.name != projectQuery.data.primary_branch),
-    [branches, projectQuery]
-  );
-
-  useEffect(() => {
-    const queryMode = router.query.mode;
-    if (queryMode) {
-      setMode(Array.isArray(queryMode) ? queryMode[0] : queryMode);
-    }
-  }, [router.query.mode, setMode]);
-
-  useEffect(() => {
-    const { short, branch, snapshot, action } = router.query;
-    const newBranch = shownBranches[0]?.name;
-    if (!branch && newBranch) {
-      router.push(
-        `/project/${short}${newBranch ? `?branch=${newBranch}` : ""}${
-          snapshot ? `&snapshot=${snapshot}` : ""
-        }${action ? `&action=${currentAction.id}` : ""}`,
-        undefined,
-        { shallow: true }
-      );
-    }
-  }, [router, shownBranches, currentAction]);
-
-  const { data, error, isLoading } = useFetchSnapshots(
-    currentAction,
-    projectQuery
-  );
-
-  const { snapshots, selectedSnapshot, selectedSnapshots, changedSnapshots } =
-    useMemo(() => {
-      let snapshots = sortBy(data || [], (snapshot) => snapshot.file);
-
-      const newSnapshots = snapshots.filter(
-        (snapshot) => !snapshot.mainSnapshot
-      );
-      const changedSnapshots = snapshots.filter(
-        (snapshot) => snapshot.primary_changed
-      );
-
-      const unchangedSnapshots = snapshots.filter(
-        (snapshot) => !snapshot.primary_changed
-      );
-
-      snapshots =
-        mode == "new"
-          ? newSnapshots
-          : mode == "changed"
-          ? changedSnapshots
-          : mode == "unchanged"
-          ? unchangedSnapshots
-          : data;
-
-      const selectedSnapshot = snapshots.find(
-        (_snapshot) => _snapshot.id == snapshot
-      );
-
-      const selectedSnapshots = snapshots.filter(
-        (_snapshot) =>
-          selectedSnapshot &&
-          getSnapshotFile(_snapshot) == getSnapshotFile(selectedSnapshot)
-      );
-
-      console.log("snapshots", {
-        newSnapshots,
-        snapshots,
-        changedSnapshots,
-        unchangedSnapshots,
-        selectedSnapshot,
-        selectedSnapshots,
-      });
-
-      return {
-        snapshots,
-        newSnapshots,
-        changedSnapshots,
-        unchangedSnapshots,
-        selectedSnapshot,
-        selectedSnapshots,
-      };
-    }, [data, mode, snapshot]);
-
-  useEffect(() => {
-    const { short, branch, snapshot, action } = router.query;
-    if (!snapshot && branch && snapshots.length > 0) {
-      router.push(
-        `/project/${short}?branch=${branch}&snapshot=${snapshots[0].id}${
-          action ? `&action=${action}` : ""
-        }`,
-        undefined,
-        { shallow: true }
-      );
-    }
-  }, [router, snapshots, selectedSnapshot]);
-
-  if (error || actionsQuery.error) {
-    console.log("error", error, actionsQuery.error);
+  // Note this route may render on the server, in which case all query params are undefined.
+  // TODO Can we access these params on the server somehow so we can server-render the page?
+  if (!shortProjectId) {
+    console.error("No project id in URL");
+    return null;
   }
 
-  const loading = isLoading || actionsQuery.isLoading || projectQuery.isLoading;
-
-  const uniqSnapshots = useMemo(
-    () => uniqBy(snapshots, getSnapshotFile),
-    [snapshots]
+  return (
+    <Suspense fallback={<Loader />}>
+      <ShortSuspends
+        actionId={actionIdFromUrl ?? null}
+        branchName={branchName ?? null}
+        currentFileName={currentFileName ?? null}
+        shortProjectId={shortProjectId}
+      />
+    </Suspense>
   );
+}
 
-  const lightSnapshots = useMemo(
-    () => snapshots.filter((snapshot) => snapshot.file.includes("light")),
-    [snapshots]
+function ShortSuspends({
+  actionId,
+  branchName,
+  currentFileName,
+  shortProjectId,
+}: {
+  actionId: string | null;
+  branchName: string | null;
+  currentFileName: string | null;
+  shortProjectId: string;
+}) {
+  // TODO If we passed branch id instead of name, we wouldn't need to fetch the branch here.
+  const project = fetchProjectSuspense(null, shortProjectId as string);
+  const branches = fetchBranchesSuspense(project.id);
+
+  if (!branchName) {
+    branchName = branches?.[0]?.name ?? null;
+  }
+
+  const currentBranch = branchName
+    ? fetchBranchSuspense(branchName as string)
+    : null;
+  const actions = currentBranch ? fetchActionsSuspense(currentBranch.id) : null;
+
+  if (!actionId) {
+    actionId = actions?.[0]?.id ?? null;
+  }
+
+  const currentAction = actionId
+    ? actions?.find((action) => action.id === actionId) ?? null
+    : null;
+
+  const snapshotFiles = currentAction
+    ? fetchSnapshotFilesSuspense(project.id, currentAction.id)
+    : null;
+
+  // Debug logging
+  if (process.env.NODE_ENV === "development") {
+    console.groupCollapsed("<ShortSuspends>");
+    console.log("project:", project);
+    console.log("branches:", branches);
+    console.log("current branch:", currentBranch);
+    console.log("actions:", actions);
+    console.log("current action:", currentAction);
+    console.log("snapshotFiles:", snapshotFiles);
+    console.groupEnd();
+  }
+
+  return (
+    <ShortWithData
+      actions={actions}
+      branches={branches}
+      currentAction={currentAction}
+      currentBranch={currentBranch}
+      currentFileName={currentFileName}
+      project={project}
+      snapshotFiles={snapshotFiles}
+    />
   );
+}
 
-  const darkSnapshots = useMemo(
-    () => snapshots.filter((snapshot) => snapshot.file.includes("dark")),
-    [snapshots]
-  );
-
-  console.log({
-    lightSnapshots,
-    darkSnapshots,
-    shownBranches,
-    currentAction,
-    actions: actionsQuery.data,
-    branchActions,
-  });
+function ShortWithData({
+  actions,
+  branches,
+  currentAction,
+  currentBranch,
+  currentFileName,
+  project,
+  snapshotFiles,
+}: {
+  actions: Action[] | null;
+  branches: Branch[];
+  currentAction: Action | null;
+  currentBranch: Branch | null;
+  currentFileName: string | null;
+  project: Project;
+  snapshotFiles: SnapshotFile[] | null;
+}) {
+  // TODO Render branches without changes dim (or not at all?)
+  const shownBranches = branches;
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <Header
+        actions={actions}
+        branches={shownBranches}
         currentAction={currentAction}
-        branch={branch}
-        projectQuery={projectQuery}
-        shownBranches={shownBranches}
-        branchActions={branchActions}
+        currentBranch={currentBranch}
+        project={project}
       />
 
       {currentAction?.status == "neutral" ? (
-        <div className="flex justify-center items-center mt-10 italic underline text-violet-600">
-          <a
-            target="_blank"
-            rel="noreferrer"
-            href={`https://github.com/${projectQuery.data.organization}/${projectQuery.data.repository}/actions/runs/${currentAction?.run_id}`}
-          >
-            Action running...
-          </a>
-        </div>
-      ) : loading ? (
-        <Loader />
+        <SubViewActionPending currentAction={currentAction} project={project} />
       ) : shownBranches.length == 0 ? (
-        <div className="flex justify-center grow text-violet-500 mt-8">
-          No open branches with changes...
-        </div>
-      ) : lightSnapshots.length == 0 && darkSnapshots.length == 0 ? (
-        <div
-          className="flex flex-col pt-32 items-center grow"
-          style={{ background: "#BA8BE0" }}
-        >
-          <Image
-            className=""
-            width={199}
-            height={210}
-            src="/robot.png"
-            alt="Delta Robot"
-          />
-          <div className="text-2xl font-light text-violet-50">
-            {getExpression()}
-          </div>
-        </div>
-      ) : error || actionsQuery.error ? (
-        <div className="flex justify-center grow text-violet-500 mt-8">
-          Error
-        </div>
+        <SubViewNoOpenBranches />
+      ) : snapshotFiles === null || snapshotFiles.length == 0 ? (
+        <SubViewNoChanges />
       ) : (
-        <div className="flex grow overflow-auto">
-          <div className="flex flex-col">
-            <div
-              className="flex flex-col h-full overflow-y-auto overflow-x-hidden bg-slate-100 py-1"
-              style={{ width: "300px" }}
-            >
-              {uniqSnapshots.map((snapshot, index) => (
-                <SnapshotRow
-                  key={snapshot.id}
-                  snapshot={snapshot}
-                  selectedSnapshot={selectedSnapshot}
-                  currentAction={currentAction}
-                />
-              ))}
-            </div>
+        <SubViewLoadedData
+          currentAction={currentAction}
+          currentFileName={currentFileName}
+          snapshotFiles={snapshotFiles}
+        />
+      )}
+    </div>
+  );
+}
+
+function SubViewActionPending({
+  currentAction,
+  project,
+}: {
+  currentAction: Action;
+  project: Project;
+}) {
+  return (
+    <div className="flex justify-center items-center mt-10 italic underline text-violet-600">
+      <a
+        target="_blank"
+        rel="noreferrer"
+        href={`https://github.com/${project.organization}/${project.repository}/actions/runs/${currentAction.run_id}`}
+      >
+        Action running...
+      </a>
+    </div>
+  );
+}
+
+function SubViewLoadedData({
+  currentAction,
+  currentFileName,
+  snapshotFiles,
+}: {
+  currentAction: Action;
+  currentFileName: string | null;
+  snapshotFiles: SnapshotFile[];
+}) {
+  const filteredSnapshotFiles = useMemo(
+    () =>
+      snapshotFiles.filter(
+        (snapshotFile) =>
+          snapshotFile.variants.dark?.changed ||
+          snapshotFile.variants.light?.changed
+      ),
+    [snapshotFiles]
+  );
+
+  if (!currentFileName && filteredSnapshotFiles.length > 0) {
+    currentFileName = filteredSnapshotFiles[0].fileName;
+  }
+
+  const [currentSnapshotFile, snapshotFileIndex] = useMemo(() => {
+    let currentSnapshotFile: SnapshotFile | null = null;
+    let index = -1;
+    if (currentFileName != null) {
+      index = filteredSnapshotFiles.findIndex(
+        (snapshotFile) => snapshotFile.fileName === currentFileName
+      );
+      if (index >= 0) {
+        currentSnapshotFile = filteredSnapshotFiles[index];
+      }
+    }
+    return [currentSnapshotFile, index];
+  }, [filteredSnapshotFiles, currentFileName]);
+
+  useSnapshotPrefetchedData(filteredSnapshotFiles, snapshotFileIndex);
+
+  // Debug logging
+  if (process.env.NODE_ENV === "development") {
+    console.groupCollapsed("<SubViewLoadedData>");
+    console.log("currentFileName:", currentFileName);
+    console.log("filteredSnapshotFiles:", filteredSnapshotFiles);
+    console.groupEnd();
+  }
+
+  return (
+    <div className="flex grow overflow-auto">
+      <PanelGroup direction="horizontal">
+        <Panel minSize={5} maxSize={25} defaultSize={15} order={1}>
+          <div className="w-full h-full flex flex-col h-full overflow-y-auto overflow-x-hidden bg-slate-100 py-1">
+            {filteredSnapshotFiles.map((snapshotFile) => (
+              <SnapshotRow
+                currentAction={currentAction}
+                isSelected={snapshotFile.fileName === currentFileName}
+                key={snapshotFile.fileName}
+                snapshotFile={snapshotFile}
+              />
+            ))}
           </div>
-          <div className="flex flex-col flex-grow overflow-y-auto overflow-x-hidden items-center">
-            {selectedSnapshot && (
+        </Panel>
+        <PanelResizeHandle className="w-2 h-full flex items-center justify-center overflow-visible bg-slate-100 text-slate-400">
+          <Icon type="drag-handle" />
+        </PanelResizeHandle>
+        <Panel order={2}>
+          <div className="w-full h-full flex flex-col flex-grow overflow-y-auto overflow-x-hidden items-center">
+            {currentSnapshotFile && (
               <Snapshot
-                key={selectedSnapshot.id}
-                branch={branch}
-                project={projectQuery.data}
-                selectedSnapshots={selectedSnapshots}
+                key={currentSnapshotFile.fileName}
+                snapshotFile={currentSnapshotFile}
               />
             )}
           </div>
-        </div>
-      )}
+        </Panel>
+      </PanelGroup>
+    </div>
+  );
+}
+
+function SubViewNoOpenBranches() {
+  return (
+    <div className="flex justify-center grow text-violet-500 mt-8">
+      No open branches with changes...
+    </div>
+  );
+}
+
+function SubViewNoChanges() {
+  const expressionRef = useRef(null);
+  if (expressionRef.current === null) {
+    const listOfExpressions = [
+      "Same old, same old.",
+      "Nothing new to report.",
+      "No changes on the horizon.",
+      "Still status quo.",
+      "All quiet on the western front.",
+      "No surprises here.",
+      "Everything's business as usual.",
+      "The more things change, the more they stay the same.",
+      "No news is good news.",
+    ];
+
+    expressionRef.current =
+      listOfExpressions[
+        Math.floor((new Date().getMinutes() / 60) * listOfExpressions.length)
+      ];
+  }
+
+  return (
+    <div
+      className="flex flex-col pt-32 items-center grow"
+      style={{ background: "#BA8BE0" }}
+    >
+      <Image
+        className=""
+        width={199}
+        height={210}
+        src="/robot.png"
+        alt="Delta Robot"
+      />
+      <div className="text-2xl font-light text-violet-50">
+        {expressionRef.current}
+      </div>
     </div>
   );
 }

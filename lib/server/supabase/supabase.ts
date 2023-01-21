@@ -67,6 +67,8 @@ export type Snapshot = {
   // Number of pixels that have changed from the primary/main branch.
   // Used for debugging; not exposed in the web UI.
   primary_num_pixels?: number;
+  // e.g. "Uploaded", "Duplicate"
+  status: string | null;
 };
 
 export type ResponseError = {

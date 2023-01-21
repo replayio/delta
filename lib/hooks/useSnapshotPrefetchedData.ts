@@ -33,7 +33,15 @@ function prefetchSnapshotFile(snapshotFile: SnapshotFile) {
 }
 
 function prefetchSnapshotVariant(snapshotVariant: SnapshotVariant) {
-  fetchSnapshotAsync(snapshotVariant.pathBranchData);
-  fetchSnapshotAsync(snapshotVariant.pathDiffData);
-  fetchSnapshotAsync(snapshotVariant.pathMainData);
+  prefetchSnapshot(snapshotVariant.pathBranchData);
+  prefetchSnapshot(snapshotVariant.pathDiffData);
+  prefetchSnapshot(snapshotVariant.pathMainData);
+}
+
+async function prefetchSnapshot(path: string) {
+  try {
+    await fetchSnapshotAsync(path);
+  } catch (error) {
+    // Ignore pre-fetch errors.
+  }
 }

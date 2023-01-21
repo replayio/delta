@@ -16,12 +16,19 @@ export type SnapshotImage = {
   width: number;
 };
 
+export type SnapshotStatus =
+  | "added"
+  | "changed-action"
+  | "changed-primary"
+  | "deleted"
+  | "unchanged";
+
 export type SnapshotVariant = {
-  changedFromPreviousAction: boolean;
-  changedFromPrimaryBranch: boolean;
+  changed: boolean;
   pathBranchData: string;
   pathMainData: string | null;
   pathDiffData: string;
+  status: SnapshotStatus;
   theme: SnapshotTheme;
 };
 
@@ -32,11 +39,6 @@ export type SnapshotFile = {
     dark: SnapshotVariant | null;
     light: SnapshotVariant | null;
   };
-};
-
-type Snapshots = {
-  type: "snapshots";
-  value: SnapshotFile[];
 };
 
 // Fetch base64 encoded snapshot image (with dimensions)
@@ -148,16 +150,43 @@ export const {
         snapshotFiles.splice(index, 0, snapshotFile);
       }
 
-      const snapshotMain = snapshotsForPrimaryBranch.find(
-        ({ file }) => file === datum.file
-      );
+      let changed = false;
+      let status: SnapshotStatus = "unchanged";
+      if (datum.status === "Uploaded") {
+        changed = true;
+        status = "added";
+      } else if (datum.action_changed) {
+        changed = true;
+        status = "changed-action";
+      } else if (datum.primary_changed) {
+        changed = true;
+        status = "changed-primary";
+      } else {
+        // TODO status "deleted"
+      }
+
+      // TODO This is weird but "new" images also have entries for the main branch.
+      // I think this is likely a backend bug.
+      // We can work around it for now though to avoid the frontend showing confusing state.
+      let snapshotMain = null;
+      if (status !== "added") {
+        snapshotMain =
+          snapshotsForPrimaryBranch.find(({ file }) => file === datum.file) ??
+          null;
+      }
+
+      // TODO This is another edge case I've seen in the data that probably indicates a bug on the server.
+      if (datum.path === snapshotMain?.path) {
+        changed = false;
+        status = "unchanged";
+      }
 
       const snapshotVariant: SnapshotVariant = {
-        changedFromPreviousAction: !!datum.action_changed,
-        changedFromPrimaryBranch: !!datum.primary_changed,
+        changed,
         pathBranchData: datum.path,
         pathMainData: snapshotMain?.path ?? null,
         pathDiffData: datum.primary_diff_path,
+        status,
         theme,
       };
 

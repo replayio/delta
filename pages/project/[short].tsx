@@ -147,9 +147,7 @@ function ShortWithData({
       ) : (
         <SubViewLoadedData
           currentAction={currentAction}
-          currentBranch={currentBranch}
           currentFileName={currentFileName}
-          project={project}
           snapshotFiles={snapshotFiles}
         />
       )}
@@ -179,23 +177,19 @@ function SubViewActionPending({
 
 function SubViewLoadedData({
   currentAction,
-  currentBranch,
   currentFileName,
-  project,
   snapshotFiles,
 }: {
   currentAction: Action;
-  currentBranch: Branch;
   currentFileName: string | null;
-  project: Project;
   snapshotFiles: SnapshotFile[];
 }) {
   const filteredSnapshotFiles = useMemo(
     () =>
       snapshotFiles.filter(
         (snapshotFile) =>
-          snapshotFile.variants.dark.changedFromPrimaryBranch ||
-          snapshotFile.variants.light.changedFromPrimaryBranch
+          snapshotFile.variants.dark?.changed ||
+          snapshotFile.variants.light?.changed
       ),
     [snapshotFiles]
   );
@@ -249,8 +243,6 @@ function SubViewLoadedData({
         {currentSnapshotFile && (
           <Snapshot
             key={currentSnapshotFile.fileName}
-            branch={currentBranch}
-            project={project}
             snapshotFile={currentSnapshotFile}
           />
         )}

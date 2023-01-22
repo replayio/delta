@@ -18,7 +18,9 @@ export default async function handler(req, res) {
   }
 
   console.log(
-    `getSnapshotsForBranch (finished) - Found ${snapshots.data.length} snapshots for ${branch} in ${project_id}`
+    `getSnapshotsForBranch (finished) - Found ${
+      snapshots.data?.length ?? 0
+    } snapshots for ${branch} in ${project_id}`
   );
   res.status(200).json(snapshots.data);
 }

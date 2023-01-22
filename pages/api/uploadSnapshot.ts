@@ -79,13 +79,13 @@ export default async function handler(req, res) {
     console.log("uploadSnapshot (7) - update", {
       primary_changed: primaryDiff.changed,
       primary_diff_path: primaryDiff.diffSnapshot?.path,
-      primary_num_pixels: primaryDiff.diffSnapshot?.numPixels,
+      primary_num_pixels: primaryDiff.numPixels,
     });
 
     const updatedSnapshot = await updateSnapshot(snapshot.id, {
       primary_changed: primaryDiff.changed,
       primary_diff_path: primaryDiff.diffSnapshot?.path,
-      primary_num_pixels: primaryDiff.diffSnapshot?.numPixels,
+      primary_num_pixels: primaryDiff.numPixels,
     });
 
     if (primaryDiff.changed) {

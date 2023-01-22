@@ -26,6 +26,9 @@ export async function getSnapshotFromBranch(
   }
 
   const action = await getActionFromBranch(branch.data.id);
+  if (action.data == null) {
+    return { error: { message: "Action not found", code: null }, data: null };
+  }
 
   return supabase
     .from("Snapshots")

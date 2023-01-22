@@ -1,8 +1,7 @@
+import { createHook } from "async_hooks";
 import { writeFileSync } from "fs";
 import * as pako from "pako";
 import { join } from "path";
-
-const async_hooks = require("async_hooks");
 
 function log(...args) {
   return;
@@ -12,8 +11,13 @@ function log(...args) {
 let requests = {};
 
 export function setupHook() {
-  const hook = async_hooks.createHook({
-    init(asyncId, type, _triggerAsyncId, resource) {
+  const hook = createHook({
+    init(
+      asyncId: number,
+      type: string,
+      _triggerAsyncId: number,
+      resource: any
+    ) {
       if ("HTTPCLIENTREQUEST" == type) {
         log(`::: req ${asyncId}`, resource.req.method, resource.req.path);
 
@@ -25,7 +29,7 @@ export function setupHook() {
           },
         };
 
-        let body = [];
+        let body: Uint8Array[] = [];
 
         resource.req.on("response", (res) => {
           res.on("data", (chunk) => {
@@ -75,7 +79,7 @@ export function getHTTPRequests() {
   return savedRequests;
 }
 
-// const hook = async_hooks.createHook({
+// const hook = createHook({
 //   init(asyncId, type, triggerAsyncId, resource) {
 //     if (type === 'TCPWRAP') {
 //       // The resource object represents the socket object for the incoming connection

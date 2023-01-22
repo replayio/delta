@@ -20,9 +20,9 @@ import {
 } from "../../lib/server/supabase/httpEvent";
 import {
   getBranchFromProject,
+  getBranchFromPr,
   insertBranch,
   updateBranch,
-  getBranch,
 } from "../../lib/server/supabase/branches";
 import {
   getActionFromRunId,
@@ -89,6 +89,10 @@ export default async function handler(req, res) {
     payload.repository.name,
     payload.organization.login
   );
+  if (project.data == null || project.error) {
+    console.error(project.error || "Could not load project data");
+    return;
+  }
 
   const skip = (reason) => {
     console.log(
@@ -128,10 +132,10 @@ export default async function handler(req, res) {
     );
   };
 
-  let httpMetadata: HTTPMetadata | void;
+  let httpMetadata: HTTPMetadata | null = null;
   const insertMetadata = async (
     fields: Partial<HTTPMetadata> = {}
-  ): Promise<HTTPMetadata | void> => {
+  ): Promise<HTTPMetadata | null> => {
     const metadata = await insertHTTPMetadata({
       action: payload.action,
       event_type: eventType,
@@ -158,23 +162,21 @@ export default async function handler(req, res) {
           pr_number: payload.number,
           branch_name: payload.pull_request.head.ref,
         });
-        const newBranch = {
+        const { data: branchData } = await insertBranch({
           name: payload.pull_request.head.ref,
           project_id: project.data.id,
           pr_title: payload.pull_request.title,
           pr_number: payload.number,
           status: "open",
-        };
-        log("creating branch", newBranch);
+        });
 
-        return response(await insertBranch(newBranch));
+        return response({ data: branchData, status: 200 });
       } else if (payload.action === "closed") {
         await insertMetadata({
           pr_number: payload.number,
           branch_name: payload.pull_request.head.ref,
         });
-        const branch = await getBranch(project.data.id, payload.number);
-
+        const branch = await getBranchFromPr(project.data.id, payload.number);
         if (branch.error) {
           return skip(
             `branch ${payload.pull_request.head.ref} ${
@@ -183,9 +185,14 @@ export default async function handler(req, res) {
           );
         }
 
-        return response(
-          await updateBranch(branch.data.id, { status: "closed" })
-        );
+        const { data: branchData } = await updateBranch(branch.data.id, {
+          status: "closed",
+        });
+
+        return response({
+          data: branchData,
+          status: 200,
+        });
       }
     }
 
@@ -210,14 +217,16 @@ export default async function handler(req, res) {
         log("getting branch", projectId, branchName);
 
         let branch = await getBranchFromProject(projectId, branchName);
-
-        if (branch.error) {
-          return skip(`branch ${branchName} not found`);
+        if (!branch.data || branch.error) {
+          return skip(`Branch ${branchName} not found`);
         }
 
         branch = await updateBranch(branch.data.id, {
           head_sha: payload.workflow_job.head_sha,
         });
+        if (!branch.data || branch.error) {
+          return skip(`Branch ${branchName} update failed`);
+        }
 
         let checkId, newCheck;
         log(
@@ -247,7 +256,9 @@ export default async function handler(req, res) {
           }
         );
 
-        await updateHTTPMetadata(httpMetadata, { check });
+        if (httpMetadata) {
+          await updateHTTPMetadata(httpMetadata, { check });
+        }
 
         if (check.status <= 299) {
           checkId = check.data.id;
@@ -306,8 +317,7 @@ export default async function handler(req, res) {
         const branchName = payload.workflow_job.head_branch;
         log("getting branch", project.data.id, branchName);
         let branch = await getBranchFromProject(project.data.id, branchName);
-
-        if (branch.error) {
+        if (!branch.data || branch.error) {
           return skip(
             `branch ${
               payload.workflow_job.head_branch
@@ -386,9 +396,9 @@ export default async function handler(req, res) {
             comment_id: comment.data.id,
           });
 
-          if (branch.status != 200) {
+          if (!branch.data || branch.status != 200) {
             return skip(
-              `branch ${branch.data.id} not updated: ${JSON.stringify(
+              `branch ${branch.data?.id ?? ""} not updated: ${JSON.stringify(
                 branch.error
               )}`
             );

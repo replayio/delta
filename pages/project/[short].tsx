@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { useRouter } from "next/router";
-import { Suspense, useMemo, useRef } from "react";
+import { Suspense, useMemo } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { Header } from "../../components/Header";
 import Icon from "../../components/Icon";
@@ -182,7 +182,7 @@ function SubViewLoadedData({
   currentFileName,
   snapshotFiles,
 }: {
-  currentAction: Action;
+  currentAction: Action | null;
   currentFileName: string | null;
   snapshotFiles: SnapshotFile[];
 }) {
@@ -266,25 +266,12 @@ function SubViewNoOpenBranches() {
 }
 
 function SubViewNoChanges() {
-  const expressionRef = useRef(null);
-  if (expressionRef.current === null) {
-    const listOfExpressions = [
-      "Same old, same old.",
-      "Nothing new to report.",
-      "No changes on the horizon.",
-      "Still status quo.",
-      "All quiet on the western front.",
-      "No surprises here.",
-      "Everything's business as usual.",
-      "The more things change, the more they stay the same.",
-      "No news is good news.",
-    ];
-
-    expressionRef.current =
-      listOfExpressions[
-        Math.floor((new Date().getMinutes() / 60) * listOfExpressions.length)
-      ];
-  }
+  const randomExpression = useMemo(() => {
+    const index = Math.floor(
+      (new Date().getMinutes() / 60) * EXPRESSIONS.length
+    );
+    return EXPRESSIONS[index];
+  }, []);
 
   return (
     <div
@@ -299,8 +286,20 @@ function SubViewNoChanges() {
         alt="Delta Robot"
       />
       <div className="text-2xl font-light text-violet-50">
-        {expressionRef.current}
+        {randomExpression}
       </div>
     </div>
   );
 }
+
+const EXPRESSIONS = [
+  "Same old, same old.",
+  "Nothing new to report.",
+  "No changes on the horizon.",
+  "Still status quo.",
+  "All quiet on the western front.",
+  "No surprises here.",
+  "Everything's business as usual.",
+  "The more things change, the more they stay the same.",
+  "No news is good news.",
+];

@@ -1,17 +1,25 @@
 import createClient from "../../initServerSupabase";
 import { createHash } from "crypto";
-import { Snapshot } from "./supabase";
+
+import type { FileObject } from "@supabase/storage-js";
 
 const supabase = createClient();
 const Buffer = require("buffer").Buffer;
 
+export type StoredSnapshot = {
+  path: string;
+  sha: string;
+};
+
+type UploadResult = {
+  data: StoredSnapshot | null;
+  error: string | null;
+};
+
 export async function uploadSnapshot(
   content: string | Buffer,
   projectId: string
-): Promise<
-  | { error: string; data: null }
-  | { data: { path: string; sha: string }; error: null }
-> {
+): Promise<UploadResult> {
   const sha = createHash("sha256").update(content).digest("hex");
   const path = `${projectId}/${sha}.png`;
 
@@ -32,14 +40,13 @@ export async function uploadSnapshot(
 
 export async function downloadSnapshot(
   path: string
-): Promise<{ error: string; data: null } | { data: string; error: null }> {
-  console.log("downloadSnapshot", path);
+): Promise<{ error: Error | null; data: string | null }> {
   const { data, error } = await supabase.storage
     .from("snapshots")
     .download(path);
 
-  if (error) {
-    return { error: error as any, data: null };
+  if (data == null || error) {
+    return { error, data: null };
   }
 
   const fileBuffer = Buffer.from(await data.arrayBuffer());
@@ -50,7 +57,7 @@ export async function downloadSnapshot(
 
 export async function listSnapshots(
   projectId: string
-): Promise<{ error: string; data: null } | { data: any[]; error: null }> {
+): Promise<{ data: FileObject[] | null; error: string | null }> {
   const { data, error } = await supabase.storage
     .from("snapshots")
     .list(projectId, {
@@ -67,12 +74,12 @@ export async function listSnapshots(
 export async function listCorruptedSnapshots(
   projectId: string
 ): Promise<any[]> {
-  const snapshots = await listSnapshots(projectId);
-  if (snapshots.error) {
+  const { data, error } = await listSnapshots(projectId);
+  if (data == null || error) {
     return [];
   }
 
-  return snapshots.data.filter((s) => s.metadata == null);
+  return data.filter((s) => s.metadata == null);
 }
 
 export async function removeCorruptedSnapshots(projectId: string) {

@@ -66,7 +66,7 @@ export type Snapshot = {
   primary_diff_path?: string;
   // Number of pixels that have changed from the primary/main branch.
   // Used for debugging; not exposed in the web UI.
-  primary_num_pixels?: number;
+  primary_num_pixels: number | null;
   // e.g. "Uploaded", "Duplicate"
   status: string | null;
 };

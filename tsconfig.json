@@ -19,8 +19,6 @@
   "exclude": [
     "node_modules",
     // TODO Remove these excludes once types are fixed
-    "lib/server",
-    "pages",
     "scripts",
     "test"
   ],

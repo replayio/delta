@@ -20,9 +20,9 @@ import {
 } from "../../lib/server/supabase/httpEvent";
 import {
   getBranchFromProject,
+  getBranchFromPr,
   insertBranch,
   updateBranch,
-  getBranch,
 } from "../../lib/server/supabase/branches";
 import {
   getActionFromRunId,
@@ -89,6 +89,10 @@ export default async function handler(req, res) {
     payload.repository.name,
     payload.organization.login
   );
+  if (project.data == null || project.error) {
+    console.error(project.error || "Could not load project data");
+    return;
+  }
 
   const skip = (reason) => {
     console.log(
@@ -128,10 +132,10 @@ export default async function handler(req, res) {
     );
   };
 
-  let httpMetadata: HTTPMetadata | void;
+  let httpMetadata: HTTPMetadata | null = null;
   const insertMetadata = async (
     fields: Partial<HTTPMetadata> = {}
-  ): Promise<HTTPMetadata | void> => {
+  ): Promise<HTTPMetadata | null> => {
     const metadata = await insertHTTPMetadata({
       action: payload.action,
       event_type: eventType,
@@ -173,7 +177,7 @@ export default async function handler(req, res) {
           pr_number: payload.number,
           branch_name: payload.pull_request.head.ref,
         });
-        const branch = await getBranch(project.data.id, payload.number);
+        const branch = await getBranchFromPr(project.data.id, payload.number);
 
         if (branch.error) {
           return skip(
@@ -247,7 +251,9 @@ export default async function handler(req, res) {
           }
         );
 
-        await updateHTTPMetadata(httpMetadata, { check });
+        if (httpMetadata) {
+          await updateHTTPMetadata(httpMetadata, { check });
+        }
 
         if (check.status <= 299) {
           checkId = check.data.id;

@@ -1,6 +1,6 @@
 import { subClass } from "gm";
 import pixelmatch from "pixelmatch";
-import { PNG } from "pngjs";
+import { PNG, PNGWithMetadata } from "pngjs";
 
 const imageMagick = subClass({ imageMagick: true });
 
@@ -69,7 +69,14 @@ async function resizeImage(png1, png2, img1, img2) {
   }
 }
 
-export async function diffImages(img1, img2) {
+type ImageDiff = {
+  changed: boolean;
+  error: Error | null;
+  numPixels: number | null;
+  png: Buffer | null;
+};
+
+export async function diffImages(img1, img2): Promise<ImageDiff> {
   try {
     let png1 = PNG.sync.read(img1);
     let png2 = PNG.sync.read(img2);
@@ -104,11 +111,19 @@ export async function diffImages(img1, img2) {
 
     const diffPng = PNG.sync.write(diff);
     const changed = numPixels > 0;
-    console.log(`diffImages:`, { changed, numPixels });
-    return { changed, numPixels, png: diffPng, error: null };
-  } catch (e) {
-    console.log(`diffImages: final error`, e);
-    return { error: e, changed: true, numPixels: 0, png: null };
+    return {
+      changed,
+      error: null,
+      numPixels,
+      png: diffPng,
+    };
+  } catch (error) {
+    return {
+      changed: false,
+      error,
+      numPixels: 0,
+      png: null,
+    };
   }
 }
 

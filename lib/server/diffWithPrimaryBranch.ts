@@ -2,94 +2,74 @@ import { diffBase64Images } from "./diff";
 import { getProject } from "./supabase/supabase";
 import { getSnapshotFromBranch } from "./supabase/snapshots";
 
-import { downloadSnapshot, uploadSnapshot } from "./supabase/storage";
+import {
+  downloadSnapshot,
+  StoredSnapshot,
+  uploadSnapshot,
+} from "./supabase/storage";
+import { PNGWithMetadata } from "pngjs";
 
 type Image = {
   content: string;
   file: string;
 };
 
+type Diff = {
+  changed: boolean;
+  diffSnapshot: StoredSnapshot | null;
+  error: string | null;
+  numPixels: number | null;
+  png: Buffer | null;
+};
+
+function createErrorDiff(errorMessage: string): Diff {
+  console.error(errorMessage);
+
+  return {
+    changed: false,
+    diffSnapshot: null,
+    error: errorMessage,
+    numPixels: null,
+    png: null,
+  };
+}
+
 export async function diffWithPrimaryBranch(
   projectId: string,
   branchName: string,
   image: Image
-) {
-  console.log("diffWithPrimaryBranch (1)", projectId, branchName, image.file);
-  const project = await getProject(projectId);
-
-  if (branchName === project.data.primary_branch) {
-    console.log(
-      `diffWithPrimaryBranch (2) bailing because ${branchName} is the primary branch`
+): Promise<Diff> {
+  const { data: project } = await getProject(projectId);
+  if (project == null) {
+    return createErrorDiff(`Could not find project with id "${projectId}"`);
+  } else if (branchName === project.primary_branch) {
+    return createErrorDiff(
+      `Cannot diff primary branch "${branchName}" with itself`
     );
-    return { changed: false, diffSnapshot: null, error: "primary branch" };
   }
 
-  console.log("diffWithPrimaryBranch (2) getSnapshotFromBranch", projectId);
-  const primarySnapshot = await getSnapshotFromBranch(
-    image.file,
-    projectId,
-    project.data.primary_branch
-  );
-
-  if (primarySnapshot.error) {
-    if (primarySnapshot.error.code == "PGRST116") {
-      console.log(
-        `diffWithPrimaryBranch (3) bailing because ${image.file} does not exist in the primary branch`
-      );
-      return {
-        changed: false,
-        diffSnapshot: null,
-        error: primarySnapshot.error,
-      };
-    }
-
-    console.log(
-      "diffWithPrimaryBranch (3) bailing with error",
-      primarySnapshot.error
-    );
-    return { changed: false, diffSnapshot: null, error: primarySnapshot.error };
+  const { data: primarySnapshotData, error: primarySnapshotError } =
+    await getSnapshotFromBranch(image.file, projectId, project.primary_branch);
+  if (primarySnapshotError) {
+    return createErrorDiff(primarySnapshotError.message);
   }
 
-  console.log(
-    "diffWithPrimaryBranch (3) downloadSnapshot",
-    primarySnapshot.data.path
-  );
-
-  const primaryImage = await downloadSnapshot(primarySnapshot.data.path);
+  const primaryImage = await downloadSnapshot(primarySnapshotData.path);
   if (primaryImage.error) {
-    console.log(
-      "diffWithPrimaryBranch (4) bailing with error",
-      primaryImage.error
-    );
-    return { changed: false, diffSnapshot: null, error: primaryImage.error };
+    return createErrorDiff(primaryImage.error.message);
   }
 
-  console.log(
-    "diffWithPrimaryBranch (4) diffBase64Images",
-    primaryImage.data.slice(0, 100),
-    image.content.slice(0, 100)
-  );
   const { changed, png, numPixels, error } = await diffBase64Images(
     image.content,
     primaryImage.data
   );
-
-  if (error || !png) {
-    console.log(
-      "diffWithPrimaryBranch (5) bailing with error or no png",
-      error,
-      png
-    );
-    return { changed, diffSnapshot: null, error, numPixels, png };
+  if (error) {
+    return createErrorDiff(error.message);
+  } else if (png == null) {
+    return createErrorDiff("No diff data could be generated");
   }
 
-  console.log("diffWithPrimaryBranch (6) uploadSnapshot", {
-    changed,
-    numPixels,
-  });
   const diffSnapshot = await uploadSnapshot(png, projectId);
-
-  console.log("diffWithPrimaryBranch (7) finished", diffSnapshot);
   return {
     changed,
     diffSnapshot: diffSnapshot.data,

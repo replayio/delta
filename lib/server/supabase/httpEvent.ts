@@ -24,12 +24,9 @@ export async function insertHTTPMetadata(
 }
 
 export async function updateHTTPMetadata(
-  httpMetadata: HTTPMetadata | void,
+  httpMetadata: HTTPMetadata,
   event: Partial<HTTPMetadata>
 ): Promise<PostgrestSingleResponse<HTTPMetadata>> {
-  if (!httpMetadata) {
-    return;
-  }
   return supabase
     .from("GithubEvent")
     .update(event)

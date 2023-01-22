@@ -13,7 +13,7 @@ export function Header({
   currentBranch,
   project,
 }: {
-  actions: Action[];
+  actions: Action[] | null;
   branches: Branch[];
   currentAction: Action | null;
   currentBranch: Branch | null;
@@ -62,19 +62,21 @@ export function Header({
       </div>
 
       <div className="flex-1 flex justify-end items-center gap-2 text-violet-400">
-        <Dropdown
-          align="right"
-          options={actions.map((action) => ({
-            badge: action.num_snapshots_changed || "-",
-            href: `/project/${project.short}/?branch=${currentBranch?.name}&action=${action.id}`,
-            isSelected: action.id == currentAction?.id,
-            key: action.id,
-            name: relativeTime(action.created_at),
-          }))}
-          selected={
-            currentAction ? relativeTime(currentAction.created_at) : "-"
-          }
-        />
+        {actions && (
+          <Dropdown
+            align="right"
+            options={actions.map((action) => ({
+              badge: action.num_snapshots_changed || "-",
+              href: `/project/${project.short}/?branch=${currentBranch?.name}&action=${action.id}`,
+              isSelected: action.id == currentAction?.id,
+              key: action.id,
+              name: relativeTime(action.created_at),
+            }))}
+            selected={
+              currentAction ? relativeTime(currentAction.created_at) : "-"
+            }
+          />
+        )}
 
         <a
           className="fill-violet-500 hover:fill-violet-600 "

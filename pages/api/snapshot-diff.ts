@@ -8,42 +8,50 @@ export default async function handler(req, res) {
 
   console.log(`snapshot-diff (1)`, `${projectId}, ${file}, ${branch}`);
 
-  const snapshot = await getSnapshotFromBranch(file, projectId, branch);
+  const { data: snapshotData, error: snapshotError } =
+    await getSnapshotFromBranch(file, projectId, branch);
+  if (snapshotData == null || snapshotError) {
+    return res.status(500).json({
+      error:
+        snapshotError ||
+        Error(`Could not load snapshot for branch "${branch}"`),
+    });
+  }
 
-  if (snapshot.data.primary_diff_path) {
+  if (snapshotData.primary_diff_path) {
     console.log(
       `snapshot-diff (2) diff exists`,
-      snapshot.data.primary_diff_path
+      snapshotData.primary_diff_path
     );
-    const image = await downloadSnapshot(snapshot.data.primary_diff_path);
+    const image = await downloadSnapshot(snapshotData.primary_diff_path);
     return res
       .setHeader("Content-Type", "image/png")
       .status(200)
       .send(image.data);
   }
 
-  console.log(`snapshot-diff (2) diff does not exist`, snapshot.data.file);
-  const imageRes = await downloadSnapshot(snapshot.data.path);
+  console.log(`snapshot-diff (2) diff does not exist`, snapshotData.file);
+  const imageRes = await downloadSnapshot(snapshotData.path);
   const image = {
     file,
-    content: imageRes.data,
+    content: imageRes.data || "",
   };
   const diff = await diffWithPrimaryBranch(projectId, branch, image);
-
-  if (diff.error) {
-    return res.status(500).json({ error: diff.error });
+  if (diff.error || !diff.png) {
+    return res
+      .status(500)
+      .json({ error: diff.error || Error("Could not load diff PNG") });
   }
 
   console.log(
     `snapshot-diff (3) updating snapshot`,
-    Buffer.from(diff.png, "base64").slice(0, 10),
     diff.diffSnapshot?.path,
     diff.numPixels
   );
 
   // Save the primary_diff_path to the snapshot if it exists
   if (diff.diffSnapshot?.path) {
-    const updatedSnapshot = await updateSnapshot(snapshot.data.id, {
+    const updatedSnapshot = await updateSnapshot(snapshotData.id, {
       primary_diff_path: diff.diffSnapshot.path,
       primary_num_pixels: diff.numPixels,
       primary_changed: diff.changed,

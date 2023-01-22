@@ -79,7 +79,7 @@ export default async function handler(req, res) {
         body: formatComment({
           project: projectRecord.data,
           branchName: branch,
-          snapshots: snapshots.data,
+          snapshots: snapshots.data || [],
           subTitle: status === "success" ? "**(Approved)**" : "**(Rejected)**",
         }),
       }

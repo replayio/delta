@@ -15,15 +15,33 @@ import {
 import { Snapshot } from "../../lib/server/supabase/supabase";
 import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
 
-type ResponseData = Snapshot;
+export type Image = {
+  content: string;
+  file: string;
+};
 
+export type RequestParams = {
+  branch: string;
+  image: Image;
+  projectId: string;
+  runId: string;
+};
+export type ResponseData = Snapshot;
 export type Response = GenericResponse<ResponseData>;
+
+// Note that this endpoint is used by the DevTools project's Playwright integration
+// packages/replay-next/uploadSnapshots
 
 export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  const { branch: branchName, image, projectId, runId } = request.body;
+  const {
+    branch: branchName,
+    image,
+    projectId,
+    runId,
+  } = request.body as RequestParams;
   if (!branchName || !image || !projectId || !runId) {
     return response.status(422).json({
       error: new Error(

@@ -5,8 +5,10 @@ import { postgrestErrorToError } from "../../lib/server/supabase/errors";
 import { Branch } from "../../lib/server/supabase/supabase";
 import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
 
-type ResponseData = Branch[];
-
+export type RequestParams = {
+  projectId: string;
+};
+export type ResponseData = Branch[];
 export type Response = GenericResponse<ResponseData>;
 
 const supabase = createClient();
@@ -15,7 +17,7 @@ export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  const { projectId } = request.query;
+  const { projectId } = request.query as RequestParams;
 
   const { data, error } = await supabase
     .from("Branches")

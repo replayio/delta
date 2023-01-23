@@ -6,24 +6,25 @@ import { getSnapshotFromAction } from "../../lib/server/supabase/snapshots";
 import { Snapshot } from "../../lib/server/supabase/supabase";
 import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
 
-type ResponseData = Snapshot[];
-
+export type RequestParams = {
+  actionId: string;
+  projectId: string;
+};
+export type ResponseData = Snapshot[];
 export type Response = GenericResponse<ResponseData>;
 
 export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  const { action: actionId, project_id } = request.query;
-  if (!actionId || !project_id) {
+  const { actionId, projectId } = request.query as RequestParams;
+  if (!actionId || !projectId) {
     return response.status(422).json({
-      error: new Error('Missing required param(s) "action" or "project_id"'),
+      error: new Error('Missing required param(s) "actionId" or "projectId"'),
     } as ErrorResponse);
   }
 
-  const { data: actionData, error: actionError } = await getAction(
-    actionId as string
-  );
+  const { data: actionData, error: actionError } = await getAction(actionId);
   if (actionError) {
     return response.status(500).json({
       error: postgrestErrorToError(actionError),

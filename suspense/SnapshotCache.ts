@@ -1,12 +1,13 @@
 import sortedIndexBy from "lodash/sortedIndexBy";
 
 import { Snapshot } from "../lib/server/supabase/supabase";
-import { GenericResponse, isErrorResponse } from "../pages/api/types";
-import { fetchJSON } from "../utils/fetchJSON";
 import {
-  createGenericCache,
-  createGenericCacheForApiEndpoint,
-} from "./createGenericCache";
+  downloadSnapshot,
+  getSnapshotDiff,
+  getSnapshotsForAction,
+  getSnapshotsForBranch,
+} from "../utils/ApiClient";
+import { createGenericCache } from "./createGenericCache";
 import { fetchProjectAsync } from "./ProjectCache";
 
 export type SnapshotTheme = "dark" | "light";
@@ -46,12 +47,12 @@ export const {
   getValueSuspense: fetchSnapshotSuspense,
   getValueAsync: fetchSnapshotAsync,
   getValueIfCached: fetchSnapshotIfCached,
-} = createGenericCache<[snapshotPath: string], SnapshotImage>(
-  (snapshotPath: string) =>
-    fetchBase64SnapshotFromApi(
-      `/api/downloadSnapshot?path=${encodeURI(snapshotPath)}`
-    ),
-  (snapshotPath: string) => snapshotPath
+} = createGenericCache<[path: string], SnapshotImage>(
+  async (path: string) => {
+    const base64String = await downloadSnapshot({ path });
+    return await createSnapshotImage(base64String);
+  },
+  (path: string) => path
 );
 
 // Fetch base64 encoded snapshot diff image (with dimensions)
@@ -63,12 +64,14 @@ export const {
   [projectId: string, branchName: string, snapshotFile: string],
   SnapshotImage
 >(
-  (projectId: string, branchName: string, snapshotFile: string) =>
-    fetchBase64SnapshotFromApi(
-      `/api/snapshot-diff/?projectId=${projectId}&branch=${encodeURI(
-        branchName
-      )}&file=${snapshotFile}`
-    ),
+  async (projectId: string, branchName: string, snapshotFile: string) => {
+    const base64String = await getSnapshotDiff({
+      branchName,
+      projectId,
+      snapshotFile,
+    });
+    return await createSnapshotImage(base64String);
+  },
   (projectId: string, branchName: string, snapshotFile: string) =>
     JSON.stringify({ branchName, projectId, snapshotFile })
 );
@@ -78,12 +81,9 @@ export const {
   getValueSuspense: fetchSnapshotsForActionSuspense,
   getValueAsync: fetchSnapshotsForActionAsync,
   getValueIfCached: fetchSnapshotsForActionIfCached,
-} = createGenericCacheForApiEndpoint<
-  [projectId: string, actionId: string],
-  Snapshot[]
->(
+} = createGenericCache<[actionId: string, projectId: string], Snapshot[]>(
   (projectId: string, actionId: string) =>
-    `/api/getSnapshotsForAction?action=${actionId}&project_id=${projectId}`,
+    getSnapshotsForAction({ actionId, projectId }),
   (projectId: string, actionId: string) =>
     JSON.stringify({ actionId, projectId })
 );
@@ -93,14 +93,9 @@ export const {
   getValueSuspense: fetchSnapshotsForBranchSuspense,
   getValueAsync: fetchSnapshotsForBranchAsync,
   getValueIfCached: fetchSnapshotsForBranchIfCached,
-} = createGenericCacheForApiEndpoint<
-  [projectId: string, branchName: string],
-  Snapshot[]
->(
+} = createGenericCache<[projectId: string, branchName: string], Snapshot[]>(
   (projectId: string, branchName: string) =>
-    `/api/getSnapshotsForBranch?branch=${encodeURI(
-      branchName
-    )}&project_id=${projectId}`,
+    getSnapshotsForBranch({ branchName, projectId }),
   (projectId: string, branchName: string) =>
     JSON.stringify({ branchName, projectId })
 );
@@ -260,15 +255,10 @@ export const {
     JSON.stringify({ actionId, projectId })
 );
 
-async function fetchBase64SnapshotFromApi(uri: string): Promise<SnapshotImage> {
-  const response = await fetchJSON<GenericResponse<string>>(encodeURI(uri));
-  if (isErrorResponse(response)) {
-    throw response.error;
-  }
-
-  const base64String = response.data;
-
-  const snapshot = new Promise<SnapshotImage>((resolve, reject) => {
+async function createSnapshotImage(
+  base64String: string
+): Promise<SnapshotImage> {
+  return new Promise<SnapshotImage>((resolve, reject) => {
     try {
       const image = new Image();
       image.addEventListener("error", (event) => {
@@ -283,11 +273,9 @@ async function fetchBase64SnapshotFromApi(uri: string): Promise<SnapshotImage> {
       });
       image.src = `data:image/png;base64,${base64String}`;
     } catch (error) {
-      throw Error(`Failed to download Snapshot at "${uri}"`);
+      reject(error);
     }
   });
-
-  return snapshot;
 }
 
 function parseFilePath(

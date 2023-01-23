@@ -8,19 +8,29 @@ import {
 } from "../../lib/server/supabase/supabase";
 import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
 
-type ResponseData = Project;
-
+export type RequestParams = {
+  projectId: string | null;
+  projectShort: string | null;
+};
+export type ResponseData = Project;
 export type Response = GenericResponse<ResponseData>;
 
 export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  const { projectId, projectShort } = request.query;
+  const { projectId, projectShort } = request.query as RequestParams;
+  if (!projectId && !projectShort) {
+    return response.status(422).json({
+      error: new Error(
+        'Must specify either "projectId" or "projectShort" param'
+      ),
+    } as ErrorResponse);
+  }
 
   const { data, error } = await (projectId
-    ? getProject(projectId as string)
-    : getProjectByShort(projectShort as string));
+    ? getProject(projectId)
+    : getProjectByShort(projectShort!));
 
   if (error) {
     return response.status(500).json({

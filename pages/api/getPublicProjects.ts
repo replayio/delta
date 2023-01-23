@@ -4,8 +4,8 @@ import { postgrestErrorToError } from "../../lib/server/supabase/errors";
 import { getPublicProjects, Project } from "../../lib/server/supabase/supabase";
 import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
 
-type ResponseData = Project[];
-
+export type RequestParams = {};
+export type ResponseData = Project[];
 export type Response = GenericResponse<ResponseData>;
 
 export default async function handler(

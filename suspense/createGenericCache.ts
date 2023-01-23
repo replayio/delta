@@ -108,23 +108,24 @@ export function createGenericCache<TParams extends Array<any>, TValue>(
   };
 }
 
-export function createGenericCacheForApiEndpoint<
-  TParams extends Array<any>,
-  ResponseData
->(
-  getEndpoint: (...args: TParams) => string,
-  getCacheKey: (...args: TParams) => string
-) {
-  return createGenericCache<TParams, ResponseData>(async (...args: TParams) => {
-    const endpoint = getEndpoint(...args);
-    const response = await fetchJSON<GenericResponse<ResponseData>>(endpoint);
-    if (isErrorResponse(response)) {
-      throw response.error;
-    }
-
-    return response.data;
-  }, getCacheKey);
-}
+// TODO Delete
+// export function createGenericCacheForApiEndpoint<
+//   TParams extends Array<any>,
+//   ResponseData
+// >(
+//   getEndpoint: (...args: TParams) => string,
+//   getCacheKey: (...args: TParams) => string
+// ) {
+//   return createGenericCache<TParams, ResponseData>(async (...args: TParams) => {
+//     const endpoint = getEndpoint(...args);
+//     const response = await fetchJSON<GenericResponse<ResponseData>>(endpoint);
+//     if (isErrorResponse(response)) {
+//       throw response.error;
+//     }
+//
+//     return response.data;
+//   }, getCacheKey);
+// }
 
 export function createUseGetValue<TParams extends Array<any>, TValue>(
   getValueAsync: (...args: TParams) => Promise<TValue>,

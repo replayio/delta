@@ -1,12 +1,13 @@
 import { Branch } from "../lib/server/supabase/supabase";
-import { createGenericCacheForApiEndpoint } from "./createGenericCache";
+import { getBranchByName, getBranches } from "../utils/ApiClient";
+import { createGenericCache } from "./createGenericCache";
 
 export const {
   getValueSuspense: fetchBranchesSuspense,
   getValueAsync: fetchBranchesAsync,
   getValueIfCached: fetchBranchesIfCached,
-} = createGenericCacheForApiEndpoint<[projectId: string], Branch[]>(
-  (projectId: string) => `/api/getBranches?projectId=${projectId}`,
+} = createGenericCache<[projectId: string], Branch[]>(
+  (projectId: string) => getBranches({ projectId }),
   (projectId: string) => projectId
 );
 
@@ -14,7 +15,7 @@ export const {
   getValueSuspense: fetchBranchSuspense,
   getValueAsync: fetchBranchAsync,
   getValueIfCached: fetchBranchIfCached,
-} = createGenericCacheForApiEndpoint<[name: string], Branch>(
-  (name: string) => `/api/getBranchByName?name=${name}`,
-  (name: string) => name
+} = createGenericCache<[branchName: string], Branch>(
+  (branchName: string) => getBranchByName({ name: branchName }),
+  (branchName: string) => branchName
 );

@@ -1,9 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import createClient from "../../lib/initServerSupabase";
-import { postgrestErrorToError } from "../../lib/server/supabase/errors";
 import { Branch } from "../../lib/server/supabase/supabase";
-import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
+import {
+  GenericResponse,
+  sendErrorResponseFromPostgrestError,
+  sendErrorResponse,
+  sendResponse,
+} from "./utils";
 
 export type RequestParams = {
   projectId: string;
@@ -18,6 +22,13 @@ export default async function handler(
   response: NextApiResponse<Response>
 ) {
   const { projectId } = request.query as RequestParams;
+  if (!projectId) {
+    return sendErrorResponse(
+      response,
+      'Missing required param "projectId"',
+      422
+    );
+  }
 
   const { data, error } = await supabase
     .from("Branches")
@@ -28,14 +39,13 @@ export default async function handler(
     .limit(1000);
 
   if (error) {
-    return response.status(500).json({
-      error: postgrestErrorToError(error),
-    } as ErrorResponse);
+    return sendErrorResponseFromPostgrestError(response, error);
   } else if (!data) {
-    return response.status(404).json({
-      error: new Error(`No branches found for project id "${projectId}"`),
-    } as ErrorResponse);
+    return sendErrorResponse(
+      response,
+      `No branches found for project id "${projectId}"`
+    );
   } else {
-    return response.status(200).json({ data } as SuccessResponse<ResponseData>);
+    return sendResponse<ResponseData>(response, data);
   }
 }

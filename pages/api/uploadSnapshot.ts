@@ -8,12 +8,14 @@ import {
 import { uploadSnapshot } from "../../lib/server/supabase/storage";
 import { diffWithPrimaryBranch } from "../../lib/server/diffWithPrimaryBranch";
 import { incrementActionNumSnapshotsChanged } from "../../lib/server/supabase/incrementActionNumSnapshotsChanged";
-import {
-  isPostgrestError,
-  postgrestErrorToError,
-} from "../../lib/server/supabase/errors";
+import { isPostgrestError } from "../../lib/server/supabase/errors";
 import { Snapshot } from "../../lib/server/supabase/supabase";
-import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
+import {
+  GenericResponse,
+  sendErrorResponseFromPostgrestError,
+  sendErrorResponse,
+  sendResponse,
+} from "./utils";
 
 export type Image = {
   content: string;
@@ -43,19 +45,17 @@ export default async function handler(
     runId,
   } = request.body as RequestParams;
   if (!branchName || !image || !projectId || !runId) {
-    return response.status(422).json({
-      error: new Error(
-        'Missing required param(s) "branch", "image", "projectId", or "runId"'
-      ),
-    } as ErrorResponse);
+    return sendErrorResponse(
+      response,
+      'Missing required param(s) "branch", "image", "projectId", or "runId"',
+      422
+    );
   }
 
   try {
     const uploadResult = await uploadSnapshot(image.content, projectId);
     if (uploadResult.error) {
-      return response.status(500).json({
-        error: Error(uploadResult.error),
-      } as ErrorResponse);
+      return sendErrorResponse(response, uploadResult.error);
     }
 
     const insertedSnapshot = await insertSnapshot(
@@ -65,12 +65,9 @@ export default async function handler(
       runId
     );
     if (insertedSnapshot.error) {
-      return response.status(500).json({
-        error:
-          typeof insertedSnapshot.error === "string"
-            ? Error(insertedSnapshot.error)
-            : postgrestErrorToError(insertedSnapshot.error),
-      } as ErrorResponse);
+      return typeof insertedSnapshot.error === "string"
+        ? sendErrorResponse(response, insertedSnapshot.error)
+        : sendErrorResponseFromPostgrestError(response, insertedSnapshot.error);
     }
 
     let snapshot: Snapshot | null = insertedSnapshot.data;
@@ -81,20 +78,19 @@ export default async function handler(
         branchName
       );
       if (previousSnapshot.error) {
-        return response.status(500).json({
-          error: isPostgrestError(previousSnapshot.error)
-            ? postgrestErrorToError(previousSnapshot.error)
-            : Error(previousSnapshot.error.message),
-        } as ErrorResponse);
+        return isPostgrestError(previousSnapshot.error)
+          ? sendErrorResponseFromPostgrestError(
+              response,
+              previousSnapshot.error
+            )
+          : sendErrorResponse(response, previousSnapshot.error.message);
       }
 
       snapshot = previousSnapshot.data ?? null;
     }
 
     if (snapshot === null) {
-      return response
-        .status(500)
-        .json({ error: Error("Could not find snapshot") });
+      return sendErrorResponse(response, "Could not find snapshot");
     }
 
     const primaryDiff = await diffWithPrimaryBranch(
@@ -109,19 +105,21 @@ export default async function handler(
       primary_num_pixels: primaryDiff.numPixels,
     });
     if (updatedSnapshot.error) {
-      return response.status(500).json({
-        error: postgrestErrorToError(updatedSnapshot.error),
-      } as ErrorResponse);
+      return sendErrorResponseFromPostgrestError(
+        response,
+        updatedSnapshot.error
+      );
     }
 
     if (primaryDiff.changed) {
       await incrementActionNumSnapshotsChanged(projectId, branchName);
     }
 
-    response
-      .status(200)
-      .json({ data: updatedSnapshot.data } as SuccessResponse<ResponseData>);
+    return sendResponse<ResponseData>(response, updatedSnapshot.data);
   } catch (error) {
-    response.status(500).json({ error } as ErrorResponse);
+    return sendErrorResponse(
+      response,
+      typeof error === "string" ? error : error.message ?? "Error"
+    );
   }
 }

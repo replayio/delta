@@ -1,9 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { postgrestErrorToError } from "../../lib/server/supabase/errors";
 import { getSnapshotsFromBranch } from "../../lib/server/supabase/snapshots";
 import { Snapshot } from "../../lib/server/supabase/supabase";
-import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
+import {
+  GenericResponse,
+  sendErrorResponseFromPostgrestError,
+  sendErrorResponse,
+  sendResponse,
+} from "./utils";
 
 export type RequestParams = {
   branchName: string;
@@ -18,27 +22,26 @@ export default async function handler(
 ) {
   const { branchName, projectId } = request.query as RequestParams;
   if (!branchName || !projectId) {
-    return response.status(422).json({
-      error: new Error('Missing required param(s) "branchName" or "projectId"'),
-    } as ErrorResponse);
+    return sendErrorResponse(
+      response,
+      'Missing required param(s) "branchName" or "projectId"',
+      422
+    );
   }
 
   const { data, error } = await getSnapshotsFromBranch(projectId, branchName);
 
   if (error) {
-    return response.status(500).json({
-      error:
-        typeof error === "string"
-          ? new Error(error)
-          : postgrestErrorToError(error),
-    } as ErrorResponse);
+    return typeof error === "string"
+      ? sendErrorResponse(response, error)
+      : sendErrorResponseFromPostgrestError(response, error);
   } else if (!data) {
-    return response.status(404).json({
-      error: new Error(
-        `No snapshots found for project "${projectId}" and branch "${branchName}"`
-      ),
-    } as ErrorResponse);
+    return sendErrorResponse(
+      response,
+      `No snapshots found for project "${projectId}" and branch "${branchName}"`,
+      404
+    );
   } else {
-    return response.status(200).json({ data } as SuccessResponse<ResponseData>);
+    return sendResponse<ResponseData>(response, data);
   }
 }

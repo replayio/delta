@@ -1,9 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import createClient from "../../lib/initServerSupabase";
-import { postgrestErrorToError } from "../../lib/server/supabase/errors";
 import { Action } from "../../lib/server/supabase/supabase";
-import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
+import {
+  GenericResponse,
+  sendErrorResponseFromPostgrestError,
+  sendErrorResponse,
+  sendResponse,
+} from "./utils";
 
 export type RequestParams = {
   branchId: string;
@@ -27,16 +31,14 @@ export default async function handler(
     .limit(1000);
 
   if (error) {
-    return response.status(500).json({
-      error: postgrestErrorToError(error),
-    } as ErrorResponse);
+    return sendErrorResponseFromPostgrestError(response, error);
   } else if (!data) {
-    return response.status(404).json({
-      error: new Error(`No actions found for branch id "${branchId}"`),
-    } as ErrorResponse);
+    return sendErrorResponse(
+      response,
+      `No actions found for branch id "${branchId}"`,
+      404
+    );
   } else {
-    return response.status(200).json({
-      data,
-    } as SuccessResponse<ResponseData>);
+    return sendResponse<ResponseData>(response, data);
   }
 }

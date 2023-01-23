@@ -1,8 +1,11 @@
 import { App } from "@octokit/app";
-import { Octokit } from "@octokit/rest";
+import { components } from "@octokit/openapi-types";
 import dotenv from "dotenv";
 
 dotenv.config({ path: "./.env.local" });
+
+export type IssueComment = components["schemas"]["issue-comment"];
+export type CheckRun = components["schemas"]["check-run"];
 
 type CheckArgs = {
   conclusion?: string;
@@ -14,7 +17,7 @@ type CheckArgs = {
   title?: string;
 };
 
-async function getOctokit(): Promise<Octokit> {
+async function getOctokit() {
   const pem = process.env.PEM!;
   const appId = 274973;
   const owner = "replayio";
@@ -28,7 +31,9 @@ async function getOctokit(): Promise<Octokit> {
   );
 
   // Then we can get an octokit instance for the installation
-  return (await app.getInstallationOctokit(installation.id)) as Octokit;
+  const octokit = await app.getInstallationOctokit(installation.id);
+
+  return octokit;
 }
 
 export async function createCheck(
@@ -37,22 +42,26 @@ export async function createCheck(
   { head_sha, title, summary, text, status, details_url, conclusion }: CheckArgs
 ) {
   const octokit = await getOctokit();
+  const response = await octokit.request(
+    `POST /repos/${owner}/${repo}/check-runs`,
+    {
+      owner: owner,
+      repo: repo,
+      name: "Delta",
+      head_sha,
+      status,
+      details_url,
+      conclusion,
+      started_at: new Date().toISOString(),
+      output: {
+        title,
+        summary,
+        text,
+      },
+    }
+  );
 
-  return await octokit.checks.create({
-    owner: owner,
-    repo: repo,
-    name: "Delta",
-    head_sha,
-    status,
-    details_url,
-    conclusion,
-    started_at: new Date().toISOString(),
-    output: {
-      title,
-      summary,
-      text,
-    },
-  });
+  return response.data as CheckRun;
 }
 
 export async function updateCheck(
@@ -62,22 +71,26 @@ export async function updateCheck(
   { head_sha, status, conclusion, title, summary, text }: CheckArgs
 ) {
   const octokit = await getOctokit();
+  const response = await octokit.request(
+    `PATCH /repos/${owner}/${repo}/check-runs/${checkRunId}`,
+    {
+      owner,
+      repo,
+      check_run_id: checkRunId,
+      name: "Delta",
+      head_sha,
+      status,
+      conclusion,
+      completed_at: new Date().toISOString(),
+      output: {
+        title,
+        summary,
+        text,
+      },
+    }
+  );
 
-  return await octokit.checks.update({
-    owner,
-    repo,
-    check_run_id: checkRunId,
-    name: "Delta",
-    head_sha,
-    status,
-    conclusion,
-    completed_at: new Date().toISOString(),
-    output: {
-      title,
-      summary,
-      text,
-    },
-  });
+  return response.data as CheckRun;
 }
 
 export async function createComment(
@@ -87,22 +100,30 @@ export async function createComment(
   { body } = { body: "..." }
 ) {
   const octokit = await getOctokit();
+  const response = await octokit.request(
+    `POST /repos/${owner}/${repo}/issues/${issue_number}/comments`,
+    {
+      owner,
+      repo,
+      issue_number,
+      body,
+    }
+  );
 
-  return await octokit.issues.createComment({
-    body,
-    issue_number,
-    owner,
-    repo,
-  });
+  return response.data as IssueComment;
 }
 
 export async function updateComment(owner, repo, comment_id, { body }) {
   const octokit = await getOctokit();
+  const response = await octokit.request(
+    `PATCH /repos/${owner}/${repo}/issues/comments/${comment_id}`,
+    {
+      owner,
+      repo,
+      comment_id,
+      body,
+    }
+  );
 
-  return await octokit.issues.updateComment({
-    body,
-    comment_id,
-    owner,
-    repo,
-  });
+  return response.data as IssueComment;
 }

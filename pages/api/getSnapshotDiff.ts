@@ -4,11 +4,13 @@ import { getSnapshotFromBranch } from "../../lib/server/supabase/snapshots";
 import { downloadSnapshot } from "../../lib/server/supabase/storage";
 import { diffWithPrimaryBranch } from "../../lib/server/diffWithPrimaryBranch";
 import { updateSnapshot } from "../../lib/server/supabase/snapshots";
-import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
+import { isPostgrestError } from "../../lib/server/supabase/errors";
 import {
-  isPostgrestError,
-  postgrestErrorToError,
-} from "../../lib/server/supabase/errors";
+  GenericResponse,
+  sendErrorResponseFromPostgrestError,
+  sendErrorResponse,
+  sendResponse,
+} from "./utils";
 
 export type RequestParams = {
   branchName: string;
@@ -25,25 +27,21 @@ export default async function handler(
   const { branchName, projectId, snapshotFile } =
     request.query as RequestParams;
   if (!branchName || !projectId || !snapshotFile) {
-    return response.status(422).json({
-      error: new Error(
-        'Missing required param(s) "branchName", "projectId", or "snapshotFile"'
-      ),
-    } as ErrorResponse);
+    return sendErrorResponse(
+      response,
+      'Missing required param(s) "branchName", "projectId", or "snapshotFile"',
+      422
+    );
   }
 
   const { data: snapshotData, error: snapshotError } =
     await getSnapshotFromBranch(snapshotFile, projectId, branchName);
   if (snapshotError) {
-    return response.status(500).json({
-      error: isPostgrestError(snapshotError)
-        ? postgrestErrorToError(snapshotError)
-        : new Error(snapshotError.message),
-    } as ErrorResponse);
+    return isPostgrestError(snapshotError)
+      ? sendErrorResponseFromPostgrestError(response, snapshotError)
+      : sendErrorResponse(response, snapshotError.message);
   } else if (!snapshotData) {
-    return response.status(500).json({
-      error: Error("Could not download snapshot data"),
-    } as ErrorResponse);
+    return sendErrorResponse(response, "Could not download snapshot data");
   }
 
   if (snapshotData.primary_diff_path) {
@@ -51,17 +49,17 @@ export default async function handler(
       snapshotData.primary_diff_path
     );
     if (error) {
-      return response.status(500).json({
-        error,
-      } as ErrorResponse);
+      return sendErrorResponse(response, error.message);
     } else if (!data) {
-      return response.status(500).json({
-        error: Error("Could not download snapshot primary diff"),
-      } as ErrorResponse);
+      return sendErrorResponse(
+        response,
+        "Could not download snapshot primary diff",
+        404
+      );
     }
 
     response.setHeader("Content-Type", "image/png");
-    return response.status(200).send({ data } as SuccessResponse<ResponseData>);
+    return sendResponse<ResponseData>(response, data);
   }
 
   const imageRes = await downloadSnapshot(snapshotData.path);
@@ -70,9 +68,7 @@ export default async function handler(
     content: imageRes.data || "",
   });
   if (diff.error || !diff.png) {
-    return response.status(500).json({
-      error: Error(diff.error || "Could not create diff"),
-    } as ErrorResponse);
+    return sendErrorResponse(response, diff.error || "Could not create diff");
   }
 
   // Save the primary_diff_path to the snapshot if it exists
@@ -83,14 +79,9 @@ export default async function handler(
       primary_changed: diff.changed,
     });
     if (updatedSnapshot.error) {
-      return response.status(500).json({
-        error: Error("Failed to update snapshot diff"),
-      } as ErrorResponse);
+      return sendErrorResponse(response, "Failed to update snapshot diff");
     }
   }
 
-  response.setHeader("Content-Type", "image/png");
-  return response.status(200).send({
-    data: diff.png.toString(),
-  } as SuccessResponse<ResponseData>);
+  return sendResponse<ResponseData>(response, diff.png.toString());
 }

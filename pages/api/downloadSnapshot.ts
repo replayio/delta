@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import { downloadSnapshot } from "../../lib/server/supabase/storage";
-import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
+import { sendErrorResponse, GenericResponse, sendResponse } from "./utils";
 
 export type RequestParams = {
   path: string;
@@ -14,15 +14,20 @@ export default async function handler(
   response: NextApiResponse<Response>
 ) {
   const { path } = request.query as RequestParams;
-  const { data, error } = await downloadSnapshot(path);
+  if (!path) {
+    return sendErrorResponse(response, 'Missing required param "path"', 422);
+  }
 
+  const { data, error } = await downloadSnapshot(path);
   if (error) {
-    return response.status(500).json({ error } as ErrorResponse);
+    return sendErrorResponse(response, error.message);
   } else if (!data) {
-    return response.status(404).json({
-      error: new Error(`No snapshot found for path "${path}"`),
-    } as ErrorResponse);
+    return sendErrorResponse(
+      response,
+      `No snapshot found for path "${path}"`,
+      404
+    );
   } else {
-    return response.status(200).json({ data } as SuccessResponse<ResponseData>);
+    return sendResponse<ResponseData>(response, data);
   }
 }

@@ -1,12 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { postgrestErrorToError } from "../../lib/server/supabase/errors";
 import {
   getProject,
   getProjectByShort,
   Project,
 } from "../../lib/server/supabase/supabase";
-import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
+import {
+  GenericResponse,
+  sendErrorResponse,
+  sendErrorResponseFromPostgrestError,
+  sendResponse,
+} from "./utils";
 
 export type RequestParams = {
   projectId: string | null;
@@ -21,11 +25,11 @@ export default async function handler(
 ) {
   const { projectId, projectShort } = request.query as RequestParams;
   if (!projectId && !projectShort) {
-    return response.status(422).json({
-      error: new Error(
-        'Must specify either "projectId" or "projectShort" param'
-      ),
-    } as ErrorResponse);
+    return sendErrorResponse(
+      response,
+      'Must specify either "projectId" or "projectShort" param',
+      422
+    );
   }
 
   const { data, error } = await (projectId
@@ -33,14 +37,14 @@ export default async function handler(
     : getProjectByShort(projectShort!));
 
   if (error) {
-    return response.status(500).json({
-      error: postgrestErrorToError(error),
-    } as ErrorResponse);
+    sendErrorResponseFromPostgrestError(response, error);
   } else if (!data) {
-    return response.status(404).json({
-      error: new Error(`No project found for "${projectId || projectShort}"`),
-    } as ErrorResponse);
+    return sendErrorResponse(
+      response,
+      `No project found for "${projectId || projectShort}"`,
+      404
+    );
   } else {
-    return response.status(200).json({ data } as SuccessResponse<ResponseData>);
+    return sendResponse<ResponseData>(response, data);
   }
 }

@@ -25,11 +25,11 @@ function HomeSuspends() {
   const projects = fetchProjectsSuspense();
 
   // Debug logging
-  if (process.env.NODE_ENV === "development") {
-    console.groupCollapsed("<HomeSuspends>");
-    console.log("projects:", projects);
-    console.groupEnd();
-  }
+  // if (process.env.NODE_ENV === "development") {
+  //   console.groupCollapsed("<HomeSuspends>");
+  //   console.log("projects:", projects);
+  //   console.groupEnd();
+  // }
 
   return <HomeWithData projects={projects} />;
 }

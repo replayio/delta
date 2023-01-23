@@ -11,16 +11,22 @@ import {
   getActionFromBranch,
 } from "../../lib/server/supabase/actions";
 import { getSnapshotsForAction } from "../../lib/server/supabase/snapshots";
-import { updateComment, updateCheck } from "../../lib/github";
-import { postgrestErrorToError } from "../../lib/server/supabase/errors";
-import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
+import {
+  updateComment,
+  updateCheck,
+  CheckRun,
+  IssueComment,
+} from "../../lib/github";
+import {
+  GenericResponse,
+  sendErrorResponseFromPostgrestError,
+  sendErrorResponse,
+  sendResponse,
+} from "./utils";
 import { getDeltaBranchUrl } from "../../lib/delta";
 import { getBranch } from "../../lib/server/supabase/branches";
 
 export type BranchStatus = "failure" | "neutral" | "success";
-
-type IssueComment = Awaited<ReturnType<typeof updateComment>>["data"];
-type CheckRuns = Awaited<ReturnType<typeof updateCheck>>["data"];
 
 export type RequestParams = {
   branchId: string;
@@ -29,7 +35,7 @@ export type RequestParams = {
 };
 export type ResponseData = {
   action: Action;
-  check: CheckRuns;
+  check: CheckRun;
   comment: IssueComment | null;
 };
 export type Response = GenericResponse<ResponseData>;
@@ -38,32 +44,30 @@ export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  const { branchId, projectId, status } = request.body as {
+  const { branchId, projectId, status } = request.query as {
     branchId: string;
     projectId: string;
     status: BranchStatus;
   };
   if (!branchId || !projectId || !status) {
-    return response.status(422).json({
-      error: new Error(
-        'Missing required param(s) "branch", "projectId", or "status"'
-      ),
-    } as ErrorResponse);
+    return sendErrorResponse(
+      response,
+      'Missing required param(s) "branch", "projectId", or "status"',
+      422
+    );
   }
 
   const branchRecord = await getBranch(branchId);
   if (branchRecord.error) {
-    return response.status(500).json({
-      error: postgrestErrorToError(branchRecord.error),
-    } as ErrorResponse);
+    response.setHeader("Content-Type", "application/json");
+    return sendErrorResponseFromPostgrestError(response, branchRecord.error);
   }
   const branch = branchRecord.data;
 
   const projectRecord = await getProject(projectId);
   if (projectRecord.error) {
-    return response.status(500).json({
-      error: postgrestErrorToError(projectRecord.error),
-    } as ErrorResponse);
+    response.setHeader("Content-Type", "application/json");
+    return sendErrorResponseFromPostgrestError(response, projectRecord.error);
   }
 
   const organization = projectRecord.data.organization;
@@ -71,9 +75,8 @@ export default async function handler(
 
   const action = await getActionFromBranch(branchId);
   if (action.error) {
-    return response
-      .status(500)
-      .json({ error: postgrestErrorToError(action.error) } as ErrorResponse);
+    response.setHeader("Content-Type", "application/json");
+    return sendErrorResponseFromPostgrestError(response, action.error);
   }
 
   const { data: actionData, error: actionError } = await updateAction(
@@ -81,45 +84,39 @@ export default async function handler(
     { status }
   );
   if (actionError) {
-    return response.status(500).json({
-      error: postgrestErrorToError(actionError),
-    } as ErrorResponse);
+    return sendErrorResponseFromPostgrestError(response, actionError);
   }
 
-  const { data: check } = await updateCheck(
-    organization,
-    repository,
-    branch.check_id,
-    {
-      conclusion: status,
-      title: status === "success" ? "Changes approved" : "Changes rejected",
-      summary: "",
-    }
-  );
+  const check = await updateCheck(organization, repository, branch.check_id, {
+    conclusion: status,
+    title: status === "success" ? "Changes approved" : "Changes rejected",
+    summary: "",
+  });
 
   let issueComment: IssueComment | null = null;
   if (branch.comment_id) {
     const snapshots = await getSnapshotsForAction(action.data.id);
 
-    issueComment = (
-      await updateComment(organization, repository, branch.comment_id, {
+    issueComment = await updateComment(
+      organization,
+      repository,
+      branch.comment_id,
+      {
         body: formatComment({
           project: projectRecord.data,
           branchName: branch.name,
           snapshots: snapshots.data || [],
           subTitle: status === "success" ? "**(Approved)**" : "**(Rejected)**",
         }),
-      })
-    ).data;
+      }
+    );
   }
 
-  response.status(200).json({
-    data: {
-      action: actionData,
-      check,
-      comment: issueComment,
-    },
-  } as SuccessResponse<ResponseData>);
+  return sendResponse<ResponseData>(response, {
+    action: actionData,
+    check,
+    comment: issueComment,
+  });
 }
 
 export function formatComment({

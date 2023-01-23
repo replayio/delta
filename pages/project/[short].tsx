@@ -86,16 +86,16 @@ function ShortSuspends({
     : null;
 
   // Debug logging
-  if (process.env.NODE_ENV === "development") {
-    console.groupCollapsed("<ShortSuspends>");
-    console.log("project:", project);
-    console.log("branches:", branches);
-    console.log("current branch:", currentBranch);
-    console.log("actions:", actions);
-    console.log("current action:", currentAction);
-    console.log("snapshotFiles:", snapshotFiles);
-    console.groupEnd();
-  }
+  // if (process.env.NODE_ENV === "development") {
+  //   console.groupCollapsed("<ShortSuspends>");
+  //   console.log("project:", project);
+  //   console.log("branches:", branches);
+  //   console.log("current branch:", currentBranch);
+  //   console.log("actions:", actions);
+  //   console.log("current action:", currentAction);
+  //   console.log("snapshotFiles:", snapshotFiles);
+  //   console.groupEnd();
+  // }
 
   return (
     <ShortWithData
@@ -217,12 +217,12 @@ function SubViewLoadedData({
   useSnapshotPrefetchedData(filteredSnapshotFiles, snapshotFileIndex);
 
   // Debug logging
-  if (process.env.NODE_ENV === "development") {
-    console.groupCollapsed("<SubViewLoadedData>");
-    console.log("currentFileName:", currentFileName);
-    console.log("filteredSnapshotFiles:", filteredSnapshotFiles);
-    console.groupEnd();
-  }
+  // if (process.env.NODE_ENV === "development") {
+  //   console.groupCollapsed("<SubViewLoadedData>");
+  //   console.log("currentFileName:", currentFileName);
+  //   console.log("filteredSnapshotFiles:", filteredSnapshotFiles);
+  //   console.groupEnd();
+  // }
 
   return (
     <div className="flex grow overflow-auto">

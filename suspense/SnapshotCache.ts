@@ -1,11 +1,12 @@
 import sortedIndexBy from "lodash/sortedIndexBy";
-import {
-  getSnapshotsForActionResponse,
-  getSnapshotsForBranchResponse,
-  Snapshot,
-} from "../lib/server/supabase/supabase";
+
+import { Snapshot } from "../lib/server/supabase/supabase";
+import { GenericResponse, isErrorResponse } from "../pages/api/types";
 import { fetchJSON } from "../utils/fetchJSON";
-import { createGenericCache } from "./createGenericCache";
+import {
+  createGenericCache,
+  createGenericCacheForApiEndpoint,
+} from "./createGenericCache";
 import { fetchProjectAsync } from "./ProjectCache";
 
 export type SnapshotTheme = "dark" | "light";
@@ -47,7 +48,7 @@ export const {
   getValueIfCached: fetchSnapshotIfCached,
 } = createGenericCache<[snapshotPath: string], SnapshotImage>(
   (snapshotPath: string) =>
-    fetchBase64Snapshot(
+    fetchBase64SnapshotFromApi(
       `/api/downloadSnapshot?path=${encodeURI(snapshotPath)}`
     ),
   (snapshotPath: string) => snapshotPath
@@ -63,7 +64,7 @@ export const {
   SnapshotImage
 >(
   (projectId: string, branchName: string, snapshotFile: string) =>
-    fetchBase64Snapshot(
+    fetchBase64SnapshotFromApi(
       `/api/snapshot-diff/?projectId=${projectId}&branch=${encodeURI(
         branchName
       )}&file=${snapshotFile}`
@@ -77,11 +78,12 @@ export const {
   getValueSuspense: fetchSnapshotsForActionSuspense,
   getValueAsync: fetchSnapshotsForActionAsync,
   getValueIfCached: fetchSnapshotsForActionIfCached,
-} = createGenericCache<[projectId: string, actionId: string], Snapshot[]>(
+} = createGenericCacheForApiEndpoint<
+  [projectId: string, actionId: string],
+  Snapshot[]
+>(
   (projectId: string, actionId: string) =>
-    fetchJSON<getSnapshotsForActionResponse>(
-      `/api/getSnapshotsForAction?action=${actionId}&project_id=${projectId}`
-    ),
+    `/api/getSnapshotsForAction?action=${actionId}&project_id=${projectId}`,
   (projectId: string, actionId: string) =>
     JSON.stringify({ actionId, projectId })
 );
@@ -91,13 +93,14 @@ export const {
   getValueSuspense: fetchSnapshotsForBranchSuspense,
   getValueAsync: fetchSnapshotsForBranchAsync,
   getValueIfCached: fetchSnapshotsForBranchIfCached,
-} = createGenericCache<[projectId: string, branchName: string], Snapshot[]>(
+} = createGenericCacheForApiEndpoint<
+  [projectId: string, branchName: string],
+  Snapshot[]
+>(
   (projectId: string, branchName: string) =>
-    fetchJSON<getSnapshotsForBranchResponse>(
-      `/api/getSnapshotsForBranch?branch=${encodeURI(
-        branchName
-      )}&project_id=${projectId}`
-    ),
+    `/api/getSnapshotsForBranch?branch=${encodeURI(
+      branchName
+    )}&project_id=${projectId}`,
   (projectId: string, branchName: string) =>
     JSON.stringify({ branchName, projectId })
 );
@@ -257,8 +260,13 @@ export const {
     JSON.stringify({ actionId, projectId })
 );
 
-async function fetchBase64Snapshot(uri: string): Promise<SnapshotImage> {
-  const base64String = await fetchJSON<string>(encodeURI(uri));
+async function fetchBase64SnapshotFromApi(uri: string): Promise<SnapshotImage> {
+  const response = await fetchJSON<GenericResponse<string>>(encodeURI(uri));
+  if (isErrorResponse(response)) {
+    throw response.error;
+  }
+
+  const base64String = response.data;
 
   const snapshot = new Promise<SnapshotImage>((resolve, reject) => {
     try {

@@ -37,7 +37,7 @@ export async function getBranch(
 }
 
 export async function getBranchByName(
-  name: number
+  name: string
 ): Promise<PostgrestSingleResponse<Branch>> {
   return supabase.from("Branches").select("*").eq("name", name).single();
 }

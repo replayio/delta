@@ -41,14 +41,6 @@ export type Action = {
   num_snapshots_changed: number;
 };
 
-export type getActionsResponse = Action[];
-export type getBranchByNameResponse = Branch;
-export type getBranchesResponse = Branch[];
-export type getProjectResponse = Project;
-export type getPublicProjectsResponse = Project[];
-export type getSnapshotsForActionResponse = Snapshot[];
-export type getSnapshotsForBranchResponse = Snapshot[];
-
 export type Snapshot = {
   id: string;
   // Has the snapshot changed from the prior action for this branch?
@@ -82,7 +74,7 @@ export const createError = (error: string): ResponseError => ({
 });
 
 export async function getProject(
-  projectId
+  projectId: string
 ): Promise<PostgrestSingleResponse<Project>> {
   return supabase
     .from("Projects")
@@ -102,9 +94,7 @@ export async function getProjectByShort(
     .single();
 }
 
-export async function getPublicProjects(): Promise<
-  PostgrestResponse<Project[]>
-> {
+export async function getPublicProjects(): Promise<PostgrestResponse<Project>> {
   return supabase
     .from("Projects")
     .select("*")

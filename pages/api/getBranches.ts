@@ -1,9 +1,21 @@
+import type { NextApiRequest, NextApiResponse } from "next";
+
 import createClient from "../../lib/initServerSupabase";
+import { postgrestErrorToError } from "../../lib/server/supabase/errors";
+import { Branch } from "../../lib/server/supabase/supabase";
+import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
+
+type ResponseData = Branch[];
+
+export type Response = GenericResponse<ResponseData>;
 
 const supabase = createClient();
 
-export default async function handler(req, res) {
-  const { projectId } = req.query;
+export default async function handler(
+  request: NextApiRequest,
+  response: NextApiResponse<Response>
+) {
+  const { projectId } = request.query;
 
   const { data, error } = await supabase
     .from("Branches")
@@ -14,9 +26,14 @@ export default async function handler(req, res) {
     .limit(1000);
 
   if (error) {
-    console.log("error", error);
-    res.status(500).json(error);
+    return response.status(500).json({
+      error: postgrestErrorToError(error),
+    } as ErrorResponse);
+  } else if (!data) {
+    return response.status(404).json({
+      error: new Error(`No branches found for project id "${projectId}"`),
+    } as ErrorResponse);
+  } else {
+    return response.status(200).json({ data } as SuccessResponse<ResponseData>);
   }
-
-  res.status(200).json(data);
 }

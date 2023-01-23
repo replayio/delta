@@ -3,7 +3,13 @@ import {
   PostgrestSingleResponse,
 } from "@supabase/supabase-js";
 const { createHash } = require("crypto");
-import { Snapshot, supabase, ResponseError, createError } from "./supabase";
+import {
+  Snapshot,
+  supabase,
+  ResponseError,
+  createError,
+  Action,
+} from "./supabase";
 import { getBranchFromProject } from "./branches";
 import {
   getActionFromBranch,
@@ -70,7 +76,9 @@ export async function getSnapshotsFromBranch(
   return createError("No snapshots found");
 }
 
-export async function getSnapshotFromAction(action) {
+export async function getSnapshotFromAction(
+  action: Action
+): Promise<PostgrestResponse<Snapshot>> {
   return supabase.from("Snapshots").select("*").eq("action_id", action.id);
 }
 

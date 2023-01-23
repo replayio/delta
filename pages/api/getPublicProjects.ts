@@ -1,11 +1,26 @@
-import { getPublicProjects } from "../../lib/server/supabase/supabase";
+import type { NextApiRequest, NextApiResponse } from "next";
 
-export default async function handler(req, res) {
-  const projects = await getPublicProjects();
+import { postgrestErrorToError } from "../../lib/server/supabase/errors";
+import { getPublicProjects, Project } from "../../lib/server/supabase/supabase";
+import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
 
-  if (projects.error) {
-    res.status(500).json(projects.error);
+type ResponseData = Project[];
+
+export type Response = GenericResponse<ResponseData>;
+
+export default async function handler(
+  _request: NextApiRequest,
+  response: NextApiResponse<Response>
+) {
+  const { data, error } = await getPublicProjects();
+
+  if (error) {
+    return response.status(500).json({
+      error: postgrestErrorToError(error),
+    } as ErrorResponse);
+  } else {
+    return response
+      .status(200)
+      .json({ data: data! } as SuccessResponse<ResponseData>);
   }
-
-  res.status(200).json(projects.data);
 }

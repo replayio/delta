@@ -1,15 +1,35 @@
+import type { NextApiRequest, NextApiResponse } from "next";
+
 import { getBranchByName } from "../../lib/server/supabase/branches";
+import { postgrestErrorToError } from "../../lib/server/supabase/errors";
+import { Branch } from "../../lib/server/supabase/supabase";
+import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
 
-export default async function handler(req, res) {
-  const { name } = req.query;
-  console.log(`getBranchByName (1) - "${name}"`);
+type ResponseData = Branch;
 
-  const branch = await getBranchByName(name);
+export type Response = GenericResponse<ResponseData>;
 
-  if (branch.error) {
-    res.status(500).json(branch.error);
+export default async function handler(
+  request: NextApiRequest,
+  response: NextApiResponse<Response>
+) {
+  const { name } = request.query;
+  if (name == null) {
+    response.status(422).json({
+      error: new Error('Parameter "branch" is required'),
+    } as ErrorResponse);
   }
 
-  console.log(`getBranchByName (finished) -`, branch.data);
-  res.status(200).json(branch.data);
+  const { data, error } = await getBranchByName(name as string);
+  if (error) {
+    return response.status(500).json({
+      error: postgrestErrorToError(error),
+    } as ErrorResponse);
+  } else if (!data) {
+    return response.status(404).json({
+      error: new Error(`No branch found with name "${name}"`),
+    } as ErrorResponse);
+  } else {
+    return response.status(200).json({ data } as SuccessResponse<ResponseData>);
+  }
 }

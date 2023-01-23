@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { Action, Branch, Project } from "../lib/server/supabase/supabase";
+import { updateBranchStatus } from "../utils/ApiClient";
 
 export function ApproveButton({
   currentAction,
@@ -16,19 +17,11 @@ export function ApproveButton({
   const toggleBranchStatus = async (status) => {
     setUpdating(true);
 
-    const response = await fetch("/api/updateBranchStatus", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        branch: currentBranch,
-        projectId: project.id,
-        status,
-      }),
+    await updateBranchStatus({
+      branchId: currentBranch.id,
+      projectId: project.id,
+      status,
     });
-
-    console.log("toggleBranchStatus() response:", await response.text());
 
     setUpdating(false);
   };

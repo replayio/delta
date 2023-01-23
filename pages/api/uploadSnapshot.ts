@@ -1,73 +1,100 @@
+import type { NextApiRequest, NextApiResponse } from "next";
+
 import {
   getSnapshotFromBranch,
   insertSnapshot,
   updateSnapshot,
 } from "../../lib/server/supabase/snapshots";
-
 import { uploadSnapshot } from "../../lib/server/supabase/storage";
 import { diffWithPrimaryBranch } from "../../lib/server/diffWithPrimaryBranch";
 import { incrementActionNumSnapshotsChanged } from "../../lib/server/supabase/incrementActionNumSnapshotsChanged";
+import {
+  isPostgrestError,
+  postgrestErrorToError,
+} from "../../lib/server/supabase/errors";
+import { Snapshot } from "../../lib/server/supabase/supabase";
+import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
 
-export default async function handler(req, res) {
-  const { image, projectId, branch: branchName, runId } = req.body;
-  console.log("uploadSnapshot start (1)", branchName, runId, image.file);
+export type Image = {
+  content: string;
+  file: string;
+};
+
+export type RequestParams = {
+  branch: string;
+  image: Image;
+  projectId: string;
+  runId: string;
+};
+export type ResponseData = Snapshot;
+export type Response = GenericResponse<ResponseData>;
+
+// Note that this endpoint is used by the DevTools project's Playwright integration
+// packages/replay-next/uploadSnapshots
+
+export default async function handler(
+  request: NextApiRequest,
+  response: NextApiResponse<Response>
+) {
+  const {
+    branch: branchName,
+    image,
+    projectId,
+    runId,
+  } = request.body as RequestParams;
+  if (!branchName || !image || !projectId || !runId) {
+    return response.status(422).json({
+      error: new Error(
+        'Missing required param(s) "branch", "image", "projectId", or "runId"'
+      ),
+    } as ErrorResponse);
+  }
+
   try {
-    if (!branchName) {
-      return res.status(400).json({ error: "branchName is required" });
+    const uploadResult = await uploadSnapshot(image.content, projectId);
+    if (uploadResult.error) {
+      return response.status(500).json({
+        error: Error(uploadResult.error),
+      } as ErrorResponse);
     }
 
-    if (!projectId) {
-      return res.status(400).json({ error: "projectId is required" });
-    }
-
-    if (!image.file || !image.content) {
-      return res.status(400).json({ error: "image is required" });
-    }
-
-    console.log("uploadSnapshot (2) -  upload", branchName, image.file);
-    const uploadedSnapshot = await uploadSnapshot(image.content, projectId);
-
-    console.log("uploadSnapshot (3) - insert", uploadedSnapshot.data);
-
-    const snapshotResponse = await insertSnapshot(
+    const insertedSnapshot = await insertSnapshot(
       branchName,
       projectId,
       image,
       runId
     );
+    if (insertedSnapshot.error) {
+      return response.status(500).json({
+        error:
+          typeof insertedSnapshot.error === "string"
+            ? Error(insertedSnapshot.error)
+            : postgrestErrorToError(insertedSnapshot.error),
+      } as ErrorResponse);
+    }
 
-    let snapshot = snapshotResponse.data;
-    console.log(
-      "uploadSnapshot (4) - diff",
-      snapshotResponse.data,
-      uploadedSnapshot.error
-    );
-
+    let snapshot: Snapshot | null = insertedSnapshot.data;
     if (!snapshot) {
-      console.log(
-        `uploadSnapshot (5) - could not insert snapshot, so try to get the last saved snapshot from branch ${branchName}`,
-        uploadedSnapshot.error
-      );
-
       const previousSnapshot = await getSnapshotFromBranch(
         image.file,
         projectId,
         branchName
       );
-
-      console.log(
-        "uploadSnapshot (6) - getSnapshotFromBranch",
-        previousSnapshot.data
-      );
-      if (previousSnapshot.data) {
-        snapshot = previousSnapshot.data;
-      } else {
-        console.log(
-          `uploadSnapshot (6) - could not get snapshot from branch ${branchName}`,
-          previousSnapshot.error
-        );
-        return res.status(500).json({ error: "Could not find snapshot" });
+      if (previousSnapshot.error) {
+        return response.status(500).json({
+          error: isPostgrestError(previousSnapshot.error)
+            ? postgrestErrorToError(previousSnapshot.error)
+            : Error(previousSnapshot.error.message),
+        } as ErrorResponse);
       }
+
+      snapshot = previousSnapshot.data ?? null;
+    }
+
+    if (snapshot === null) {
+      return response
+        .status(500)
+        .json({ error: Error("Could not find snapshot") });
     }
 
     const primaryDiff = await diffWithPrimaryBranch(
@@ -76,27 +103,25 @@ export default async function handler(req, res) {
       image
     );
 
-    console.log("uploadSnapshot (7) - update", {
-      primary_changed: primaryDiff.changed,
-      primary_diff_path: primaryDiff.diffSnapshot?.path,
-      primary_num_pixels: primaryDiff.numPixels,
-    });
-
     const updatedSnapshot = await updateSnapshot(snapshot.id, {
       primary_changed: primaryDiff.changed,
       primary_diff_path: primaryDiff.diffSnapshot?.path,
       primary_num_pixels: primaryDiff.numPixels,
     });
+    if (updatedSnapshot.error) {
+      return response.status(500).json({
+        error: postgrestErrorToError(updatedSnapshot.error),
+      } as ErrorResponse);
+    }
 
     if (primaryDiff.changed) {
-      console.log("uploadSnapshot (8) - incrementActionNumSnapshotsChanged");
       await incrementActionNumSnapshotsChanged(projectId, branchName);
     }
 
-    console.log("uploadSnapshot finished ", updatedSnapshot.data);
-    res.status(200).json(updatedSnapshot);
-  } catch (e) {
-    console.error("uploadSnapshot error", e);
-    res.status(500).json({ error: e.message, file: image.file });
+    response
+      .status(200)
+      .json({ data: updatedSnapshot.data } as SuccessResponse<ResponseData>);
+  } catch (error) {
+    response.status(500).json({ error } as ErrorResponse);
   }
 }

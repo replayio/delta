@@ -14,6 +14,12 @@ export default async function handler(
   response: NextApiResponse<Response>
 ) {
   const { path } = request.query as RequestParams;
+  if (!path) {
+    return response.status(422).json({
+      error: new Error('Missing required param "path"'),
+    } as ErrorResponse);
+  }
+
   const { data, error } = await downloadSnapshot(path);
 
   if (error) {
@@ -23,6 +29,9 @@ export default async function handler(
       error: new Error(`No snapshot found for path "${path}"`),
     } as ErrorResponse);
   } else {
-    return response.status(200).json({ data } as SuccessResponse<ResponseData>);
+    response.setHeader("Content-Type", "image/png");
+    return response.status(200).send({
+      data,
+    } as SuccessResponse<ResponseData>);
   }
 }

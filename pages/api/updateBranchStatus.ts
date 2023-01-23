@@ -1,58 +1,92 @@
-import chalk from "chalk";
-import { getProject } from "../../lib/server/supabase/supabase";
-import { getBranch } from "../../lib/server/supabase/branches";
+import type { NextApiRequest, NextApiResponse } from "next";
+
+import {
+  Action,
+  getProject,
+  Project,
+  Snapshot,
+} from "../../lib/server/supabase/supabase";
 import {
   updateAction,
   getActionFromBranch,
 } from "../../lib/server/supabase/actions";
 import { getSnapshotsForAction } from "../../lib/server/supabase/snapshots";
-import { formatComment } from "./github-event";
-
 import { updateComment, updateCheck } from "../../lib/github";
+import { postgrestErrorToError } from "../../lib/server/supabase/errors";
+import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
+import { getDeltaBranchUrl } from "../../lib/delta";
+import { getBranch } from "../../lib/server/supabase/branches";
 
-import omit from "lodash/omit";
-export default async function handler(req, res) {
-  const { branch, projectId, status } = req.body;
+export type BranchStatus = "failure" | "neutral" | "success";
 
-  if (!branch || !projectId || !status) {
-    return res.status(400).json({ error: "Missing required fields" });
+type IssueComment = Awaited<ReturnType<typeof updateComment>>["data"];
+type CheckRuns = Awaited<ReturnType<typeof updateCheck>>["data"];
+
+export type RequestParams = {
+  branchId: string;
+  projectId: string;
+  status: BranchStatus;
+};
+export type ResponseData = {
+  action: Action;
+  check: CheckRuns;
+  comment: IssueComment | null;
+};
+export type Response = GenericResponse<ResponseData>;
+
+export default async function handler(
+  request: NextApiRequest,
+  response: NextApiResponse<Response>
+) {
+  const { branchId, projectId, status } = request.body as {
+    branchId: string;
+    projectId: string;
+    status: BranchStatus;
+  };
+  if (!branchId || !projectId || !status) {
+    return response.status(422).json({
+      error: new Error(
+        'Missing required param(s) "branch", "projectId", or "status"'
+      ),
+    } as ErrorResponse);
   }
 
-  console.log(
-    chalk.bold("updateBranchStatus()"),
-    `\n  project: ${chalk.greenBright(projectId)}`,
-    `\n  branch: ${chalk.greenBright(branch.id)}`,
-    `\n  status: ${chalk.greenBright(status)}`,
-    branch
-  );
+  const branchRecord = await getBranch(branchId);
+  if (branchRecord.error) {
+    return response.status(500).json({
+      error: postgrestErrorToError(branchRecord.error),
+    } as ErrorResponse);
+  }
+  const branch = branchRecord.data;
 
   const projectRecord = await getProject(projectId);
   if (projectRecord.error) {
-    console.error("Project error:", projectRecord.error);
-    return res.status(500).json({ error: projectRecord.error });
+    return response.status(500).json({
+      error: postgrestErrorToError(projectRecord.error),
+    } as ErrorResponse);
   }
+
   const organization = projectRecord.data.organization;
   const repository = projectRecord.data.repository;
 
-  // const branchRecord = await getBranch(branch.id);
-  // if (branchRecord.error) {
-  //   console.error("Branch error:", branchRecord.error);
-  //   return res.status(500).json({ error: branchRecord.error });
-  // }
-
-  const action = await getActionFromBranch(branch.id);
+  const action = await getActionFromBranch(branchId);
   if (action.error) {
-    console.error("Branch action error:", action.error);
-    return res.status(500).json({ error: action.error });
+    return response
+      .status(500)
+      .json({ error: postgrestErrorToError(action.error) } as ErrorResponse);
   }
 
-  const updatedAction = await updateAction(action.data.id, { status });
-  if (updatedAction.error) {
-    console.error("Updated action error:", updatedAction.error);
-    return res.status(500).json({ error: updatedAction.error });
+  const { data: actionData, error: actionError } = await updateAction(
+    action.data.id,
+    { status }
+  );
+  if (actionError) {
+    return response.status(500).json({
+      error: postgrestErrorToError(actionError),
+    } as ErrorResponse);
   }
 
-  const updatedCheck = await updateCheck(
+  const { data: check } = await updateCheck(
     organization,
     repository,
     branch.check_id,
@@ -62,40 +96,71 @@ export default async function handler(req, res) {
       summary: "",
     }
   );
-  console.log(
-    "updateBranchStatus (3) updated check",
-    omit(updatedCheck.data, ["app"])
-  );
 
-  let updatedComment;
+  let issueComment: IssueComment | null = null;
   if (branch.comment_id) {
     const snapshots = await getSnapshotsForAction(action.data.id);
 
-    updatedComment = await updateComment(
-      organization,
-      repository,
-      branch.comment_id,
-      {
+    issueComment = (
+      await updateComment(organization, repository, branch.comment_id, {
         body: formatComment({
           project: projectRecord.data,
-          branchName: branch,
+          branchName: branch.name,
           snapshots: snapshots.data || [],
           subTitle: status === "success" ? "**(Approved)**" : "**(Rejected)**",
         }),
-      }
-    );
-
-    if (updatedComment.status != 200) {
-      console.log(
-        "updateBranchStatus (4) failed to update comment",
-        updatedComment
-      );
-    }
+      })
+    ).data;
   }
 
-  res.status(200).json({
-    action: updatedAction.data,
-    check: updatedCheck,
-    comment: updatedComment,
-  });
+  response.status(200).json({
+    data: {
+      action: actionData,
+      check,
+      comment: issueComment,
+    },
+  } as SuccessResponse<ResponseData>);
+}
+
+export function formatComment({
+  project,
+  branchName,
+  snapshots,
+  subTitle = "",
+}: {
+  project: Project;
+  branchName: string;
+  snapshots: Snapshot[];
+  subTitle?: string;
+}) {
+  const deltaUrl = getDeltaBranchUrl(project, branchName);
+
+  const numDifferent = snapshots.filter(
+    (snapshot) => snapshot.primary_changed
+  ).length;
+
+  const snapshotList = snapshots
+    .filter((snapshot) => snapshot.primary_changed)
+    .slice(0, 10)
+    .map(
+      (snapshot) =>
+        `<details>
+          <summary>${
+            snapshot.file.split("/")[snapshot.file.split("/").length - 1]
+          }</summary>
+          <img src="https://delta.replay.io/api/snapshot?path=${
+            snapshot.path
+          }" />
+        </details>`
+    )
+    .join("\n");
+
+  const title =
+    numDifferent > 0
+      ? `${numDifferent} of ${snapshots.length} changed`
+      : "Nothing changed";
+  return [
+    `**<a href="${deltaUrl}">${title}</a>** ${subTitle}`,
+    snapshotList,
+  ].join("\n");
 }

@@ -1,9 +1,5 @@
-import {
-  getProjectResponse,
-  getPublicProjectsResponse,
-  Project,
-} from "../lib/server/supabase/supabase";
-import { fetchJSON } from "../utils/fetchJSON";
+import { Project } from "../lib/server/supabase/supabase";
+import { getProject, getPublicProjects } from "../utils/ApiClient";
 import { createGenericCache } from "./createGenericCache";
 
 export const {
@@ -14,18 +10,8 @@ export const {
   [projectId: string | null, projectShort: string | null],
   Project
 >(
-  async (projectId: string | null, projectShort: string | null) => {
-    let url;
-    if (projectId) {
-      url = `/api/getProject?projectId=${projectId}`;
-    } else if (projectShort) {
-      url = `/api/getProject?projectShort=${projectShort}`;
-    } else {
-      throw Error("No projectId or projectShort provided");
-    }
-
-    return await fetchJSON<getProjectResponse>(url);
-  },
+  (projectId: string | null, projectShort: string | null) =>
+    getProject({ projectId, projectShort }),
   (projectId: string | null, projectShort: string | null) =>
     `${projectId}/${projectShort}`
 );
@@ -35,6 +21,6 @@ export const {
   getValueAsync: fetchProjectsAsync,
   getValueIfCached: fetchProjectsIfCached,
 } = createGenericCache<[], Project[]>(
-  () => fetchJSON<getPublicProjectsResponse>(`/api/getPublicProjects`),
+  () => getPublicProjects({}),
   () => "projects"
 );

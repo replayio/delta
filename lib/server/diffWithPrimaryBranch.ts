@@ -7,7 +7,6 @@ import {
   StoredSnapshot,
   uploadSnapshot,
 } from "./supabase/storage";
-import { PNGWithMetadata } from "pngjs";
 
 type Image = {
   content: string;

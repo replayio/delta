@@ -29,12 +29,12 @@ async function get(path, body) {
 function snapshotDiff({ projectId, file, branch }) {
   return get(
     encodeURI(
-      `api/snapshot-diff?projectId=${projectId}&file=${file}&branch=${branch}`
+      `api/getSnapshotDiff?projectId=${projectId}&file=${file}&branch=${branch}`
     )
   );
 }
 
-describe("snapshot-diff", () => {
+describe("getSnapshotDiff", () => {
   it("simple", async () => {
     const res = await snapshotDiff({
       projectId: "dcb5df26-b418-4fe2-9bdf-5a838e604ec4",

@@ -1,13 +1,12 @@
-import { Action, getActionsResponse } from "../lib/server/supabase/supabase";
-import { fetchJSON } from "../utils/fetchJSON";
 import { createGenericCache } from "./createGenericCache";
+import { getActions } from "../utils/ApiClient";
+import { Action } from "../lib/server/supabase/supabase";
 
 export const {
   getValueSuspense: fetchActionsSuspense,
   getValueAsync: fetchActionsAsync,
   getValueIfCached: fetchActionsIfCached,
 } = createGenericCache<[branchId: string], Action[]>(
-  (branchId: string) =>
-    fetchJSON<getActionsResponse>(`/api/getActions?branchId=${branchId}`),
+  (branchId: string) => getActions({ branchId }),
   (branchId: string) => branchId
 );

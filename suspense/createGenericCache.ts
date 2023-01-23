@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { isErrorResponse, GenericResponse } from "../pages/api/utils";
-import { fetchJSON } from "../utils/fetchJSON";
 
 import createWakeable from "./createWakeable";
 import {
@@ -15,6 +13,7 @@ export interface GenericCache<TParams extends Array<any>, TValue> {
   getValueSuspense(...args: TParams): TValue;
   getValueAsync(...args: TParams): Promise<TValue>;
   getValueIfCached(...args: TParams): { value: TValue } | undefined;
+  invalidateCache(): void;
 }
 
 interface HookState<TValue> {
@@ -104,6 +103,10 @@ export function createGenericCache<TParams extends Array<any>, TValue>(
           throw record.value;
         }
       }
+    },
+
+    invalidateCache() {
+      recordMap.clear();
     },
   };
 }

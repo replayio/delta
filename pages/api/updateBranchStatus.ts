@@ -11,7 +11,12 @@ import {
   getActionFromBranch,
 } from "../../lib/server/supabase/actions";
 import { getSnapshotsForAction } from "../../lib/server/supabase/snapshots";
-import { updateComment, updateCheck } from "../../lib/github";
+import {
+  updateComment,
+  updateCheck,
+  CheckRun,
+  IssueComment,
+} from "../../lib/github";
 import {
   GenericResponse,
   sendErrorResponseFromPostgrestError,
@@ -23,9 +28,6 @@ import { getBranch } from "../../lib/server/supabase/branches";
 
 export type BranchStatus = "failure" | "neutral" | "success";
 
-type IssueComment = Awaited<ReturnType<typeof updateComment>>["data"];
-type CheckRuns = Awaited<ReturnType<typeof updateCheck>>["data"];
-
 export type RequestParams = {
   branchId: string;
   projectId: string;
@@ -33,7 +35,7 @@ export type RequestParams = {
 };
 export type ResponseData = {
   action: Action;
-  check: CheckRuns;
+  check: CheckRun;
   comment: IssueComment | null;
 };
 export type Response = GenericResponse<ResponseData>;
@@ -85,31 +87,29 @@ export default async function handler(
     return sendErrorResponseFromPostgrestError(response, actionError);
   }
 
-  const { data: check } = await updateCheck(
-    organization,
-    repository,
-    branch.check_id,
-    {
-      conclusion: status,
-      title: status === "success" ? "Changes approved" : "Changes rejected",
-      summary: "",
-    }
-  );
+  const check = await updateCheck(organization, repository, branch.check_id, {
+    conclusion: status,
+    title: status === "success" ? "Changes approved" : "Changes rejected",
+    summary: "",
+  });
 
   let issueComment: IssueComment | null = null;
   if (branch.comment_id) {
     const snapshots = await getSnapshotsForAction(action.data.id);
 
-    issueComment = (
-      await updateComment(organization, repository, branch.comment_id, {
+    issueComment = await updateComment(
+      organization,
+      repository,
+      branch.comment_id,
+      {
         body: formatComment({
           project: projectRecord.data,
           branchName: branch.name,
           snapshots: snapshots.data || [],
           subTitle: status === "success" ? "**(Approved)**" : "**(Rejected)**",
         }),
-      })
-    ).data;
+      }
+    );
   }
 
   return sendResponse<ResponseData>(response, {

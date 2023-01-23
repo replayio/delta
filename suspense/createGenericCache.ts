@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { isErrorResponse, GenericResponse } from "../pages/api/types";
+import { isErrorResponse, GenericResponse } from "../pages/api/utils";
 import { fetchJSON } from "../utils/fetchJSON";
 
 import createWakeable from "./createWakeable";

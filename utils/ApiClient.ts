@@ -47,7 +47,7 @@ import type {
   RequestParams as UploadSnapshotRequestParams,
   ResponseData as UploadSnapshotResponseData,
 } from "../pages/api/uploadSnapshot";
-import { GenericResponse, isErrorResponse } from "../pages/api/types";
+import { GenericResponse, isErrorResponse } from "../pages/api/utils";
 import { fetchJSON } from "./fetchJSON";
 
 // All requests made between the Client and Server should use the functions in this module to ensure proper TypeScript typing.

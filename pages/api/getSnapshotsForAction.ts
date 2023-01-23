@@ -1,10 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import { getAction } from "../../lib/server/supabase/actions";
-import { postgrestErrorToError } from "../../lib/server/supabase/errors";
 import { getSnapshotFromAction } from "../../lib/server/supabase/snapshots";
 import { Snapshot } from "../../lib/server/supabase/supabase";
-import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
+import {
+  GenericResponse,
+  sendErrorResponseFromPostgrestError,
+  sendErrorResponse,
+  sendResponse,
+} from "./utils";
 
 export type RequestParams = {
   actionId: string;
@@ -19,35 +23,35 @@ export default async function handler(
 ) {
   const { actionId, projectId } = request.query as RequestParams;
   if (!actionId || !projectId) {
-    return response.status(422).json({
-      error: new Error('Missing required param(s) "actionId" or "projectId"'),
-    } as ErrorResponse);
+    return sendErrorResponse(
+      response,
+      'Missing required param(s) "actionId" or "projectId"',
+      422
+    );
   }
 
   const { data: actionData, error: actionError } = await getAction(actionId);
   if (actionError) {
-    return response.status(500).json({
-      error: postgrestErrorToError(actionError),
-    } as ErrorResponse);
+    return sendErrorResponseFromPostgrestError(response, actionError);
   } else if (actionData == null) {
-    return response.status(404).json({
-      error: new Error(`No action found with id "${actionId}"`),
-    } as ErrorResponse);
+    return sendErrorResponse(
+      response,
+      `No action found with id "${actionId}"`,
+      404
+    );
   }
 
   const { data: snapshotData, error: snapshotError } =
     await getSnapshotFromAction(actionData);
   if (snapshotError) {
-    return response.status(500).json({
-      error: postgrestErrorToError(snapshotError),
-    } as ErrorResponse);
+    return sendErrorResponseFromPostgrestError(response, snapshotError);
   } else if (!snapshotData) {
-    return response.status(404).json({
-      error: new Error(`No snapshots found for action id "${actionId}"`),
-    } as ErrorResponse);
+    return sendErrorResponse(
+      response,
+      `No snapshots found for action id "${actionId}"`,
+      404
+    );
   }
 
-  return response
-    .status(200)
-    .json({ data: snapshotData } as SuccessResponse<ResponseData>);
+  return sendResponse<ResponseData>(response, snapshotData);
 }

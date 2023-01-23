@@ -23,14 +23,3 @@ export function isPostgrestError(value: any): value is PostgrestError {
     "message" in value
   );
 }
-
-export function postgrestErrorToError(
-  postgrestError: PostgrestError
-): ErrorWithCode {
-  return new ErrorWithCode(
-    postgrestError.message,
-    postgrestError.code,
-    postgrestError.details,
-    postgrestError.hint
-  );
-}

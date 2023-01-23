@@ -1,9 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import { getBranchByName } from "../../lib/server/supabase/branches";
-import { postgrestErrorToError } from "../../lib/server/supabase/errors";
 import { Branch } from "../../lib/server/supabase/supabase";
-import { ErrorResponse, GenericResponse, SuccessResponse } from "./types";
+import {
+  GenericResponse,
+  sendErrorResponseFromPostgrestError,
+  sendErrorResponse,
+  sendResponse,
+} from "./utils";
 
 export type RequestParams = {
   name: string;
@@ -17,21 +21,19 @@ export default async function handler(
 ) {
   const { name } = request.query as RequestParams;
   if (name == null) {
-    response.status(422).json({
-      error: new Error('Parameter "branch" is required'),
-    } as ErrorResponse);
+    return sendErrorResponse(response, 'Parameter "branch" is required');
   }
 
   const { data, error } = await getBranchByName(name);
   if (error) {
-    return response.status(500).json({
-      error: postgrestErrorToError(error),
-    } as ErrorResponse);
+    return sendErrorResponseFromPostgrestError(response, error);
   } else if (!data) {
-    return response.status(404).json({
-      error: new Error(`No branch found with name "${name}"`),
-    } as ErrorResponse);
+    return sendErrorResponse(
+      response,
+      `No branch found with name "${name}"`,
+      404
+    );
   } else {
-    return response.status(200).json({ data } as SuccessResponse<ResponseData>);
+    return sendResponse<ResponseData>(response, data);
   }
 }

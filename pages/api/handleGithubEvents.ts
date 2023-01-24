@@ -39,6 +39,7 @@ import {
   sendResponse,
   createErrorMessageFromPostgrestError,
 } from "./utils";
+import { safeStringify } from "../../lib/server/json";
 
 const supabase = createClient();
 
@@ -425,8 +426,12 @@ async function handleWorkflowCompleted(
       repository.name,
       branch.data.pr_number
     );
-    if (comment.status != 201) {
-      return logAndSendResponse(null, "Could not create comment");
+    if (!comment.data) {
+      console.error("Create comment error:\n", comment);
+      return logAndSendResponse(
+        null,
+        `Create comment error:\n\n${safeStringify(comment)}`
+      );
     }
 
     branch = await updateBranch(branch.data.id, {
@@ -453,10 +458,11 @@ async function handleWorkflowCompleted(
         }),
       }
     );
-    if (comment.status != 200) {
+    if (!comment.data) {
+      console.error("Update comment error:\n", comment);
       return logAndSendResponse(
         null,
-        `Comment update failed with status "${comment.status}"`
+        `Update comment error:\n\n${safeStringify(comment)}`
       );
     }
   }

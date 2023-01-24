@@ -16,6 +16,7 @@ import {
   getActionsFromBranch,
   incrementActionNumSnapshots,
 } from "./actions";
+import { Image } from "../../../pages/api/uploadSnapshot";
 
 export async function getSnapshotFromBranch(
   file: string,
@@ -89,10 +90,11 @@ export async function getSnapshotsForAction(
 }
 
 export async function insertSnapshot(
-  branchName,
-  projectId,
-  image,
-  runId
+  branchName: string,
+  projectId: string,
+  image: Image,
+  runId: string,
+  uploadStatus: string | null
 ): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
   const branch = await getBranchFromProject(projectId, branchName);
   if (branch.error) {
@@ -116,6 +118,7 @@ export async function insertSnapshot(
     action_id: action.data.id,
     path: `${projectId}/${sha}.png`,
     file: image.file,
+    status: uploadStatus,
   };
 
   return supabase.from("Snapshots").insert(snapshot).single();

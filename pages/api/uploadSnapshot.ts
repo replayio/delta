@@ -54,15 +54,16 @@ export default async function handler(
 
   try {
     const uploadResult = await uploadSnapshot(image.content, projectId);
-    if (uploadResult.error) {
-      return sendErrorResponse(response, uploadResult.error);
-    }
+
+    // Duplicates will fail to upload, but that's okay.
+    const uploadStatus = uploadResult.error || "Uploaded";
 
     const insertedSnapshot = await insertSnapshot(
       branchName,
       projectId,
       image,
-      runId
+      runId,
+      uploadStatus
     );
     if (insertedSnapshot.error) {
       return typeof insertedSnapshot.error === "string"

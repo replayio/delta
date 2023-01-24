@@ -46,28 +46,39 @@ const supabase = createClient();
 setupHook();
 
 // Note that this endpoint is used by the Delta GitHub app.
-
-// Partial type information below is based on:
+//
+// Partial type information below is based on analyzing actual events as well as the docs below:
 // https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads
 
-export type RequestParams = {
-  action: "closed" | "completed" | "opened" | "queued";
-  number: number;
+type CommonGitHubParams = {
+  action: string;
   organization: {
+    id: number;
     login: string;
   };
+  repository: {
+    id: number;
+    name: string;
+  };
+  sender: {
+    id: number;
+    login: string;
+  };
+};
+
+export type PullRequestEventParams = CommonGitHubParams & {
+  action: "closed" | "opened";
+  number: number;
   pull_request: {
     head: {
       ref: string;
     };
     title: string;
   };
-  repository: {
-    name: string;
-  };
-  sender: {
-    login: string;
-  };
+};
+
+export type WorkflowJobEventParams = CommonGitHubParams & {
+  action: "completed" | "queued";
   workflow_job: {
     head_branch: string;
     id: number;
@@ -76,6 +87,7 @@ export type RequestParams = {
     workflow_name: string;
   };
 };
+
 export type ResponseData = string | null;
 export type Response = GenericResponse<ResponseData>;
 
@@ -91,12 +103,9 @@ export default async function handler(
 ) {
   const {
     action: actionType,
-    number,
     organization,
-    pull_request: pullRequest,
     repository,
-    workflow_job: workflowJob,
-  } = request.body as RequestParams;
+  } = request.body as CommonGitHubParams;
 
   // Name of the event that triggered the delivery.
   const eventType = request.headers["x-github-event"] as string;
@@ -130,16 +139,33 @@ export default async function handler(
     }
   };
 
+  let branchName: string | undefined = undefined;
+  let headSha: string | undefined = undefined;
+  let jobId: string | undefined = undefined;
+  let prNumber: string | undefined = undefined;
+  let runId: string | undefined = undefined;
+  if (isPullRequestEventParams(request.body)) {
+    const { pull_request: pullRequest, number } = request.body;
+    branchName = pullRequest.head.ref;
+    prNumber = "" + number;
+  } else if (isWorkflowJobEventParams(request.body)) {
+    const { workflow_job: workflowJob } = request.body;
+    branchName = workflowJob.head_branch;
+    headSha = workflowJob.head_sha;
+    jobId = "" + workflowJob.id;
+    runId = "" + workflowJob.run_id;
+  }
+
   // HTTP metadata is used for debug logging only; if it fails, ignore it (for now)
   const httpMetadata = await insertHTTPMetadata({
     action: actionType,
-    branch_name: workflowJob?.head_branch || pullRequest?.head?.ref,
+    branch_name: branchName,
     event_type: eventType,
-    head_sha: workflowJob?.head_sha,
-    job_id: "" + workflowJob?.id,
+    head_sha: headSha,
+    job_id: jobId,
     payload: request.body,
-    pr_number: "" + number,
-    run_id: "" + workflowJob?.run_id,
+    pr_number: prNumber,
+    run_id: runId,
   });
   if (httpMetadata.error) {
     console.error(httpMetadata.error);
@@ -161,13 +187,13 @@ export default async function handler(
         case "closed":
           return handlePullRequestClosed(
             project.data,
-            request.body as RequestParams,
+            request.body as PullRequestEventParams,
             logAndSendResponse
           );
         case "opened":
           return handlePullRequestOpened(
             project.data,
-            request.body as RequestParams,
+            request.body as PullRequestEventParams,
             logAndSendResponse
           );
       }
@@ -175,26 +201,17 @@ export default async function handler(
     }
     // https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_job
     case "workflow_job": {
-      // HACK This check ignores non-Delta actions but it relies on a particular naming convention.
-      if (!workflowJob.workflow_name.startsWith("Playwright Snapshot")) {
-        return await logAndSendResponse(
-          `Ignoring workflow job "${workflowJob.workflow_name}"`,
-          null,
-          204
-        );
-      }
-
       switch (actionType) {
         case "completed":
           return handleWorkflowCompleted(
             project.data,
-            request.body as RequestParams,
+            request.body as WorkflowJobEventParams,
             logAndSendResponse
           );
         case "queued":
           return handleWorkflowQueued(
             project.data,
-            request.body as RequestParams,
+            request.body as WorkflowJobEventParams,
             logAndSendResponse,
             httpMetadata.data
           );
@@ -259,7 +276,7 @@ export function formatComment({
 
 async function handlePullRequestClosed(
   project: Project,
-  params: RequestParams,
+  params: PullRequestEventParams,
   logAndSendResponse: LogAndSendResponse
 ) {
   const { number } = params;
@@ -293,7 +310,7 @@ async function handlePullRequestClosed(
 
 async function handlePullRequestOpened(
   project: Project,
-  params: RequestParams,
+  params: PullRequestEventParams,
   logAndSendResponse: LogAndSendResponse
 ) {
   const { number, pull_request: pullRequest } = params;
@@ -317,7 +334,7 @@ async function handlePullRequestOpened(
 
 async function handleWorkflowCompleted(
   project: Project,
-  params: RequestParams,
+  params: WorkflowJobEventParams,
   logAndSendResponse: LogAndSendResponse
 ) {
   const { organization, repository, workflow_job: workflowJob } = params;
@@ -456,7 +473,7 @@ async function handleWorkflowCompleted(
 
 async function handleWorkflowQueued(
   project: Project,
-  params: RequestParams,
+  params: WorkflowJobEventParams,
   logAndSendResponse: LogAndSendResponse,
   httpMetadata: HTTPMetadata | null
 ) {
@@ -466,6 +483,15 @@ async function handleWorkflowQueued(
     sender,
     workflow_job: workflowJob,
   } = params;
+
+  // HACK This check ignores non-Delta actions but it relies on a particular naming convention.
+  if (!workflowJob.workflow_name.startsWith("Playwright Snapshot")) {
+    return await logAndSendResponse(
+      `Ignoring workflow job "${workflowJob.workflow_name}"`,
+      null,
+      204
+    );
+  }
 
   const branchName = workflowJob.head_branch;
 
@@ -525,4 +551,16 @@ async function handleWorkflowQueued(
   } else {
     return logAndSendResponse();
   }
+}
+
+function isPullRequestEventParams(
+  params: any
+): params is PullRequestEventParams {
+  return params.action === "opened" || params.action === "closed";
+}
+
+function isWorkflowJobEventParams(
+  params: any
+): params is WorkflowJobEventParams {
+  return params.action === "completed" || params.action === "queued";
 }

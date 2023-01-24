@@ -454,7 +454,10 @@ async function handleWorkflowCompleted(
       }
     );
     if (comment.status != 200) {
-      return logAndSendResponse(null, "Could not update comment");
+      return logAndSendResponse(
+        null,
+        `Comment update failed with status "${comment.status}"`
+      );
     }
   }
 

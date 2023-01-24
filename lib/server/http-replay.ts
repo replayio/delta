@@ -2,6 +2,7 @@ import { createHook } from "async_hooks";
 import { writeFileSync } from "fs";
 import * as pako from "pako";
 import { join } from "path";
+import { safeStringify } from "./json";
 
 function log(...args) {
   return;
@@ -69,8 +70,7 @@ export function setupHook() {
 export const writeRequests = () => {
   const filepath = join(__dirname, "../../../../requests.json");
 
-  console.log("writing requests", filepath);
-  writeFileSync(filepath, JSON.stringify(requests, null, 2));
+  writeFileSync(filepath, safeStringify(requests, 2));
 };
 
 export function getHTTPRequests() {

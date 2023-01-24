@@ -1,3 +1,5 @@
+import { safeStringify } from "./server/json";
+
 const HOST = process.env.HOST;
 
 export async function post(path: string, body: any) {
@@ -6,7 +8,7 @@ export async function post(path: string, body: any) {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(body),
+    body: safeStringify(body),
   });
 
   if (res.status === 200) {

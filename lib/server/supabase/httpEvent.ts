@@ -1,5 +1,6 @@
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import createClient from "../../initServerSupabase";
+import { safeStringify } from "../json";
 
 export const supabase = createClient();
 
@@ -34,12 +35,15 @@ export async function updateHTTPMetadata(
     .single();
 }
 
-export async function insertHTTPEvent(id: number, projectId, data) {
+export async function insertHTTPEvent(
+  id: number,
+  projectId: string,
+  data: any
+) {
   const path = `${projectId}/${id}.json`;
-  console.log(`uploading ${path}`, JSON.stringify(data, null, 2));
-  return supabase.storage
-    .from("http-events")
-    .upload(path, JSON.stringify(data, null, 2), {
-      contentType: "application/json",
-    });
+  const stringified = safeStringify(data, 2);
+
+  return supabase.storage.from("http-events").upload(path, stringified, {
+    contentType: "application/json",
+  });
 }

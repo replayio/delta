@@ -1,6 +1,7 @@
 import { supabase, createError } from "./supabase";
 import { getBranchFromProject } from "./branches";
 import { getActionFromBranch } from "./actions";
+import { safeStringify } from "../json";
 
 export async function incrementActionNumSnapshotsChanged(
   projectId: string,
@@ -17,7 +18,7 @@ export async function incrementActionNumSnapshotsChanged(
     return createError(
       `Action not found for ${branchName} and ${
         branch.data.id
-      }: ${JSON.stringify(action.error)}`
+      }: ${safeStringify(action.error)}`
     );
   }
 

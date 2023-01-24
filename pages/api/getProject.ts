@@ -7,6 +7,7 @@ import {
 } from "../../lib/server/supabase/supabase";
 import {
   GenericResponse,
+  sendErrorMissingParametersResponse,
   sendErrorResponse,
   sendErrorResponseFromPostgrestError,
   sendResponse,
@@ -25,11 +26,10 @@ export default async function handler(
 ) {
   const { projectId, projectShort } = request.query as RequestParams;
   if (!projectId && !projectShort) {
-    return sendErrorResponse(
-      response,
-      'Must specify either "projectId" or "projectShort" param',
-      422
-    );
+    return sendErrorMissingParametersResponse(response, {
+      projectId,
+      projectShort,
+    });
   }
 
   const { data, error } = await (projectId

@@ -20,8 +20,8 @@ import {
 import {
   GenericResponse,
   sendErrorResponseFromPostgrestError,
-  sendErrorResponse,
   sendResponse,
+  sendErrorMissingParametersResponse,
 } from "./utils";
 import { getDeltaBranchUrl } from "../../lib/delta";
 import { getBranch } from "../../lib/server/supabase/branches";
@@ -46,11 +46,11 @@ export default async function handler(
 ) {
   const { branchId, projectId, status } = request.query as RequestParams;
   if (!branchId || !projectId || !status) {
-    return sendErrorResponse(
-      response,
-      'Missing required param(s) "branch", "projectId", or "status"',
-      422
-    );
+    return sendErrorMissingParametersResponse(response, {
+      branchId,
+      projectId,
+      status,
+    });
   }
 
   const branchRecord = await getBranch(branchId);

@@ -7,6 +7,7 @@ import {
   sendErrorResponseFromPostgrestError,
   sendErrorResponse,
   sendResponse,
+  sendErrorMissingParametersResponse,
 } from "./utils";
 
 export type RequestParams = {
@@ -22,11 +23,10 @@ export default async function handler(
 ) {
   const { branchName, projectId } = request.query as RequestParams;
   if (!branchName || !projectId) {
-    return sendErrorResponse(
-      response,
-      'Missing required param(s) "branchName" or "projectId"',
-      422
-    );
+    return sendErrorMissingParametersResponse(response, {
+      branchName,
+      projectId,
+    });
   }
 
   const { data, error } = await getSnapshotsFromBranch(projectId, branchName);

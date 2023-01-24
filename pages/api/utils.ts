@@ -39,6 +39,21 @@ export function sendErrorResponse(
   response.json(json);
 }
 
+export function sendErrorMissingParametersResponse(
+  response: NextApiResponse,
+  params: Object
+): void {
+  const missingParamNames = Array.from(Object.keys(params)).filter(
+    (key) => !params[key]
+  );
+  const message =
+    missingParamNames.length > 1
+      ? `Missing required params "${missingParamNames.join('", "')}"`
+      : `Missing required param "${missingParamNames[0]}"`;
+  const details = JSON.stringify(params, null, 2);
+  return sendErrorResponse(response, `${message}\n\n${details}}`, 422);
+}
+
 export function sendErrorResponseFromPostgrestError(
   response: NextApiResponse,
   postgrestError: PostgrestError,
@@ -46,7 +61,7 @@ export function sendErrorResponseFromPostgrestError(
 ): void {
   const json: ErrorResponse = {
     error: {
-      message: `Error ${postgrestError.code}: ${postgrestError.message}\n${postgrestError.details}`,
+      message: `Error code ${postgrestError.code}: ${postgrestError.message}\n\n${postgrestError.details}`,
     },
   };
 

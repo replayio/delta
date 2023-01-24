@@ -14,7 +14,12 @@ import {
   Project,
   Snapshot,
 } from "../../lib/server/supabase/supabase";
-import { insertHTTPMetadata } from "../../lib/server/supabase/httpEvent";
+import {
+  HTTPMetadata,
+  insertHTTPEvent,
+  insertHTTPMetadata,
+  updateHTTPMetadata,
+} from "../../lib/server/supabase/httpEvent";
 import {
   getBranchFromProject,
   getBranchFromPr,
@@ -27,18 +32,17 @@ import {
 } from "../../lib/server/supabase/actions";
 import { getSnapshotsForAction } from "../../lib/server/supabase/snapshots";
 import { getDeltaBranchUrl } from "../../lib/delta";
-import { setupHook } from "../../lib/server/http-replay";
+import { getHTTPRequests, setupHook } from "../../lib/server/http-replay";
 import {
   GenericResponse,
-  sendErrorResponseFromPostgrestError,
   sendErrorResponse,
   sendResponse,
+  createErrorMessageFromPostgrestError,
 } from "./utils";
 
 const supabase = createClient();
 
 // Spy on HTTP client requests for debug logging in Supabase.
-// TODO Upload debug data via insertHTTPEvent() before sending response.
 setupHook();
 
 // Note that this endpoint is used by the Delta GitHub app.
@@ -72,8 +76,14 @@ export type RequestParams = {
     workflow_name: string;
   };
 };
-export type ResponseData = null;
+export type ResponseData = string | null;
 export type Response = GenericResponse<ResponseData>;
+
+type LogAndSendResponse = (
+  data?: ResponseData | null,
+  error?: string | null,
+  code?: number
+) => Promise<void>;
 
 export default async function handler(
   request: NextApiRequest,
@@ -88,17 +98,37 @@ export default async function handler(
     workflow_job: workflowJob,
   } = request.body as RequestParams;
 
-  const project = await getProjectFromRepo(repository.name, organization.login);
-  if (project.error) {
-    return sendErrorResponse(
-      response,
-      `No project found for repository "${repository.name}" and organization "${organization.login}"`,
-      404
-    );
-  }
-
   // Name of the event that triggered the delivery.
   const eventType = request.headers["x-github-event"] as string;
+
+  // Helper thats logs debug information to Supabase before sending an HTTP response.
+  const logAndSendResponse: LogAndSendResponse = async (
+    data: ResponseData | null = null,
+    error: string | null = null,
+    code?: number
+  ) => {
+    const httpMetadataId = httpMetadata?.data?.id ?? null;
+    const projectId = project?.data?.id ?? null;
+    if (httpMetadataId != null && projectId != null) {
+      await insertHTTPEvent(httpMetadataId, projectId, {
+        request,
+        response: {
+          code,
+          data,
+          error,
+        },
+
+        // Recorded using Node's "async_hooks"; see setupHook()
+        requests: getHTTPRequests(),
+      });
+    }
+
+    if (error !== null) {
+      await sendErrorResponse(response, error, code);
+    } else {
+      await sendResponse<ResponseData>(response, data, code);
+    }
+  };
 
   // HTTP metadata is used for debug logging only; if it fails, ignore it (for now)
   const httpMetadata = await insertHTTPMetadata({
@@ -115,6 +145,15 @@ export default async function handler(
     console.error(httpMetadata.error);
   }
 
+  const project = await getProjectFromRepo(repository.name, organization.login);
+  if (project.error) {
+    return await logAndSendResponse(
+      null,
+      `No project found for repository "${repository.name}" and organization "${organization.login}"`,
+      404
+    );
+  }
+
   switch (eventType) {
     // https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
     case "pull_request": {
@@ -123,13 +162,13 @@ export default async function handler(
           return handlePullRequestClosed(
             project.data,
             request.body as RequestParams,
-            response
+            logAndSendResponse
           );
         case "opened":
           return handlePullRequestOpened(
             project.data,
             request.body as RequestParams,
-            response
+            logAndSendResponse
           );
       }
       break;
@@ -138,7 +177,11 @@ export default async function handler(
     case "workflow_job": {
       // HACK This check ignores non-Delta actions but it relies on a particular naming convention.
       if (!workflowJob.workflow_name.startsWith("Playwright Snapshot")) {
-        return sendResponse<ResponseData>(response, null, 204);
+        return await logAndSendResponse(
+          `Ignoring workflow job "${workflowJob.workflow_name}"`,
+          null,
+          204
+        );
       }
 
       switch (actionType) {
@@ -146,20 +189,25 @@ export default async function handler(
           return handleWorkflowCompleted(
             project.data,
             request.body as RequestParams,
-            response
+            logAndSendResponse
           );
         case "queued":
           return handleWorkflowQueued(
             project.data,
             request.body as RequestParams,
-            response
+            logAndSendResponse,
+            httpMetadata.data
           );
       }
       break;
     }
   }
 
-  return sendResponse<ResponseData>(response, null, 204);
+  return await logAndSendResponse(
+    `Ignoring event type "${eventType}"`,
+    null,
+    204
+  );
 }
 
 export function formatCheck(check: Object): Partial<Object> {
@@ -212,16 +260,19 @@ export function formatComment({
 async function handlePullRequestClosed(
   project: Project,
   params: RequestParams,
-  response: NextApiResponse<Response>
+  logAndSendResponse: LogAndSendResponse
 ) {
   const { number } = params;
 
   let branch = await getBranchFromPr(project.id, number);
   if (branch.error) {
-    return sendErrorResponseFromPostgrestError(response, branch.error);
+    return logAndSendResponse(
+      null,
+      createErrorMessageFromPostgrestError(branch.error)
+    );
   } else if (!branch.data) {
-    return sendErrorResponse(
-      response,
+    return logAndSendResponse(
+      null,
       `Could not find branch for PR ${number}`,
       404
     );
@@ -231,16 +282,19 @@ async function handlePullRequestClosed(
     status: "closed",
   });
   if (branch.error) {
-    return sendErrorResponseFromPostgrestError(response, branch.error);
+    return logAndSendResponse(
+      null,
+      createErrorMessageFromPostgrestError(branch.error)
+    );
   } else {
-    return sendResponse<ResponseData>(response, null, 200);
+    return logAndSendResponse();
   }
 }
 
 async function handlePullRequestOpened(
   project: Project,
   params: RequestParams,
-  response: NextApiResponse<Response>
+  logAndSendResponse: LogAndSendResponse
 ) {
   const { number, pull_request: pullRequest } = params;
 
@@ -252,16 +306,19 @@ async function handlePullRequestOpened(
     status: "open",
   });
   if (branch.error) {
-    return sendErrorResponseFromPostgrestError(response, branch.error);
+    return logAndSendResponse(
+      null,
+      createErrorMessageFromPostgrestError(branch.error)
+    );
   } else {
-    return sendResponse<ResponseData>(response, null, 201);
+    return logAndSendResponse();
   }
 }
 
 async function handleWorkflowCompleted(
   project: Project,
   params: RequestParams,
-  response: NextApiResponse<Response>
+  logAndSendResponse: LogAndSendResponse
 ) {
   const { organization, repository, workflow_job: workflowJob } = params;
 
@@ -269,18 +326,21 @@ async function handleWorkflowCompleted(
 
   let branch = await getBranchFromProject(project.id, branchName);
   if (branch.error) {
-    return sendErrorResponseFromPostgrestError(response, branch.error);
+    return logAndSendResponse(
+      null,
+      createErrorMessageFromPostgrestError(branch.error)
+    );
   } else if (!branch.data) {
-    return sendErrorResponse(
-      response,
+    return logAndSendResponse(
+      null,
       `Could not find branch with name "${branchName}"`,
       404
     );
   }
 
   if (!branch.data.check_id) {
-    return sendErrorResponse(
-      response,
+    return logAndSendResponse(
+      null,
       `Branch ${branch.data.name} is missing check`,
       417
     );
@@ -289,10 +349,13 @@ async function handleWorkflowCompleted(
   const runId = "" + workflowJob.run_id;
   const action = await getActionFromRunId(runId);
   if (action.error) {
-    return sendErrorResponseFromPostgrestError(response, action.error);
+    return logAndSendResponse(
+      null,
+      createErrorMessageFromPostgrestError(action.error)
+    );
   } else if (!action.data) {
-    return sendErrorResponse(
-      response,
+    return logAndSendResponse(
+      null,
       `Could not find action for run ${runId}`,
       404
     );
@@ -301,10 +364,13 @@ async function handleWorkflowCompleted(
   const actionId = action.data.id;
   const snapshots = await getSnapshotsForAction(actionId);
   if (snapshots.error) {
-    return sendErrorResponseFromPostgrestError(response, snapshots.error);
+    return logAndSendResponse(
+      null,
+      createErrorMessageFromPostgrestError(snapshots.error)
+    );
   } else if (!snapshots.data) {
-    return sendErrorResponse(
-      response,
+    return logAndSendResponse(
+      null,
       `Could not find snapshots for run action ${actionId}`,
       404
     );
@@ -343,14 +409,17 @@ async function handleWorkflowCompleted(
       branch.data.pr_number
     );
     if (comment.status != 201) {
-      return sendErrorResponse(response, "Could not create comment");
+      return logAndSendResponse(null, "Could not create comment");
     }
 
     branch = await updateBranch(branch.data.id, {
       comment_id: comment.data.id,
     });
     if (branch.error) {
-      return sendErrorResponseFromPostgrestError(response, branch.error);
+      return logAndSendResponse(
+        null,
+        createErrorMessageFromPostgrestError(branch.error)
+      );
     }
   }
 
@@ -368,7 +437,7 @@ async function handleWorkflowCompleted(
       }
     );
     if (comment.status != 200) {
-      return sendErrorResponse(response, "Could not update comment");
+      return logAndSendResponse(null, "Could not update comment");
     }
   }
 
@@ -376,16 +445,20 @@ async function handleWorkflowCompleted(
     status: conclusion,
   });
   if (updatedAction.error) {
-    return sendErrorResponseFromPostgrestError(response, updatedAction.error);
+    return logAndSendResponse(
+      null,
+      createErrorMessageFromPostgrestError(updatedAction.error)
+    );
   }
 
-  return sendResponse<ResponseData>(response, null, 200);
+  return logAndSendResponse();
 }
 
 async function handleWorkflowQueued(
   project: Project,
   params: RequestParams,
-  response: NextApiResponse<Response>
+  logAndSendResponse: LogAndSendResponse,
+  httpMetadata: HTTPMetadata | null
 ) {
   const {
     organization,
@@ -398,10 +471,13 @@ async function handleWorkflowQueued(
 
   let branch = await getBranchFromProject(project.id, branchName);
   if (branch.error) {
-    return sendErrorResponseFromPostgrestError(response, branch.error);
+    return logAndSendResponse(
+      null,
+      createErrorMessageFromPostgrestError(branch.error)
+    );
   } else if (!branch.data) {
-    return sendErrorResponse(
-      response,
+    return logAndSendResponse(
+      null,
       `Could not find branch with name "${branchName}"`,
       404
     );
@@ -416,15 +492,19 @@ async function handleWorkflowQueued(
     summary: "",
   });
 
-  // TODO Update HTTPMetadata with new check.
-  // await updateHTTPMetadata(httpMetadata, { check });
+  if (httpMetadata) {
+    await updateHTTPMetadata(httpMetadata, { check });
+  }
 
   branch = await updateBranch(branch.data.id, {
     check_id: check.id != null ? "" + check.id : undefined,
     head_sha: workflowJob.head_sha,
   });
   if (branch.error) {
-    return sendErrorResponseFromPostgrestError(response, branch.error);
+    return logAndSendResponse(
+      null,
+      createErrorMessageFromPostgrestError(branch.error)
+    );
   }
 
   const action = await supabase
@@ -438,8 +518,11 @@ async function handleWorkflowQueued(
     })
     .single();
   if (action.error) {
-    return sendErrorResponseFromPostgrestError(response, action.error);
+    return logAndSendResponse(
+      null,
+      createErrorMessageFromPostgrestError(action.error)
+    );
   } else {
-    return sendResponse<ResponseData>(response, null);
+    return logAndSendResponse();
   }
 }

@@ -11,6 +11,12 @@ export type GenericResponse<ResponseData> =
   | ErrorResponse
   | SuccessResponse<ResponseData>;
 
+export function createErrorMessageFromPostgrestError(
+  postgrestError: PostgrestError
+): string {
+  return `Error code ${postgrestError.code}: ${postgrestError.message}\n\n${postgrestError.details}`;
+}
+
 export function isErrorResponse(
   response: GenericResponse<any>
 ): response is ErrorResponse {
@@ -61,7 +67,7 @@ export function sendErrorResponseFromPostgrestError(
 ): void {
   const json: ErrorResponse = {
     error: {
-      message: `Error code ${postgrestError.code}: ${postgrestError.message}\n\n${postgrestError.details}`,
+      message: createErrorMessageFromPostgrestError(postgrestError),
     },
   };
 

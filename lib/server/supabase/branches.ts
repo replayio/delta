@@ -6,13 +6,13 @@ import { Branch, supabase } from "./supabase";
 
 export async function getBranchFromProject(
   projectId: string,
-  branch: string
+  branchName: string
 ): Promise<PostgrestSingleResponse<Branch>> {
   return supabase
     .from("Branches")
     .select("*")
     .eq("project_id", projectId)
-    .like("name", `%${branch}`)
+    .eq("name", `${branchName}`)
     .order("created_at", { ascending: false })
     .limit(1)
     .single();

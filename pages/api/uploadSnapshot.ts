@@ -23,7 +23,7 @@ export type Image = {
 };
 
 export type RequestParams = {
-  branch: string;
+  branchName: string;
   image: Image;
   projectId: string;
   runId: string;
@@ -38,16 +38,13 @@ export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  const {
-    branch: branchName,
-    image,
-    projectId,
-    runId,
-  } = request.body as RequestParams;
+  const { branchName, projectId, runId } =
+    request.query as Partial<RequestParams>;
+  const { image } = request.body as Partial<RequestParams>;
   if (!branchName || !image || !projectId || !runId) {
     return sendErrorResponse(
       response,
-      'Missing required param(s) "branch", "image", "projectId", or "runId"',
+      'Missing required param(s) "branchName", "image", "projectId", or "runId"',
       422
     );
   }

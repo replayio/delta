@@ -3,12 +3,14 @@ import { getBranchFromProject } from "./branches";
 import { getActionFromBranch } from "./actions";
 
 export async function incrementActionNumSnapshotsChanged(
-  projectId,
-  branchName
+  projectId: string,
+  branchName: string
 ) {
   const branch = await getBranchFromProject(projectId, branchName);
   if (branch.error) {
-    return createError(`Branch not found for ${branchName}`);
+    return createError(
+      `Branch with name "${branchName}" not found for project "${projectId}"`
+    );
   }
   const action = await getActionFromBranch(branch.data.id);
   if (action.error) {

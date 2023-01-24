@@ -7,6 +7,7 @@ import {
   sendErrorResponseFromPostgrestError,
   sendErrorResponse,
   sendResponse,
+  sendErrorMissingParametersResponse,
 } from "./utils";
 
 export type RequestParams = {
@@ -23,11 +24,7 @@ export default async function handler(
 ) {
   const { projectId } = request.query as RequestParams;
   if (!projectId) {
-    return sendErrorResponse(
-      response,
-      'Missing required param "projectId"',
-      422
-    );
+    return sendErrorMissingParametersResponse(response, { projectId });
   }
 
   const { data, error } = await supabase

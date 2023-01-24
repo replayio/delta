@@ -8,6 +8,7 @@ import {
   sendErrorResponseFromPostgrestError,
   sendErrorResponse,
   sendResponse,
+  sendErrorMissingParametersResponse,
 } from "./utils";
 
 export type RequestParams = {
@@ -23,11 +24,10 @@ export default async function handler(
 ) {
   const { actionId, projectId } = request.query as RequestParams;
   if (!actionId || !projectId) {
-    return sendErrorResponse(
-      response,
-      'Missing required param(s) "actionId" or "projectId"',
-      422
-    );
+    return sendErrorMissingParametersResponse(response, {
+      actionId,
+      projectId,
+    });
   }
 
   const { data: actionData, error: actionError } = await getAction(actionId);

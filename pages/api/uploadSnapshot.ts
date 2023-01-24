@@ -15,6 +15,7 @@ import {
   sendErrorResponseFromPostgrestError,
   sendErrorResponse,
   sendResponse,
+  sendErrorMissingParametersResponse,
 } from "./utils";
 
 export type Image = {
@@ -42,11 +43,12 @@ export default async function handler(
     request.query as Partial<RequestParams>;
   const { image } = request.body as Partial<RequestParams>;
   if (!branchName || !image || !projectId || !runId) {
-    return sendErrorResponse(
-      response,
-      'Missing required param(s) "branchName", "image", "projectId", or "runId"',
-      422
-    );
+    return sendErrorMissingParametersResponse(response, {
+      branchName,
+      image,
+      projectId,
+      runId,
+    });
   }
 
   try {

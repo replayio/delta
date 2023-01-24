@@ -44,11 +44,7 @@ export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  const { branchId, projectId, status } = request.query as {
-    branchId: string;
-    projectId: string;
-    status: BranchStatus;
-  };
+  const { branchId, projectId, status } = request.query as RequestParams;
   if (!branchId || !projectId || !status) {
     return sendErrorResponse(
       response,

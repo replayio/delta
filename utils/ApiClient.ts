@@ -143,14 +143,15 @@ export async function updateBranchStatus(
 export async function uploadSnapshot(
   params: UploadSnapshotRequestParams
 ): Promise<UploadSnapshotResponseData> {
+  const { image, ...rest } = params;
   return fetchDataFromEndpoint<UploadSnapshotResponseData>(
-    `/api/uploadSnapshot`,
+    `/api/uploadSnapshot?${paramsToUrlString(rest)}`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(params),
+      body: JSON.stringify({ image }),
     }
   );
 }

@@ -98,15 +98,17 @@ export async function insertSnapshot(
 ): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
   const branch = await getBranchFromProject(projectId, branchName);
   if (branch.error) {
-    return createError(`Branch not found for ${branchName}`);
+    return createError(
+      `Branch with name "${branchName}" not found for project "${projectId}"`
+    );
   }
 
   const action = await getActionFromBranch(branch.data.id, runId);
   if (action.error) {
     return createError(
-      `Action not found for ${branchName} and ${
+      `Action not found for branch ${
         branch.data.id
-      }: ${JSON.stringify(action.error)}`
+      } ("${branchName}") and run ${runId}\n\n${JSON.stringify(action.error)}`
     );
   }
 

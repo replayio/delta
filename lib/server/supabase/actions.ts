@@ -9,7 +9,6 @@ export async function getActionFromBranch(
   runId?: string
 ): Promise<PostgrestSingleResponse<Action>> {
   let query = supabase.from("Actions").select("*").eq("branch_id", branch_id);
-
   if (runId) {
     query = query.eq("run_id", runId);
   }

@@ -1,11 +1,12 @@
 import { PostgrestError } from "@supabase/supabase-js";
 import { NextApiResponse } from "next";
 
-export type ErrorWithCode = {
+export type ErrorLike = {
   message: string;
+  [key: string]: string | number | boolean;
 };
 
-export type ErrorResponse = { error: ErrorWithCode };
+export type ErrorResponse = { error: ErrorLike | { message: string } };
 export type SuccessResponse<ResponseData> = { data: ResponseData };
 export type GenericResponse<ResponseData> =
   | ErrorResponse
@@ -31,13 +32,11 @@ export function isSuccessResponse<ResponseData>(
 
 export function sendErrorResponse(
   response: NextApiResponse,
-  message: string,
+  error: ErrorLike | string,
   statusCode: number = 500
 ): void {
   const json: ErrorResponse = {
-    error: {
-      message,
-    },
+    error: typeof error === "string" ? { message: error } : error,
   };
 
   response.setHeader("Content-Type", "application/json");

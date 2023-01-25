@@ -38,8 +38,8 @@ import {
   sendErrorResponse,
   sendResponse,
   createErrorMessageFromPostgrestError,
+  ErrorLike,
 } from "./utils";
-import { safeStringify } from "../../lib/server/json";
 
 const supabase = createClient();
 
@@ -94,7 +94,7 @@ export type Response = GenericResponse<ResponseData>;
 
 type LogAndSendResponse = (
   data?: ResponseData | null,
-  error?: string | null,
+  error?: ErrorLike | string | null,
   code?: number
 ) => Promise<void>;
 
@@ -114,14 +114,20 @@ export default async function handler(
   // Helper thats logs debug information to Supabase before sending an HTTP response.
   const logAndSendResponse: LogAndSendResponse = async (
     data: ResponseData | null = null,
-    error: string | null = null,
+    error: ErrorLike | string | null = null,
     code?: number
   ) => {
     const httpMetadataId = httpMetadata?.data?.id ?? null;
     const projectId = project?.data?.id ?? null;
     if (httpMetadataId != null && projectId != null) {
       await insertHTTPEvent(httpMetadataId, projectId, {
-        request,
+        request: {
+          body: request.body,
+          method: request.method,
+          query: request.query,
+          rawHeaders: request.rawHeaders,
+          url: request.url,
+        },
         response: {
           code,
           data,
@@ -428,10 +434,10 @@ async function handleWorkflowCompleted(
     );
     if (!comment.data) {
       console.error("Create comment error:\n", comment);
-      return logAndSendResponse(
-        null,
-        `Create comment error:\n\n${safeStringify(comment)}`
-      );
+      return logAndSendResponse(null, {
+        message: "Create comment failed",
+        details: comment,
+      });
     }
 
     branch = await updateBranch(branch.data.id, {
@@ -460,10 +466,10 @@ async function handleWorkflowCompleted(
     );
     if (!comment.data) {
       console.error("Update comment error:\n", comment);
-      return logAndSendResponse(
-        null,
-        `Update comment error:\n\n${safeStringify(comment)}`
-      );
+      return logAndSendResponse(null, {
+        message: "Update comment failed",
+        details: comment,
+      });
     }
   }
 

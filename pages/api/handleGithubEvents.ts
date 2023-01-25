@@ -432,7 +432,7 @@ async function handleWorkflowCompleted(
       repository.name,
       branch.data.pr_number
     );
-    if (!comment.data) {
+    if (!comment.id) {
       console.error("Create comment error:\n", comment);
       return logAndSendResponse(null, {
         message: "Create comment failed",
@@ -441,7 +441,7 @@ async function handleWorkflowCompleted(
     }
 
     branch = await updateBranch(branch.data.id, {
-      comment_id: comment.data.id,
+      comment_id: comment.id,
     });
     if (branch.error) {
       return logAndSendResponse(
@@ -464,7 +464,7 @@ async function handleWorkflowCompleted(
         }),
       }
     );
-    if (!comment.data) {
+    if (!comment.id) {
       console.error("Update comment error:\n", comment);
       return logAndSendResponse(null, {
         message: "Update comment failed",

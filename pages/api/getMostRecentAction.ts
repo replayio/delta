@@ -1,19 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import createClient from "../../lib/initServerSupabase";
-import { Branch } from "../../lib/server/supabase/supabase";
+import { Action } from "../../lib/server/supabase/supabase";
 import {
   GenericResponse,
   sendErrorResponseFromPostgrestError,
   sendErrorResponse,
   sendResponse,
-  sendErrorMissingParametersResponse,
 } from "./utils";
 
 export type RequestParams = {
-  projectId: string;
+  branchId: string;
 };
-export type ResponseData = Branch[];
+export type ResponseData = Action;
 export type Response = GenericResponse<ResponseData>;
 
 const supabase = createClient();
@@ -22,27 +21,24 @@ export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  const { projectId } = request.query as RequestParams;
-  if (!projectId) {
-    return sendErrorMissingParametersResponse(response, { projectId });
-  }
+  const { branchId } = request.query as RequestParams;
 
   const { data, error } = await supabase
-    .from("Branches")
+    .from("Actions")
     .select("*")
-    .eq("project_id", projectId)
-    .eq("status", "open")
+    .eq("branch_id", branchId)
     .order("created_at", { ascending: false })
-    .limit(1000);
+    .limit(1);
 
   if (error) {
     return sendErrorResponseFromPostgrestError(response, error);
-  } else if (!data) {
+  } else if (!data || data.length === 0) {
     return sendErrorResponse(
       response,
-      `No branches found for project id "${projectId}"`
+      `No actions found for branch id "${branchId}"`,
+      404
     );
   } else {
-    return sendResponse<ResponseData>(response, data);
+    return sendResponse<ResponseData>(response, data[0]);
   }
 }

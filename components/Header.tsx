@@ -1,6 +1,10 @@
 import moment from "moment";
 import Image from "next/image";
+import Link from "next/link";
+import { Suspense } from "react";
 import { Action, Branch, Project } from "../lib/server/supabase/supabase";
+import { fetchMostRecentActionForBranchSuspense } from "../suspense/ActionCache";
+import classNames from "../utils/classNames";
 import { ApproveButton } from "./ApproveButton";
 import Dropdown from "./Dropdown";
 import { Github } from "./SVGs";
@@ -45,13 +49,13 @@ export function Header({
         <Dropdown
           align="left"
           options={branches.map((branch) => ({
-            // TODO Show number of changed snapshots in a branch;
-            // This will require a merged data type from the server
-            badge: branch.pr_number,
-            href: `/project/${project.short}/?branch=${branch.name}`,
             isSelected: branch.name === currentBranch?.name,
             key: branch.id,
-            name: branch.name,
+            render: () => (
+              <Suspense fallback="Loading...">
+                <BranchDropDownItem branch={branch} project={project} />
+              </Suspense>
+            ),
           }))}
           selected={currentBranch?.name ?? "–"}
         />
@@ -66,11 +70,15 @@ export function Header({
           <Dropdown
             align="right"
             options={actions.map((action) => ({
-              badge: action.num_snapshots_changed || "-",
-              href: `/project/${project.short}/?branch=${currentBranch?.name}&action=${action.id}`,
               isSelected: action.id == currentAction?.id,
               key: action.id,
-              name: relativeTime(action.created_at),
+              render: () => (
+                <ActionDropDownItem
+                  action={action}
+                  currentBranchName={currentBranch?.name || ""}
+                  project={project}
+                />
+              ),
             }))}
             selected={
               currentAction ? relativeTime(currentAction.created_at) : "-"
@@ -96,6 +104,75 @@ export function Header({
         )}
       </div>
     </div>
+  );
+}
+
+function ActionDropDownItem({
+  action,
+  currentBranchName,
+  project,
+}: {
+  action: Action;
+  currentBranchName: string;
+  project: Project;
+}) {
+  const count = action.num_snapshots_changed || 0;
+
+  return (
+    <Link
+      className="h-full w-full"
+      href={`/project/${project.short}/?branch=${currentBranchName}&action=${action.id}`}
+    >
+      <div className="flex justify-between w-full">
+        <div
+          className={classNames(
+            "truncate pr-4",
+            count === 0 && "text-slate-400"
+          )}
+        >
+          {relativeTime(action.created_at)}
+        </div>
+        {count > 0 && (
+          <div className="bg-violet-500 px-2 rounded text-white text-xs font-bold flex items-center">
+            {count}
+          </div>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+function BranchDropDownItem({
+  branch,
+  project,
+}: {
+  branch: Branch;
+  project: Project;
+}) {
+  const action = fetchMostRecentActionForBranchSuspense(branch.id);
+  const count = action.num_snapshots_changed || 0;
+
+  return (
+    <Link
+      className="h-full w-full"
+      href={`/project/${project.short}/?branch=${branch.name}`}
+    >
+      <div className="flex justify-between w-full">
+        <div
+          className={classNames(
+            "truncate pr-4",
+            count === 0 && "text-slate-400"
+          )}
+        >
+          {branch.name}
+        </div>
+        {count > 0 && (
+          <div className="bg-violet-500 px-2 rounded text-white text-xs font-bold flex items-center">
+            {count}
+          </div>
+        )}
+      </div>
+    </Link>
   );
 }
 

@@ -1,5 +1,5 @@
 import { createGenericCache } from "./createGenericCache";
-import { getActions } from "../utils/ApiClient";
+import { getActions, getMostRecentAction } from "../utils/ApiClient";
 import { Action } from "../lib/server/supabase/supabase";
 
 export const {
@@ -8,5 +8,14 @@ export const {
   getValueIfCached: fetchActionsIfCached,
 } = createGenericCache<[branchId: string], Action[]>(
   (branchId: string) => getActions({ branchId }),
+  (branchId: string) => branchId
+);
+
+export const {
+  getValueSuspense: fetchMostRecentActionForBranchSuspense,
+  getValueAsync: fetchMostRecentActionForBranchAsync,
+  getValueIfCached: fetchMostRecentActionForBranchIfCached,
+} = createGenericCache<[branchId: string], Action>(
+  (branchId: string) => getMostRecentAction({ branchId }),
   (branchId: string) => branchId
 );

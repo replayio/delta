@@ -25,7 +25,7 @@ export type Branch = {
   created_at: string;
   check_id: string;
   comment_id: string;
-  status: string;
+  status?: "closed" | "open";
   head_sha: string;
 };
 

@@ -1,17 +1,11 @@
 import { Menu, Transition } from "@headlessui/react";
 import { FormEventHandler, Fragment, ReactNode } from "react";
-import Link from "next/link";
-
-function classNames(...classes) {
-  return classes.filter(Boolean).join(" ");
-}
+import classNames from "../utils/classNames";
 
 type Option = {
-  badge: ReactNode;
+  isSelected: Boolean;
   key: string;
-  href: string;
-  isSelected: boolean;
-  name: string;
+  render: (isActive: boolean) => ReactNode;
 };
 
 export default function Dropdown({
@@ -54,24 +48,16 @@ export default function Dropdown({
           {options.map((option) => (
             <Menu.Item key={option.key}>
               {({ active }) => (
-                <Link
-                  href={option.href}
+                <div
                   className={classNames(
                     active || option.isSelected
                       ? "bg-gray-100 text-gray-900"
                       : "text-gray-700",
-                    "block px-4 py-2 text-sm  "
+                    "block px-4 py-2 text-sm"
                   )}
                 >
-                  <div className="flex justify-between w-full">
-                    <div className="truncate pr-4">{option.name}</div>
-                    {option.badge !== undefined && (
-                      <div className="bg-violet-500 px-2 rounded text-white text-xs font-bold flex items-center">
-                        {option.badge}
-                      </div>
-                    )}
-                  </div>
-                </Link>
+                  {option.render(active)}
+                </div>
               )}
             </Menu.Item>
           ))}

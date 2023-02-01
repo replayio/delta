@@ -127,8 +127,9 @@ function ShortWithData({
   project: Project;
   snapshotFiles: SnapshotFile[] | null;
 }) {
-  // TODO Render branches without changes dim (or not at all?)
-  const shownBranches = branches;
+  const shownBranches = branches.filter(
+    (branch) => branch.name !== project.primary_branch
+  );
 
   return (
     <div className="h-full flex flex-col overflow-hidden">

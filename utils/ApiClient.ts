@@ -7,6 +7,10 @@ import type {
   ResponseData as GetActionsResponseData,
 } from "../pages/api/getActions";
 import type {
+  RequestParams as GetMostRecentActionRequestParams,
+  ResponseData as GetMostRecentActionResponseData,
+} from "../pages/api/getMostRecentAction";
+import type {
   RequestParams as GetBranchByNameRequestParams,
   ResponseData as GetBranchByNameResponseData,
 } from "../pages/api/getBranchByName";
@@ -65,6 +69,14 @@ export async function getActions(
 ): Promise<GetActionsResponseData> {
   return fetchDataFromEndpoint<GetActionsResponseData>(
     `/api/getActions?${paramsToUrlString(params)}`
+  );
+}
+
+export async function getMostRecentAction(
+  params: GetMostRecentActionRequestParams
+): Promise<GetMostRecentActionResponseData> {
+  return fetchDataFromEndpoint<GetMostRecentActionResponseData>(
+    `/api/getMostRecentAction?${paramsToUrlString(params)}`
   );
 }
 

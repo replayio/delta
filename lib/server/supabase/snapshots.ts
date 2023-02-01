@@ -9,6 +9,7 @@ import {
   ResponseError,
   createError,
   Action,
+  SnapshotStatus,
 } from "./supabase";
 import { getBranchFromProject } from "./branches";
 import {
@@ -94,7 +95,7 @@ export async function insertSnapshot(
   projectId: string,
   image: Image,
   runId: string,
-  uploadStatus: string | null
+  uploadStatus: SnapshotStatus | null
 ): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
   const branch = await getBranchFromProject(projectId, branchName);
   if (branch.error) {

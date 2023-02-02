@@ -7,6 +7,10 @@ import type {
   ResponseData as GetActionsResponseData,
 } from "../pages/api/getActions";
 import type {
+  RequestParams as GetMostFrequentlyUpdatedSnapshotsRequestParams,
+  ResponseData as GetMostFrequentlyUpdatedSnapshotsResponseData,
+} from "../pages/api/getMostFrequentlyUpdatedSnapshots";
+import type {
   RequestParams as GetMostRecentActionRequestParams,
   ResponseData as GetMostRecentActionResponseData,
 } from "../pages/api/getMostRecentAction";
@@ -69,6 +73,14 @@ export async function getActions(
 ): Promise<GetActionsResponseData> {
   return fetchDataFromEndpoint<GetActionsResponseData>(
     `/api/getActions?${paramsToUrlString(params)}`
+  );
+}
+
+export async function getMostFrequentlyUpdatedSnapshots(
+  params: GetMostFrequentlyUpdatedSnapshotsRequestParams
+): Promise<GetMostFrequentlyUpdatedSnapshotsResponseData> {
+  return fetchDataFromEndpoint<GetMostFrequentlyUpdatedSnapshotsResponseData>(
+    `/api/getMostFrequentlyUpdatedSnapshots?${paramsToUrlString(params)}`
   );
 }
 

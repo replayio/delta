@@ -16,6 +16,8 @@ export type Project = {
   short: string;
 };
 
+export type BranchStatus = "closed" | "open";
+
 export type Branch = {
   id: string;
   name: string;
@@ -25,9 +27,11 @@ export type Branch = {
   created_at: string;
   check_id: string;
   comment_id: string;
-  status?: "closed" | "open";
+  status: BranchStatus | null;
   head_sha: string;
 };
+
+export type ActionStatus = "success" | "failure" | "neutral";
 
 export type Action = {
   id: string;
@@ -36,10 +40,12 @@ export type Action = {
   run_id: string;
   head_sha: string;
   actor: string;
-  status?: "success" | "failure" | "neutral";
+  status: ActionStatus | null;
   num_snapshots: number;
   num_snapshots_changed: number;
 };
+
+export type SnapshotStatus = "Duplicate" | "Uploaded";
 
 export type Snapshot = {
   id: string;
@@ -60,7 +66,7 @@ export type Snapshot = {
   // Used for debugging; not exposed in the web UI.
   primary_num_pixels: number | null;
   // e.g. "Uploaded", "Duplicate"
-  status: string | null;
+  status: SnapshotStatus | null;
 };
 
 export type ResponseError = {

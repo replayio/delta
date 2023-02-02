@@ -9,7 +9,7 @@ import { uploadSnapshot } from "../../lib/server/supabase/storage";
 import { diffWithPrimaryBranch } from "../../lib/server/diffWithPrimaryBranch";
 import { incrementActionNumSnapshotsChanged } from "../../lib/server/supabase/incrementActionNumSnapshotsChanged";
 import { isPostgrestError } from "../../lib/server/supabase/errors";
-import { Snapshot } from "../../lib/server/supabase/supabase";
+import { Snapshot, SnapshotStatus } from "../../lib/server/supabase/supabase";
 import {
   GenericResponse,
   sendErrorResponseFromPostgrestError,
@@ -55,7 +55,9 @@ export default async function handler(
     const uploadResult = await uploadSnapshot(image.content, projectId);
 
     // Duplicates will fail to upload, but that's okay.
-    const uploadStatus = uploadResult.error || "Uploaded";
+    const uploadStatus: SnapshotStatus = uploadResult.error
+      ? "Duplicate"
+      : "Uploaded";
 
     const insertedSnapshot = await insertSnapshot(
       branchName,

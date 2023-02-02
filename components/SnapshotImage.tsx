@@ -1,7 +1,13 @@
 import Image from "next/image";
 import { fetchSnapshotSuspense } from "../suspense/SnapshotCache";
 
-export default function SnapshotImage({ path }: { path: string }) {
+export default function SnapshotImage({
+  className,
+  path,
+}: {
+  className?: string;
+  path: string;
+}) {
   const { base64String, height, width } = fetchSnapshotSuspense(path);
 
   // if (process.env.NODE_ENV === "development") {
@@ -15,6 +21,7 @@ export default function SnapshotImage({ path }: { path: string }) {
   return (
     <Image
       alt="Snapshot image"
+      className={className}
       height={height}
       src={`data:image/png;base64,${base64String}`}
       width={width}

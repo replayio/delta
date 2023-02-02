@@ -1,8 +1,10 @@
 import sortedIndexBy from "lodash/sortedIndexBy";
 
 import { Snapshot } from "../lib/server/supabase/supabase";
+import { ResponseData } from "../pages/api/getMostFrequentlyUpdatedSnapshots";
 import {
   downloadSnapshot,
+  getMostFrequentlyUpdatedSnapshots,
   getSnapshotDiff,
   getSnapshotsForAction,
   getSnapshotsForBranch,
@@ -41,6 +43,22 @@ export type SnapshotFile = {
     light: SnapshotVariant | null;
   };
 };
+
+// Fetch list of snapshots for a branch
+export const {
+  getValueSuspense: fetchFrequentlyUpdatedSnapshotsSuspense,
+  getValueAsync: fetchFrequentlyUpdatedSnapshotsAsync,
+  getValueIfCached: fetchFrequentlyUpdatedSnapshotsIfCached,
+} = createGenericCache<[projectShort: string, afterDate: string], ResponseData>(
+  (projectShort: string, afterDate: string) =>
+    getMostFrequentlyUpdatedSnapshots({
+      afterDate,
+      projectId: "",
+      projectShort,
+    }),
+  (projectShort: string, afterDate: string) =>
+    JSON.stringify({ afterDate, projectShort })
+);
 
 // Fetch base64 encoded snapshot image (with dimensions)
 export const {
@@ -276,6 +294,10 @@ async function createSnapshotImage(
       reject(error);
     }
   });
+}
+
+function formatDate(date: Date): string {
+  return date.toISOString().split("T")[0];
 }
 
 function parseFilePath(

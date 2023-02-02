@@ -9,6 +9,7 @@ import {
   ResponseError,
   createError,
   Action,
+  SnapshotStatus,
 } from "./supabase";
 import { getBranchFromProject } from "./branches";
 import {
@@ -45,6 +46,17 @@ export async function getSnapshotFromBranch(
     .order("created_at", { ascending: false })
     .limit(1)
     .single();
+}
+
+export async function getChangedSnapshotsForActions(
+  actionIds: string[]
+): Promise<PostgrestResponse<Snapshot>> {
+  return await supabase
+    .from("Snapshots")
+    .select("action_id, id, file, path, primary_diff_path")
+    .in("action_id", actionIds)
+    .is("primary_changed", true)
+    .order("file", { ascending: true });
 }
 
 export async function getSnapshotsFromBranch(
@@ -94,7 +106,7 @@ export async function insertSnapshot(
   projectId: string,
   image: Image,
   runId: string,
-  uploadStatus: string | null
+  uploadStatus: SnapshotStatus | null
 ): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
   const branch = await getBranchFromProject(projectId, branchName);
   if (branch.error) {

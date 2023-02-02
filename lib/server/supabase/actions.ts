@@ -44,6 +44,23 @@ export async function getAction(
   return supabase.from("Actions").select("*").eq("id", actionId).single();
 }
 
+export async function getMostRecentActionsFromProject(
+  project_id: string,
+  afterDate?: string
+): Promise<PostgrestSingleResponse<Action[]>> {
+  let query = supabase
+    .from("Actions")
+    .select("id, Branches ( name )")
+    .eq("Branches.project_id", project_id)
+    .gt("num_snapshots_changed", "0");
+
+  if (afterDate) {
+    query.gte("created_at", afterDate);
+  }
+
+  return query.limit(1000);
+}
+
 export async function updateAction(
   actionId: string,
   action: Partial<Action>

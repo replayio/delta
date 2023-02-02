@@ -53,7 +53,7 @@ export async function getChangedSnapshotsForActions(
 ): Promise<PostgrestResponse<Snapshot>> {
   return await supabase
     .from("Snapshots")
-    .select("action_id, id, file, path")
+    .select("action_id, id, file, path, primary_diff_path")
     .in("action_id", actionIds)
     .is("primary_changed", true)
     .order("file", { ascending: true });

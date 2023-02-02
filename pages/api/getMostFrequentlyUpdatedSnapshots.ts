@@ -2,10 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getMostRecentActionsFromProject } from "../../lib/server/supabase/actions";
 import { getChangedSnapshotsForActions } from "../../lib/server/supabase/snapshots";
 
-import {
-  getProjectByShort,
-  Snapshot,
-} from "../../lib/server/supabase/supabase";
+import { getProjectByShort } from "../../lib/server/supabase/supabase";
 import {
   GenericResponse,
   sendErrorResponseFromPostgrestError,
@@ -14,9 +11,17 @@ import {
   sendErrorMissingParametersResponse,
 } from "./utils";
 
-type SnapshotMetadata = {
+export type PathMetadata = {
   count: number;
-} & Pick<Snapshot, "file" | "path">;
+  diffPath: string;
+  path: string;
+};
+
+export type SnapshotMetadata = {
+  count: number;
+  file: string;
+  paths: PathMetadata[];
+};
 
 export type RequestParams = {
   afterDate: string;
@@ -89,17 +94,33 @@ export default async function handler(
   } else if (!snapshotsData) {
     return sendErrorResponse(response, `No matching snapshots found`, 404);
   } else {
+    const pathMetadataMap = new Map<string, PathMetadata>();
     const snapshotFileToMetadataMap = new Map<string, SnapshotMetadata>();
     snapshotsData.forEach((snapshot) => {
-      const metadata = snapshotFileToMetadataMap.get(snapshot.file) ?? {
+      const metadata: SnapshotMetadata = snapshotFileToMetadataMap.get(
+        snapshot.file
+      ) ?? {
         count: 0,
         file: snapshot.file,
+        paths: [],
+      };
+
+      const key = `${snapshot.file}:${snapshot.path}}`;
+      const pathMetadata = pathMetadataMap.get(key) ?? {
+        count: 0,
+        diffPath: snapshot.primary_diff_path!,
         path: snapshot.path,
       };
+      pathMetadata.count++;
+      pathMetadataMap.set(key, pathMetadata);
 
       snapshotFileToMetadataMap.set(snapshot.file, {
         ...metadata,
         count: metadata.count + 1,
+        paths:
+          pathMetadata.count === 1
+            ? [...metadata.paths, pathMetadata]
+            : metadata.paths,
       });
     });
 

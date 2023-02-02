@@ -48,6 +48,17 @@ export async function getSnapshotFromBranch(
     .single();
 }
 
+export async function getChangedSnapshotsForActions(
+  actionIds: string[]
+): Promise<PostgrestResponse<Snapshot>> {
+  return await supabase
+    .from("Snapshots")
+    .select("action_id, id, file, path")
+    .in("action_id", actionIds)
+    .is("primary_changed", true)
+    .order("file", { ascending: true });
+}
+
 export async function getSnapshotsFromBranch(
   projectId: string,
   branchName: string

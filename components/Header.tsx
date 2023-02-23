@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Action, Branch, Project } from "../lib/server/supabase/supabase";
 import { fetchMostRecentActionForBranchSuspense } from "../suspense/ActionCache";
+import { isThennable } from "../suspense/isThennable";
 import classNames from "../utils/classNames";
 import { ApproveButton } from "./ApproveButton";
 import Dropdown from "./Dropdown";
@@ -149,8 +150,18 @@ function BranchDropDownItem({
   branch: Branch;
   project: Project;
 }) {
-  const action = fetchMostRecentActionForBranchSuspense(branch.id);
-  const count = action.num_snapshots_changed || 0;
+  let action: Action | null = null;
+  try {
+    action = fetchMostRecentActionForBranchSuspense(branch.id);
+  } catch (errorOrThennable) {
+    if (isThennable(errorOrThennable)) {
+      throw errorOrThennable;
+    } else {
+      // Ignore branches with no actions.
+    }
+  }
+
+  const count = action?.num_snapshots_changed || 0;
 
   return (
     <Link

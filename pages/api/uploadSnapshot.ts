@@ -52,6 +52,7 @@ export default async function handler(
   }
 
   try {
+    console.log("Uploading snapshot");
     const uploadResult = await uploadSnapshot(image.content, projectId);
 
     // Duplicates will fail to upload, but that's okay.
@@ -59,6 +60,7 @@ export default async function handler(
       ? "Duplicate"
       : "Uploaded";
 
+    console.log("Inserting snapshot");
     const insertedSnapshot = await insertSnapshot(
       branchName,
       projectId,
@@ -74,6 +76,7 @@ export default async function handler(
 
     let snapshot: Snapshot | null = insertedSnapshot.data;
     if (!snapshot) {
+      console.log("Getting previous snapshot");
       const previousSnapshot = await getSnapshotFromBranch(
         image.file,
         projectId,
@@ -95,12 +98,14 @@ export default async function handler(
       return sendErrorResponse(response, "Could not find snapshot");
     }
 
+    console.log("Diffing snapshots");
     const primaryDiff = await diffWithPrimaryBranch(
       projectId,
       branchName,
       image
     );
 
+    console.log("Updating snapshot");
     const updatedSnapshot = await updateSnapshot(snapshot.id, {
       primary_changed: primaryDiff.changed,
       primary_diff_path: primaryDiff.diffSnapshot?.path,
@@ -119,6 +124,7 @@ export default async function handler(
 
     return sendResponse<ResponseData>(response, updatedSnapshot.data);
   } catch (error) {
+    console.error("uploadSnapshot caught error:", error);
     return sendErrorResponse(
       response,
       typeof error === "string" ? error : error.message ?? "Error"

@@ -2,6 +2,7 @@ import createClient from "../../initServerSupabase";
 import { createHash } from "crypto";
 
 import type { FileObject } from "@supabase/storage-js";
+import { retryOnError } from "./supabase";
 
 const supabase = createClient();
 const Buffer = require("buffer").Buffer;
@@ -27,9 +28,11 @@ export async function uploadSnapshot(
     content = Buffer.from(content, "base64");
   }
 
-  const res = await supabase.storage.from("snapshots").upload(path, content, {
-    contentType: "image/png",
-  });
+  const res = await retryOnError(() =>
+    supabase.storage.from("snapshots").upload(path, content, {
+      contentType: "image/png",
+    })
+  );
 
   if (res.error) {
     return { error: (res.error as any).error, data: { sha, path } };
@@ -41,9 +44,9 @@ export async function uploadSnapshot(
 export async function downloadSnapshot(
   path: string
 ): Promise<{ error: Error | null; data: string | null }> {
-  const { data, error } = await supabase.storage
-    .from("snapshots")
-    .download(path);
+  const { data, error } = await retryOnError(() =>
+    supabase.storage.from("snapshots").download(path)
+  );
 
   if (data == null || error) {
     return { error, data: null };
@@ -58,11 +61,11 @@ export async function downloadSnapshot(
 export async function listSnapshots(
   projectId: string
 ): Promise<{ data: FileObject[] | null; error: string | null }> {
-  const { data, error } = await supabase.storage
-    .from("snapshots")
-    .list(projectId, {
+  const { data, error } = await retryOnError(() =>
+    supabase.storage.from("snapshots").list(projectId, {
       limit: 100,
-    });
+    })
+  );
 
   if (error) {
     return { error: error as any, data: null };
@@ -88,7 +91,9 @@ export async function removeCorruptedSnapshots(projectId: string) {
     return;
   }
 
-  return supabase.storage
-    .from("snapshots")
-    .remove(snapshots.map((s) => `${projectId}/${s.name}`));
+  return retryOnError(() =>
+    supabase.storage
+      .from("snapshots")
+      .remove(snapshots.map((s) => `${projectId}/${s.name}`))
+  );
 }

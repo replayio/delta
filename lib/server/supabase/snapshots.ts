@@ -10,6 +10,7 @@ import {
   createError,
   Action,
   SnapshotStatus,
+  retryOnError,
 } from "./supabase";
 import { getBranchFromProject } from "./branches";
 import {
@@ -38,25 +39,29 @@ export async function getSnapshotFromBranch(
     return { error: { message: "Action not found", code: null }, data: null };
   }
 
-  return supabase
-    .from("Snapshots")
-    .select("*")
-    .eq("file", file)
-    .eq("action_id", action.data.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
+  return retryOnError(() =>
+    supabase
+      .from("Snapshots")
+      .select("*")
+      .eq("file", file)
+      .eq("action_id", action.data.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single()
+  );
 }
 
 export async function getChangedSnapshotsForActions(
   actionIds: string[]
 ): Promise<PostgrestResponse<Snapshot>> {
-  return await supabase
-    .from("Snapshots")
-    .select("action_id, id, file, path, primary_diff_path")
-    .in("action_id", actionIds)
-    .is("primary_changed", true)
-    .order("file", { ascending: true });
+  return await retryOnError(() =>
+    supabase
+      .from("Snapshots")
+      .select("action_id, id, file, path, primary_diff_path")
+      .in("action_id", actionIds)
+      .is("primary_changed", true)
+      .order("file", { ascending: true })
+  );
 }
 
 export async function getSnapshotsFromBranch(
@@ -92,13 +97,17 @@ export async function getSnapshotsFromBranch(
 export async function getSnapshotFromAction(
   action: Action
 ): Promise<PostgrestResponse<Snapshot>> {
-  return supabase.from("Snapshots").select("*").eq("action_id", action.id);
+  return retryOnError(() =>
+    supabase.from("Snapshots").select("*").eq("action_id", action.id)
+  );
 }
 
 export async function getSnapshotsForAction(
   actionId: string
 ): Promise<PostgrestResponse<Snapshot>> {
-  return supabase.from("Snapshots").select("*").eq("action_id", actionId);
+  return retryOnError(() =>
+    supabase.from("Snapshots").select("*").eq("action_id", actionId)
+  );
 }
 
 export async function insertSnapshot(
@@ -135,16 +144,16 @@ export async function insertSnapshot(
     status: uploadStatus,
   };
 
-  return supabase.from("Snapshots").insert(snapshot).single();
+  return retryOnError(() =>
+    supabase.from("Snapshots").insert(snapshot).single()
+  );
 }
 
 export async function updateSnapshot(
   snapshotId: string,
   snapshot: Partial<Snapshot>
 ): Promise<PostgrestSingleResponse<Snapshot>> {
-  return supabase
-    .from("Snapshots")
-    .update(snapshot)
-    .eq("id", snapshotId)
-    .single();
+  return retryOnError(() =>
+    supabase.from("Snapshots").update(snapshot).eq("id", snapshotId).single()
+  );
 }

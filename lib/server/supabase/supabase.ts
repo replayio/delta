@@ -82,40 +82,59 @@ export const createError = (error: string): ResponseError => ({
 export async function getProject(
   projectId: string
 ): Promise<PostgrestSingleResponse<Project>> {
-  return supabase
-    .from("Projects")
-    .select("*")
-    .eq("id", projectId)
-    .order("created_at", { ascending: false })
-    .single();
+  return retryOnError(() =>
+    supabase
+      .from("Projects")
+      .select("*")
+      .eq("id", projectId)
+      .order("created_at", { ascending: false })
+      .single()
+  );
 }
 
 export async function getProjectByShort(
   projectShort: string
 ): Promise<PostgrestSingleResponse<Project>> {
-  return supabase
-    .from("Projects")
-    .select("*")
-    .eq("short", projectShort)
-    .single();
+  return retryOnError(() =>
+    supabase.from("Projects").select("*").eq("short", projectShort).single()
+  );
 }
 
 export async function getPublicProjects(): Promise<PostgrestResponse<Project>> {
-  return supabase
-    .from("Projects")
-    .select("*")
-    .eq("public", true)
-    .order("created_at", { ascending: false });
+  return retryOnError(() =>
+    supabase
+      .from("Projects")
+      .select("*")
+      .eq("public", true)
+      .order("created_at", { ascending: false })
+  );
 }
 
-export async function getProjectFromRepo(
+export function getProjectFromRepo(
   repository: string,
   organization: string
 ): Promise<PostgrestSingleResponse<Project>> {
-  return supabase
-    .from("Projects")
-    .select("*")
-    .eq("organization", organization)
-    .eq("repository", repository)
-    .single();
+  return retryOnError(() =>
+    supabase
+      .from("Projects")
+      .select("*")
+      .eq("organization", organization)
+      .eq("repository", repository)
+      .single()
+  );
+}
+
+export async function retryOnError<T extends { error: any }>(
+  fn: () => PromiseLike<T>
+): Promise<T> {
+  try {
+    const result = await fn();
+    if (!result.error) {
+      return result;
+    }
+    console.error("received error, retrying", result.error);
+  } catch (error) {
+    console.error("caught error, retrying", error);
+  }
+  return await fn();
 }

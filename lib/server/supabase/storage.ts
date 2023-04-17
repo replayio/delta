@@ -19,7 +19,8 @@ type UploadResult = {
 
 export async function uploadSnapshot(
   content: string | Buffer,
-  projectId: string
+  projectId: string,
+  retry = true
 ): Promise<UploadResult> {
   const sha = createHash("sha256").update(content).digest("hex");
   const path = `${projectId}/${sha}.png`;
@@ -28,11 +29,11 @@ export async function uploadSnapshot(
     content = Buffer.from(content, "base64");
   }
 
-  const res = await retryOnError(() =>
+  const doUpload = () =>
     supabase.storage.from("snapshots").upload(path, content, {
       contentType: "image/png",
-    })
-  );
+    });
+  const res = await (retry ? retryOnError(doUpload) : doUpload());
 
   if (res.error) {
     return { error: (res.error as any).error, data: { sha, path } };

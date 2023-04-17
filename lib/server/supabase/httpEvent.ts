@@ -1,6 +1,7 @@
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import createClient from "../../initServerSupabase";
 import { safeStringify } from "../json";
+import { retryOnError } from "./supabase";
 
 export const supabase = createClient();
 
@@ -21,18 +22,22 @@ export type HTTPMetadata = {
 export async function insertHTTPMetadata(
   event: Partial<HTTPMetadata>
 ): Promise<PostgrestSingleResponse<HTTPMetadata>> {
-  return supabase.from("GithubEvent").insert(event).single();
+  return retryOnError(() =>
+    supabase.from("GithubEvent").insert(event).single()
+  );
 }
 
 export async function updateHTTPMetadata(
   httpMetadata: HTTPMetadata,
   event: Partial<HTTPMetadata>
 ): Promise<PostgrestSingleResponse<HTTPMetadata>> {
-  return supabase
-    .from("GithubEvent")
-    .update(event)
-    .eq("id", httpMetadata.id)
-    .single();
+  return retryOnError(() =>
+    supabase
+      .from("GithubEvent")
+      .update(event)
+      .eq("id", httpMetadata.id)
+      .single()
+  );
 }
 
 export async function insertHTTPEvent(
@@ -43,7 +48,9 @@ export async function insertHTTPEvent(
   const path = `${projectId}/${id}.json`;
   const stringified = safeStringify(data, 2);
 
-  return supabase.storage.from("http-events").upload(path, stringified, {
-    contentType: "application/json",
-  });
+  return retryOnError(() =>
+    supabase.storage.from("http-events").upload(path, stringified, {
+      contentType: "application/json",
+    })
+  );
 }

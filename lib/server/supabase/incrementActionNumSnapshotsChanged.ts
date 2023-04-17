@@ -1,4 +1,4 @@
-import { supabase, createError } from "./supabase";
+import { supabase, createError, retryOnError } from "./supabase";
 import { getBranchFromProject } from "./branches";
 import { getActionFromBranch } from "./actions";
 import { safeStringify } from "../json";
@@ -22,7 +22,9 @@ export async function incrementActionNumSnapshotsChanged(
     );
   }
 
-  return supabase.rpc("snapshots_changed_inc", {
-    action_id: action.data.id,
-  });
+  return retryOnError(() =>
+    supabase.rpc("snapshots_changed_inc", {
+      action_id: action.data.id,
+    })
+  );
 }

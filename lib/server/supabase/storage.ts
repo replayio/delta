@@ -2,7 +2,7 @@ import createClient from "../../initServerSupabase";
 import { createHash } from "crypto";
 
 import type { FileObject } from "@supabase/storage-js";
-import { retryOnError } from "./supabase";
+import { maybeRetry, retryOnError } from "./supabase";
 
 const supabase = createClient();
 const Buffer = require("buffer").Buffer;
@@ -19,8 +19,7 @@ type UploadResult = {
 
 export async function uploadSnapshot(
   content: string | Buffer,
-  projectId: string,
-  retry = true
+  projectId: string
 ): Promise<UploadResult> {
   const sha = createHash("sha256").update(content).digest("hex");
   const path = `${projectId}/${sha}.png`;
@@ -29,11 +28,14 @@ export async function uploadSnapshot(
     content = Buffer.from(content, "base64");
   }
 
-  const doUpload = () =>
-    supabase.storage.from("snapshots").upload(path, content, {
-      contentType: "image/png",
-    });
-  const res = await (retry ? retryOnError(doUpload) : doUpload());
+  const res = await maybeRetry(
+    () =>
+      supabase.storage.from("snapshots").upload(path, content, {
+        contentType: "image/png",
+      }),
+    (error) =>
+      !!error.error && error.error.message !== "The resource already exists"
+  );
 
   if (res.error) {
     return { error: (res.error as any).error, data: { sha, path } };

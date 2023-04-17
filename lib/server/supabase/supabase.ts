@@ -124,17 +124,24 @@ export function getProjectFromRepo(
   );
 }
 
-export async function retryOnError<T extends { error: any }>(
-  fn: () => PromiseLike<T>
+export async function maybeRetry<T>(
+  fn: () => PromiseLike<T>,
+  shouldRetry: (t: T) => boolean
 ): Promise<T> {
   try {
     const result = await fn();
-    if (!result.error) {
+    if (!shouldRetry(result)) {
       return result;
     }
-    console.error("received error, retrying", result.error);
+    console.error("received error, retrying", result);
   } catch (error) {
     console.error("caught error, retrying", error);
   }
   return await fn();
+}
+
+export async function retryOnError<T extends { error: any }>(
+  fn: () => PromiseLike<T>
+): Promise<T> {
+  return maybeRetry(fn, (t) => !!t.error);
 }

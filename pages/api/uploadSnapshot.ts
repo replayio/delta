@@ -53,7 +53,7 @@ export default async function handler(
 
   try {
     console.log("Uploading snapshot");
-    const uploadResult = await uploadSnapshot(image.content, projectId);
+    const uploadResult = await uploadSnapshot(image.content, projectId, false);
 
     // Duplicates will fail to upload, but that's okay.
     const uploadStatus: SnapshotStatus = uploadResult.error

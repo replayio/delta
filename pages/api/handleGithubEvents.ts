@@ -12,6 +12,7 @@ import omit from "lodash/omit";
 import {
   getProjectFromRepo,
   Project,
+  retryOnError,
   Snapshot,
 } from "../../lib/server/supabase/supabase";
 import {
@@ -548,16 +549,19 @@ async function handleWorkflowQueued(
     );
   }
 
-  const action = await supabase
-    .from("Actions")
-    .insert({
-      run_id: workflowJob.run_id,
-      branch_id: branch.data.id,
-      head_sha: workflowJob.head_sha,
-      actor: sender.login,
-      status: "neutral",
-    })
-    .single();
+  const branch_id = branch.data.id;
+  const action = await retryOnError(() =>
+    supabase
+      .from("Actions")
+      .insert({
+        run_id: workflowJob.run_id,
+        branch_id,
+        head_sha: workflowJob.head_sha,
+        actor: sender.login,
+        status: "neutral",
+      })
+      .single()
+  );
   if (action.error) {
     return logAndSendResponse(
       null,

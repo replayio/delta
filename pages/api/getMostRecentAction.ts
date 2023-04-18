@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import createClient from "../../lib/initServerSupabase";
-import { Action } from "../../lib/server/supabase/supabase";
+import { Action, retryOnError } from "../../lib/server/supabase/supabase";
 import {
   GenericResponse,
   sendErrorResponseFromPostgrestError,
@@ -23,12 +23,14 @@ export default async function handler(
 ) {
   const { branchId } = request.query as RequestParams;
 
-  const { data, error } = await supabase
-    .from("Actions")
-    .select("*")
-    .eq("branch_id", branchId)
-    .order("created_at", { ascending: false })
-    .limit(1);
+  const { data, error } = await retryOnError(() =>
+    supabase
+      .from("Actions")
+      .select("*")
+      .eq("branch_id", branchId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+  );
 
   if (error) {
     return sendErrorResponseFromPostgrestError(response, error);

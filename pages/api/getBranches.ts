@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import createClient from "../../lib/initServerSupabase";
-import { Branch } from "../../lib/server/supabase/supabase";
+import { Branch, retryOnError } from "../../lib/server/supabase/supabase";
 import {
   GenericResponse,
   sendErrorResponseFromPostgrestError,
@@ -27,13 +27,15 @@ export default async function handler(
     return sendErrorMissingParametersResponse(response, { projectId });
   }
 
-  const { data, error } = await supabase
-    .from("Branches")
-    .select("*")
-    .eq("project_id", projectId)
-    .eq("status", "open")
-    .order("created_at", { ascending: false })
-    .limit(1000);
+  const { data, error } = await retryOnError(() =>
+    supabase
+      .from("Branches")
+      .select("*")
+      .eq("project_id", projectId)
+      .eq("status", "open")
+      .order("created_at", { ascending: false })
+      .limit(1000)
+  );
 
   if (error) {
     return sendErrorResponseFromPostgrestError(response, error);

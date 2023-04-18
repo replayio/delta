@@ -128,16 +128,27 @@ export async function maybeRetry<T>(
   fn: () => PromiseLike<T>,
   shouldRetry: (t: T) => boolean
 ): Promise<T> {
+  let result: T;
   try {
-    const result = await fn();
+    result = await fn();
     if (!shouldRetry(result)) {
       return result;
     }
-    console.error("received error, retrying", result);
+    console.error("received error, retrying", result, Error().stack);
   } catch (error) {
-    console.error("caught error, retrying", error);
+    console.error("caught error, retrying", error, Error().stack);
   }
-  return await fn();
+  try {
+    result = await fn();
+    if (!shouldRetry(result)) {
+      return result;
+    }
+    console.error("received error, giving up", result);
+    return result;
+  } catch (error) {
+    console.error("caught error, giving up", error);
+    throw error;
+  }
 }
 
 export async function retryOnError<T extends { error: any }>(

@@ -155,5 +155,11 @@ export async function maybeRetry<T>(
 export async function retryOnError<T extends { error: any }>(
   fn: () => PromiseLike<T>
 ): Promise<T> {
-  return maybeRetry(fn, (t) => !!t.error);
+  return maybeRetry(
+    fn,
+    (result) =>
+      !!result.error &&
+      result.error.message !==
+        "JSON object requested, multiple (or no) rows returned"
+  );
 }

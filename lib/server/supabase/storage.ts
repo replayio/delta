@@ -33,8 +33,8 @@ export async function uploadSnapshot(
       supabase.storage.from("snapshots").upload(path, content, {
         contentType: "image/png",
       }),
-    (error) =>
-      !!error.error && error.error.message !== "The resource already exists"
+    (result) =>
+      !!result.error && result.error.message !== "The resource already exists"
   );
 
   if (res.error) {

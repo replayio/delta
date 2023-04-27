@@ -92,14 +92,14 @@ export const snapshotDiffCache = createCache<
 
 // Fetch list of snapshots for an action
 export const snapshotsForActionCache = createCache<
-  [actionId: string, projectId: string],
+  [projectId: string, actionId: string],
   Snapshot[]
 >({
   debugLabel: "snapshotsForAction",
-  getKey([actionId, projectId]) {
+  getKey([projectId, actionId]) {
     return JSON.stringify({ actionId, projectId });
   },
-  async load([actionId, projectId]) {
+  async load([projectId, actionId]) {
     return await getSnapshotsForAction({ actionId, projectId });
   },
 });

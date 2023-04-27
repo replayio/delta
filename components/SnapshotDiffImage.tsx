@@ -1,8 +1,8 @@
 import Image from "next/image";
-import { fetchSnapshotDiffSuspense } from "../suspense/SnapshotCache";
+import { snapshotDiffCache } from "../suspense/SnapshotCache";
 
 export default function SnapshotDiffImage({ branch, file, projectId }) {
-  const { base64String, height, width } = fetchSnapshotDiffSuspense(
+  const { base64String, height, width } = snapshotDiffCache.read(
     projectId,
     branch,
     file

@@ -10,16 +10,10 @@ import { SnapshotRow } from "../../components/SnapshotRow";
 import useSnapshotPrefetchedData from "../../lib/hooks/useSnapshotPrefetchedData";
 import { Action, Branch, Project } from "../../lib/server/supabase/supabase";
 
-import { fetchActionsSuspense } from "../../suspense/ActionCache";
-import {
-  fetchBranchesSuspense,
-  fetchBranchSuspense,
-} from "../../suspense/BranchCache";
-import { fetchProjectSuspense } from "../../suspense/ProjectCache";
-import {
-  fetchSnapshotFilesSuspense,
-  SnapshotFile,
-} from "../../suspense/SnapshotCache";
+import { actionsCache } from "../../suspense/ActionCache";
+import { branchCache, branchesCache } from "../../suspense/BranchCache";
+import { projectCache } from "../../suspense/ProjectCache";
+import { snapshotFilesCache, SnapshotFile } from "../../suspense/SnapshotCache";
 
 export default function Short() {
   const router = useRouter();
@@ -61,17 +55,17 @@ function ShortSuspends({
   shortProjectId: string;
 }) {
   // TODO If we passed branch id instead of name, we wouldn't need to fetch the branch here.
-  const project = fetchProjectSuspense(null, shortProjectId as string);
-  const branches = fetchBranchesSuspense(project.id);
+  const project = projectCache.read(null, shortProjectId as string);
+  const branches = branchesCache.read(project.id);
 
   if (!branchName) {
     branchName = branches?.[0]?.name ?? null;
   }
 
   const currentBranch = branchName
-    ? fetchBranchSuspense(branchName as string)
+    ? branchCache.read(branchName as string)
     : null;
-  const actions = currentBranch ? fetchActionsSuspense(currentBranch.id) : null;
+  const actions = currentBranch ? actionsCache.read(currentBranch.id) : null;
 
   if (!actionId) {
     actionId = actions?.[0]?.id ?? null;
@@ -82,7 +76,7 @@ function ShortSuspends({
     : null;
 
   const snapshotFiles = currentAction
-    ? fetchSnapshotFilesSuspense(project.id, currentAction.id)
+    ? snapshotFilesCache.read(project.id, currentAction.id)
     : null;
 
   // Debug logging

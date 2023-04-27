@@ -1,26 +1,23 @@
+import { createCache, createSingleEntryCache } from "suspense";
 import { Project } from "../lib/server/supabase/supabase";
 import { getProject, getPublicProjects } from "../utils/ApiClient";
-import { createGenericCache } from "./createGenericCache";
 
-export const {
-  getValueSuspense: fetchProjectSuspense,
-  getValueAsync: fetchProjectAsync,
-  getValueIfCached: fetchProjectIfCached,
-} = createGenericCache<
+export const projectCache = createCache<
   [projectId: string | null, projectShort: string | null],
   Project
->(
-  (projectId: string | null, projectShort: string | null) =>
-    getProject({ projectId, projectShort }),
-  (projectId: string | null, projectShort: string | null) =>
-    `${projectId}/${projectShort}`
-);
+>({
+  debugLabel: "project",
+  getKey([projectId, projectShort]) {
+    return `${projectId}/${projectShort}`;
+  },
+  async load([projectId, projectShort]) {
+    return getProject({ projectId, projectShort });
+  },
+});
 
-export const {
-  getValueSuspense: fetchProjectsSuspense,
-  getValueAsync: fetchProjectsAsync,
-  getValueIfCached: fetchProjectsIfCached,
-} = createGenericCache<[], Project[]>(
-  () => getPublicProjects({}),
-  () => "projects"
-);
+export const projectsCache = createSingleEntryCache<[], Project[]>({
+  debugLabel: "projects",
+  async load([]) {
+    return getPublicProjects({});
+  },
+});

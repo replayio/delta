@@ -9,7 +9,7 @@ import { ErrorBoundary } from "react-error-boundary";
 
 import { comparisonModeAtom } from "../lib/client/state";
 import {
-  fetchSnapshotSuspense,
+  snapshotCache,
   SnapshotFile,
   SnapshotVariant,
   SnapshotVariant as SnapshotVariantType,
@@ -188,7 +188,7 @@ function NoDiffData({
   const { pathBranchData, pathMainData } = snapshotVariant;
 
   const path = pathBranchData || pathMainData;
-  const { height = 0, width = 0 } = path ? fetchSnapshotSuspense(path) : {};
+  const { height = 0, width = 0 } = path ? snapshotCache.read(path) : {};
 
   return (
     <div

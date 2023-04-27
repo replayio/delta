@@ -3,7 +3,7 @@ import { Suspense, useState } from "react";
 import Icon from "../components/Icon";
 import { Loader } from "../components/Loader";
 import SnapshotImage from "../components/SnapshotImage";
-import { fetchFrequentlyUpdatedSnapshotsSuspense } from "../suspense/SnapshotCache";
+import { frequentlyUpdatedSnapshotsCache } from "../suspense/SnapshotCache";
 import classNames from "../utils/classNames";
 import {
   PathMetadata,
@@ -40,7 +40,7 @@ function FlakySuspends({
   afterDate: string;
   projectShort: string;
 }) {
-  const metadata = fetchFrequentlyUpdatedSnapshotsSuspense(
+  const metadata = frequentlyUpdatedSnapshotsCache.read(
     projectShort,
     afterDate
   );

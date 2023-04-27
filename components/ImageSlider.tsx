@@ -1,5 +1,5 @@
 import { ChangeEvent, Dispatch, SetStateAction } from "react";
-import { fetchSnapshotSuspense } from "../suspense/SnapshotCache";
+import { snapshotCache } from "../suspense/SnapshotCache";
 
 export function ImageSlider({
   onChange,
@@ -10,7 +10,7 @@ export function ImageSlider({
   pathData: string;
   value: number;
 }) {
-  const { width = 0 } = fetchSnapshotSuspense(pathData);
+  const { width = 0 } = snapshotCache.read(pathData);
 
   return (
     <>

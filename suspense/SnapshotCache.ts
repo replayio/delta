@@ -9,8 +9,8 @@ import {
   getSnapshotsForAction,
   getSnapshotsForBranch,
 } from "../utils/ApiClient";
-import { createGenericCache } from "./createGenericCache";
-import { fetchProjectAsync } from "./ProjectCache";
+import { createCache } from "suspense";
+import { projectCache } from "./ProjectCache";
 
 export type SnapshotTheme = "dark" | "light";
 
@@ -45,44 +45,42 @@ export type SnapshotFile = {
 };
 
 // Fetch list of snapshots for a branch
-export const {
-  getValueSuspense: fetchFrequentlyUpdatedSnapshotsSuspense,
-  getValueAsync: fetchFrequentlyUpdatedSnapshotsAsync,
-  getValueIfCached: fetchFrequentlyUpdatedSnapshotsIfCached,
-} = createGenericCache<[projectShort: string, afterDate: string], ResponseData>(
-  (projectShort: string, afterDate: string) =>
-    getMostFrequentlyUpdatedSnapshots({
+export const frequentlyUpdatedSnapshotsCache = createCache<
+  [projectShort: string, afterDate: string],
+  ResponseData
+>({
+  debugLabel: "frequentlyUpdatedSnapshots",
+  getKey([projectShort, afterDate]) {
+    return JSON.stringify({ afterDate, projectShort });
+  },
+  async load([projectShort, afterDate]) {
+    return await getMostFrequentlyUpdatedSnapshots({
       afterDate,
       projectId: "",
       projectShort,
-    }),
-  (projectShort: string, afterDate: string) =>
-    JSON.stringify({ afterDate, projectShort })
-);
+    });
+  },
+});
 
 // Fetch base64 encoded snapshot image (with dimensions)
-export const {
-  getValueSuspense: fetchSnapshotSuspense,
-  getValueAsync: fetchSnapshotAsync,
-  getValueIfCached: fetchSnapshotIfCached,
-} = createGenericCache<[path: string], SnapshotImage>(
-  async (path: string) => {
+export const snapshotCache = createCache<[path: string], SnapshotImage>({
+  debugLabel: "snapshot",
+  async load([path]) {
     const base64String = await downloadSnapshot({ path });
     return await createSnapshotImage(base64String);
   },
-  (path: string) => path
-);
+});
 
 // Fetch base64 encoded snapshot diff image (with dimensions)
-export const {
-  getValueSuspense: fetchSnapshotDiffSuspense,
-  getValueAsync: fetchSnapshotDiffAsync,
-  getValueIfCached: fetchSnapshotDiffIfCached,
-} = createGenericCache<
+export const snapshotDiffCache = createCache<
   [projectId: string, branchName: string, snapshotFile: string],
   SnapshotImage
->(
-  async (projectId: string, branchName: string, snapshotFile: string) => {
+>({
+  debugLabel: "snapshotDiff",
+  getKey([projectId, branchName, snapshotFile]) {
+    return JSON.stringify({ branchName, projectId, snapshotFile });
+  },
+  async load([projectId, branchName, snapshotFile]) {
     const base64String = await getSnapshotDiff({
       branchName,
       projectId,
@@ -90,49 +88,54 @@ export const {
     });
     return await createSnapshotImage(base64String);
   },
-  (projectId: string, branchName: string, snapshotFile: string) =>
-    JSON.stringify({ branchName, projectId, snapshotFile })
-);
+});
 
 // Fetch list of snapshots for an action
-export const {
-  getValueSuspense: fetchSnapshotsForActionSuspense,
-  getValueAsync: fetchSnapshotsForActionAsync,
-  getValueIfCached: fetchSnapshotsForActionIfCached,
-} = createGenericCache<[actionId: string, projectId: string], Snapshot[]>(
-  (projectId: string, actionId: string) =>
-    getSnapshotsForAction({ actionId, projectId }),
-  (projectId: string, actionId: string) =>
-    JSON.stringify({ actionId, projectId })
-);
+export const snapshotsForActionCache = createCache<
+  [actionId: string, projectId: string],
+  Snapshot[]
+>({
+  debugLabel: "snapshotsForAction",
+  getKey([actionId, projectId]) {
+    return JSON.stringify({ actionId, projectId });
+  },
+  async load([actionId, projectId]) {
+    return await getSnapshotsForAction({ actionId, projectId });
+  },
+});
 
 // Fetch list of snapshots for a branch
-export const {
-  getValueSuspense: fetchSnapshotsForBranchSuspense,
-  getValueAsync: fetchSnapshotsForBranchAsync,
-  getValueIfCached: fetchSnapshotsForBranchIfCached,
-} = createGenericCache<[projectId: string, branchName: string], Snapshot[]>(
-  (projectId: string, branchName: string) =>
-    getSnapshotsForBranch({ branchName, projectId }),
-  (projectId: string, branchName: string) =>
-    JSON.stringify({ branchName, projectId })
-);
+export const snapshotsForBranchCache = createCache<
+  [projectId: string, branchName: string],
+  Snapshot[]
+>({
+  debugLabel: "snapshotsForBranch",
+  getKey([projectId, branchName]) {
+    return JSON.stringify({ branchName, projectId });
+  },
+  async load([projectId, branchName]) {
+    return await getSnapshotsForBranch({ branchName, projectId });
+  },
+});
 
 // Fetch list of snapshots and their change metadata, grouped by file
-export const {
-  getValueSuspense: fetchSnapshotFilesSuspense,
-  getValueAsync: fetchSnapshotFilesAsync,
-  getValueIfCached: fetchSnapshotFilesIfCached,
-} = createGenericCache<[projectId: string, actionId: string], SnapshotFile[]>(
-  async (projectId: string, actionId: string) => {
+export const snapshotFilesCache = createCache<
+  [projectId: string, actionId: string],
+  SnapshotFile[]
+>({
+  debugLabel: "snapshotFiles",
+  getKey([projectId, actionId]) {
+    return JSON.stringify({ actionId, projectId });
+  },
+  async load([projectId, actionId]) {
     // TODO We could parallelize some of the requests below.
-    const project = await fetchProjectAsync(projectId, null);
+    const project = await projectCache.readAsync(projectId, null);
     const primaryBranch = project.primary_branch;
-    const snapshotsForPrimaryBranch = await fetchSnapshotsForBranchAsync(
+    const snapshotsForPrimaryBranch = await snapshotsForBranchCache.readAsync(
       projectId,
       primaryBranch
     );
-    const snapshotsForAction = await fetchSnapshotsForActionAsync(
+    const snapshotsForAction = await snapshotsForActionCache.readAsync(
       projectId,
       actionId
     );
@@ -269,9 +272,7 @@ export const {
 
     return snapshotFiles;
   },
-  (projectId: string, actionId: string) =>
-    JSON.stringify({ actionId, projectId })
-);
+});
 
 async function createSnapshotImage(
   base64String: string
@@ -294,10 +295,6 @@ async function createSnapshotImage(
       reject(error);
     }
   });
-}
-
-function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0];
 }
 
 function parseFilePath(

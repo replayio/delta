@@ -1,6 +1,6 @@
 import { subClass } from "gm";
 import pixelmatch from "pixelmatch";
-import { PNG, PNGWithMetadata } from "pngjs";
+import { PNG } from "pngjs";
 
 const imageMagick = subClass({ imageMagick: true });
 

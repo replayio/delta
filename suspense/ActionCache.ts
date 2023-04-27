@@ -1,21 +1,20 @@
-import { createGenericCache } from "./createGenericCache";
-import { getActions, getMostRecentAction } from "../utils/ApiClient";
+import { createCache } from "suspense";
 import { Action } from "../lib/server/supabase/supabase";
+import { getActions, getMostRecentAction } from "../utils/ApiClient";
 
-export const {
-  getValueSuspense: fetchActionsSuspense,
-  getValueAsync: fetchActionsAsync,
-  getValueIfCached: fetchActionsIfCached,
-} = createGenericCache<[branchId: string], Action[]>(
-  (branchId: string) => getActions({ branchId }),
-  (branchId: string) => branchId
-);
+export const actionsCache = createCache<[branchId: string], Action[]>({
+  debugLabel: "actions",
+  async load([branchId]) {
+    return getActions({ branchId });
+  },
+});
 
-export const {
-  getValueSuspense: fetchMostRecentActionForBranchSuspense,
-  getValueAsync: fetchMostRecentActionForBranchAsync,
-  getValueIfCached: fetchMostRecentActionForBranchIfCached,
-} = createGenericCache<[branchId: string], Action>(
-  (branchId: string) => getMostRecentAction({ branchId }),
-  (branchId: string) => branchId
-);
+export const mostRecentActionForBranch = createCache<
+  [branchId: string],
+  Action
+>({
+  debugLabel: "mostRecentActionForBranch",
+  async load([branchId]) {
+    return getMostRecentAction({ branchId });
+  },
+});

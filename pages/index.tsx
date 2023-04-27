@@ -4,7 +4,7 @@ import { Suspense, useLayoutEffect } from "react";
 import { Loader } from "../components/Loader";
 import useDidMount from "../lib/hooks/useDidMount";
 import { Project } from "../lib/server/supabase/supabase";
-import { fetchProjectsSuspense } from "../suspense/ProjectCache";
+import { projectsCache } from "../suspense/ProjectCache";
 
 export default function Home() {
   // TODO This is a hack because updateDehydratedSuspenseComponent() is throwing on the server.
@@ -22,7 +22,7 @@ export default function Home() {
 }
 
 function HomeSuspends() {
-  const projects = fetchProjectsSuspense();
+  const projects = projectsCache.read();
 
   // Debug logging
   // if (process.env.NODE_ENV === "development") {

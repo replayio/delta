@@ -3,13 +3,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Action, Branch, Project } from "../lib/server/supabase/supabase";
-import { fetchMostRecentActionForBranchSuspense } from "../suspense/ActionCache";
-import { isThennable } from "../suspense/isThennable";
+import { mostRecentActionForBranchCache } from "../suspense/ActionCache";
 import classNames from "../utils/classNames";
 import { ApproveButton } from "./ApproveButton";
 import Dropdown from "./Dropdown";
 import { Github } from "./SVGs";
 import { Toggle } from "./Toggle";
+import { isPromiseLike } from "suspense";
 
 export function Header({
   actions,
@@ -152,9 +152,9 @@ function BranchDropDownItem({
 }) {
   let action: Action | null = null;
   try {
-    action = fetchMostRecentActionForBranchSuspense(branch.id);
+    action = mostRecentActionForBranchCache.read(branch.id);
   } catch (errorOrThennable) {
-    if (isThennable(errorOrThennable)) {
+    if (isPromiseLike(errorOrThennable)) {
       throw errorOrThennable;
     } else {
       // Ignore branches with no actions.

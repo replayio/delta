@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import {
-  fetchSnapshotAsync,
+  snapshotCache,
   SnapshotFile,
   SnapshotVariant,
 } from "../../suspense/SnapshotCache";
@@ -38,12 +38,8 @@ function prefetchSnapshotVariant(snapshotVariant: SnapshotVariant) {
   prefetchSnapshot(snapshotVariant.pathMainData);
 }
 
-async function prefetchSnapshot(path: string | null) {
+function prefetchSnapshot(path: string | null) {
   if (path !== null) {
-    try {
-      await fetchSnapshotAsync(path);
-    } catch (error) {
-      // Ignore pre-fetch errors.
-    }
+    snapshotCache.prefetch(path);
   }
 }

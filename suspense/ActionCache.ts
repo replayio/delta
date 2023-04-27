@@ -9,7 +9,7 @@ export const actionsCache = createCache<[branchId: string], Action[]>({
   },
 });
 
-export const mostRecentActionForBranch = createCache<
+export const mostRecentActionForBranchCache = createCache<
   [branchId: string],
   Action
 >({

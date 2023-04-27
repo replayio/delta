@@ -43,18 +43,18 @@ export async function getBranch(
 }
 
 export async function getBranchByName(
-  name: string
+  name: string,
+  status?: string
 ): Promise<PostgrestSingleResponse<Branch>> {
-  return retryOnError(() =>
-    supabase
-      .from("Branches")
-      .select("*")
-      .eq("name", name)
-      .eq("status", "open")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single()
-  );
+  return retryOnError(() => {
+    let query = supabase.from("Branches").select("*").eq("name", name);
+
+    if (status) {
+      query = query.eq("status", status);
+    }
+
+    return query.order("created_at", { ascending: false }).limit(1).single();
+  });
 }
 
 export async function getBranchesFromProject(

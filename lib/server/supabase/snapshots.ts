@@ -94,14 +94,6 @@ export async function getSnapshotsFromBranch(
   return createError("No snapshots found");
 }
 
-export async function getSnapshotFromAction(
-  action: Action
-): Promise<PostgrestResponse<Snapshot>> {
-  return retryOnError(() =>
-    supabase.from("Snapshots").select("*").eq("action_id", action.id)
-  );
-}
-
 export async function getSnapshotsForAction(
   actionId: string
 ): Promise<PostgrestResponse<Snapshot>> {

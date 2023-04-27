@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import { getAction } from "../../lib/server/supabase/actions";
-import { getSnapshotFromAction } from "../../lib/server/supabase/snapshots";
+import { getSnapshotsForAction } from "../../lib/server/supabase/snapshots";
 import { Snapshot } from "../../lib/server/supabase/supabase";
 import {
   GenericResponse,
@@ -42,7 +42,7 @@ export default async function handler(
   }
 
   const { data: snapshotData, error: snapshotError } =
-    await getSnapshotFromAction(actionData);
+    await getSnapshotsForAction(actionData.id);
   if (snapshotError) {
     return sendErrorResponseFromPostgrestError(response, snapshotError);
   } else if (!snapshotData) {

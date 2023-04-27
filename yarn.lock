@@ -2004,6 +2004,11 @@ array-series@~0.1.5:
   resolved "https://registry.yarnpkg.com/array-series/-/array-series-0.1.5.tgz#df5d37bfc5c2ef0755e2aa4f92feae7d4b5a972f"
   integrity sha512-L0XlBwfx9QetHOsbLDrE/vh2t018w9462HM3iaFfxRiK83aJjAt/Ja3NMkOW7FICwWTlQBa3ZbL5FKhuQWkDrg==
 
+array-sorting-utilities@^0.0.1:
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/array-sorting-utilities/-/array-sorting-utilities-0.0.1.tgz#bd8e547084270f59628633bd24ce70f3710fd145"
+  integrity sha512-h/idT7IGFYQoUk+/ilm5uFAbG1mZ/vW5wYDJG+OD0w15AvTEBv3Yu9WGcV0dTTdKitcufHtLYQjHd42m9u7RZw==
+
 array-union@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/array-union/-/array-union-2.1.0.tgz#b798420adbeb1de828d84acd8a2e23d3efe85e8d"
@@ -3236,6 +3241,13 @@ internal-slot@^1.0.3:
     has "^1.0.3"
     side-channel "^1.0.4"
 
+interval-utilities@^0.0.1:
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/interval-utilities/-/interval-utilities-0.0.1.tgz#7be1aab62524a3212656f93b6c997683f5cf03d9"
+  integrity sha512-Qo1IAx3noFPA0ssKfNe0eQmLmGmquWlEiwPn9Oeb16L1PqWnNe0YGfeRlU/hF7dtjjYRdNfVMVl+0o0cMLvjOQ==
+  dependencies:
+    point-utilities latest
+
 is-bigint@^1.0.1:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/is-bigint/-/is-bigint-1.0.4.tgz#08147a1875bc2b32005d41ccd8291dffc6691df3"
@@ -3772,6 +3784,13 @@ node-gyp-build@^4.3.0:
   resolved "https://registry.yarnpkg.com/node-gyp-build/-/node-gyp-build-4.5.0.tgz#7a64eefa0b21112f89f58379da128ac177f20e40"
   integrity sha512-2iGbaQBV+ITgCz76ZEjmhUKAKVf7xfY1sRl4UiKQspfZMH2h06SyhNsnSVy50cwkFQDGLyif6m/6uFXHkOZ6rg==
 
+node-interval-tree@^2.1.2:
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/node-interval-tree/-/node-interval-tree-2.1.2.tgz#316e380db08d1c0de0a620d551f0327e8397dad8"
+  integrity sha512-bJ9zMDuNGzVQg1xv0bCPzyEDxHgbrx7/xGj6CDokvizZZmastPsOh0JJLuY8wA5q2SfX1TLNMk7XNV8WxbGxzA==
+  dependencies:
+    shallowequal "^1.1.0"
+
 node-releases@^2.0.6:
   version "2.0.8"
   resolved "https://registry.yarnpkg.com/node-releases/-/node-releases-2.0.8.tgz#0f349cdc8fcfa39a92ac0be9bc48b7706292b9ae"
@@ -3986,6 +4005,11 @@ pngjs@^6.0.0:
   version "6.0.0"
   resolved "https://registry.yarnpkg.com/pngjs/-/pngjs-6.0.0.tgz#ca9e5d2aa48db0228a52c419c3308e87720da821"
   integrity sha512-TRzzuFRRmEoSW/p1KVAmiOgPco2Irlah+bGFCeNfJXxxYGwSw7YwAOAcd7X28K/m5bjBWKsC29KyoMfHbypayg==
+
+point-utilities@^0.0.2, point-utilities@latest:
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/point-utilities/-/point-utilities-0.0.2.tgz#1f7442bf272f7e39ac87ffcbeb9652cc1d4ca108"
+  integrity sha512-jNUr+ijPk0cWw39gtJG0O8HNPL2EVC7e2ilC1NUlJw1QVTgC8NIMS/8AmG9IJfvfmJx+IlT8KNJzf/Jb035STQ==
 
 postcss-attribute-case-insensitive@^5.0.2:
   version "5.0.2"
@@ -4550,6 +4574,11 @@ semver@^7.3.7, semver@^7.3.8:
   dependencies:
     lru-cache "^6.0.0"
 
+shallowequal@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/shallowequal/-/shallowequal-1.1.0.tgz#188d521de95b9087404fd4dcb68b13df0ae4e7f8"
+  integrity sha512-y0m1JoUZSlPAjXVtPPW70aZWfIL/dSP7AFkRnniLCrK/8MDKog3TySTBmckD+RObVxH0v4Tox67+F14PdED2oQ==
+
 shebang-command@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/shebang-command/-/shebang-command-2.0.0.tgz#ccd0af4f8835fbdc265b82461aaf0c36663f34ea"
@@ -4703,6 +4732,16 @@ supports-preserve-symlinks-flag@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/supports-preserve-symlinks-flag/-/supports-preserve-symlinks-flag-1.0.0.tgz#6eda4bd344a3c94aea376d4cc31bc77311039e09"
   integrity sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==
+
+suspense@^0.0.37:
+  version "0.0.37"
+  resolved "https://registry.yarnpkg.com/suspense/-/suspense-0.0.37.tgz#1c96778a377aebd100f81fe43a28998e0f12680b"
+  integrity sha512-bYkte27BH4tvOATUPqrlr7hoDAGmHeXe1vTXLlvckKX+wmrzpLOHTlY6j8w5rvX2Z8H8C7Dk3m0lpHFLOzQvTw==
+  dependencies:
+    array-sorting-utilities "^0.0.1"
+    interval-utilities "^0.0.1"
+    node-interval-tree "^2.1.2"
+    point-utilities "^0.0.2"
 
 swr@^2.0.0:
   version "2.0.0"

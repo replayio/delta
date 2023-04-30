@@ -69,13 +69,11 @@ export async function getSnapshotForBranch(
   };
 }
 
-export async function getSnapshotsForBranch(
-  projectId: ProjectId,
-  branchName: string
+export async function getSnapshotsForPrimaryBranch(
+  projectId: ProjectId
 ): Promise<ResponseError | PostgrestResponse<Snapshot>> {
-  return supabase.rpc("snapshots_for_most_recent_run_on_branch", {
+  return supabase.rpc("latest_snapshots_for_primary_branch", {
     project_id: projectId,
-    branch_name: branchName,
   });
 }
 

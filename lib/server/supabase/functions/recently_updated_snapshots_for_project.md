@@ -13,7 +13,7 @@ FROM "Snapshots" snapshots
   INNER JOIN "Branches" branches  ON runs.branch_id = branches.id
   INNER JOIN "Projects" projects  ON branches.project_id = projects.id
 WHERE projects.id = project_id
-  AND snapshots.primary_num_pixels != 0
+  AND snapshots.primary_num_pixels > 0
   AND snapshots.primary_diff_path != ''
   AND snapshots.created_at >= after_created_at
 ORDER BY snapshots.path, snapshots.created_at DESC

@@ -7,7 +7,7 @@ import {
   downloadSnapshot,
   getMostFrequentlyUpdatedSnapshots,
   getSnapshotDiff,
-  getSnapshotsForBranch,
+  getSnapshotsForPrimaryBranch,
   getSnapshotsForRun,
 } from "../utils/ApiClient";
 import { projectCache } from "./ProjectCache";
@@ -103,17 +103,17 @@ export const snapshotsForRunCache = createCache<
   },
 });
 
-// Fetch list of snapshots for a branch
-export const snapshotsForBranchCache = createCache<
-  [projectId: ProjectId, branchName: string],
+// Fetch list of the latest snapshots for the primary branch
+export const snapshotsForPrimaryBranchCache = createCache<
+  [projectId: ProjectId],
   Snapshot[]
 >({
-  debugLabel: "snapshotsForBranch",
-  getKey([projectId, branchName]) {
-    return JSON.stringify({ branchName, projectId });
+  debugLabel: "snapshotsForPrimaryBranch",
+  getKey([projectId]) {
+    return JSON.stringify({ projectId });
   },
-  async load([projectId, branchName]) {
-    return await getSnapshotsForBranch({ branchName, projectId });
+  async load([projectId]) {
+    return await getSnapshotsForPrimaryBranch({ projectId });
   },
 });
 
@@ -127,10 +127,8 @@ export const snapshotFilesCache = createCache<
     return JSON.stringify({ runId, projectId });
   },
   async load([projectId, runId]) {
-    const project = await projectCache.readAsync(projectId, null);
-    const primaryBranch = project.primary_branch;
     const [snapshotsForPrimaryBranch, snapshotsForRun] = await Promise.all([
-      snapshotsForBranchCache.readAsync(projectId, primaryBranch),
+      snapshotsForPrimaryBranchCache.readAsync(projectId),
       snapshotsForRunCache.readAsync(projectId, runId),
     ]);
 

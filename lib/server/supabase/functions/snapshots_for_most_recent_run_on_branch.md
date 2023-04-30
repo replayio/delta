@@ -6,13 +6,22 @@ create or replace function snapshots_for_most_recent_run_on_branch(
 
 returns setof record language sql as $$
 
-SELECT snapshots.*
-FROM "Snapshots" snapshots
-  INNER JOIN "Runs"     runs      ON snapshots.run_id = runs.id
-  INNER JOIN "Branches" branches  ON runs.branch_id = branches.id
-WHERE branches.project_id = project_id
-  AND branches.name = branch_name
-ORDER BY snapshots.file ASC;
+SELECT *
+FROM "Snapshots"
+WHERE run_id = (
+  SELECT id
+  FROM "Runs"
+  WHERE branch_id = (
+    SELECT id
+    FROM "Branches"
+      WHERE project_id = project_id
+        AND name = branch_name
+      ORDER BY created_at DESC
+      LIMIT 1
+  )
+  ORDER BY created_at DESC
+  LIMIT 1
+);
 
 $$;
 ```

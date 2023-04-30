@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { getSnapshotsForBranch } from "../../lib/server/supabase/snapshots";
+import { getSnapshotsForPrimaryBranch } from "../../lib/server/supabase/snapshots";
 import { ProjectId, Snapshot } from "../../lib/types";
 import {
   GenericResponse,
@@ -11,7 +11,6 @@ import {
 } from "./utils";
 
 export type RequestParams = {
-  branchName: string;
   projectId: ProjectId;
 };
 export type ResponseData = Snapshot[];
@@ -21,15 +20,14 @@ export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  const { branchName, projectId } = request.query as RequestParams;
-  if (!branchName || !projectId) {
+  const { projectId } = request.query as RequestParams;
+  if (!projectId) {
     return sendErrorMissingParametersResponse(response, {
-      branchName,
       projectId,
     });
   }
 
-  const { data, error } = await getSnapshotsForBranch(projectId, branchName);
+  const { data, error } = await getSnapshotsForPrimaryBranch(projectId);
 
   if (error) {
     return typeof error === "string"
@@ -38,7 +36,7 @@ export default async function handler(
   } else if (!data) {
     return sendErrorResponse(
       response,
-      `No snapshots found for project "${projectId}" and branch "${branchName}"`,
+      `No primary branch snapshots found for project "${projectId}"`,
       404
     );
   } else {

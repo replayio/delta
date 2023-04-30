@@ -35,9 +35,9 @@ import type {
   ResponseData as GetSnapshotDiffResponseData,
 } from "../pages/api/getSnapshotDiff";
 import type {
-  RequestParams as GetSnapshotsForBranchRequestParams,
-  ResponseData as GetSnapshotsForBranchResponseData,
-} from "../pages/api/getSnapshotsForBranch";
+  RequestParams as GetSnapshotsForPrimaryBranchRequestParams,
+  ResponseData as GetSnapshotsForPrimaryBranchResponseData,
+} from "../pages/api/getSnapshotsForPrimaryBranch";
 import type {
   RequestParams as GetSnapshotsForRunRequestParams,
   ResponseData as GetSnapshotsForRunResponseData,
@@ -127,11 +127,11 @@ export async function getSnapshotsForRun(
   );
 }
 
-export async function getSnapshotsForBranch(
-  params: GetSnapshotsForBranchRequestParams
-): Promise<GetSnapshotsForBranchResponseData> {
-  return fetchDataFromEndpoint<GetSnapshotsForBranchResponseData>(
-    `/api/getSnapshotsForBranch?${paramsToUrlString(params)}`
+export async function getSnapshotsForPrimaryBranch(
+  params: GetSnapshotsForPrimaryBranchRequestParams
+): Promise<GetSnapshotsForPrimaryBranchResponseData> {
+  return fetchDataFromEndpoint<GetSnapshotsForPrimaryBranchResponseData>(
+    `/api/getSnapshotsForPrimaryBranch?${paramsToUrlString(params)}`
   );
 }
 

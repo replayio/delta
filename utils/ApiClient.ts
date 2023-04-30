@@ -11,8 +11,8 @@ import type {
   ResponseData as GetBranchesResponseData,
 } from "../pages/api/getBranches";
 import type {
-  RequestParams as GetJobsRequestParams,
-  ResponseData as GetJobsResponseData,
+  RequestParams as GetRunsRequestParams,
+  ResponseData as GetRunsResponseData,
 } from "../pages/api/getRuns";
 import type {
   RequestParams as GetMostFrequentlyUpdatedSnapshotsRequestParams,
@@ -71,11 +71,11 @@ export async function getMostFrequentlyUpdatedSnapshots(
   );
 }
 
-export async function getJobs(
-  params: GetJobsRequestParams
-): Promise<GetJobsResponseData> {
-  return fetchDataFromEndpoint<GetJobsResponseData>(
-    `/api/getJobs?${paramsToUrlString(params)}`
+export async function getRuns(
+  params: GetRunsRequestParams
+): Promise<GetRunsResponseData> {
+  return fetchDataFromEndpoint<GetRunsResponseData>(
+    `/api/getRuns?${paramsToUrlString(params)}`
   );
 }
 

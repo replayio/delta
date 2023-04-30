@@ -8,8 +8,8 @@ returns setof record language sql as $$
 
 SELECT snapshots.*
 FROM "Snapshots" snapshots
-  INNER JOIN "Runs"     jobs      ON snapshots.job_id = jobs.id
-  INNER JOIN "Branches" branches  ON jobs.branch_id = branches.id
+  INNER JOIN "Runs"     runs      ON snapshots.job_id = runs.id
+  INNER JOIN "Branches" branches  ON runs.branch_id = branches.id
 WHERE branches.project_id = project_id
   AND branches.name = branch_name
 ORDER BY snapshots.file ASC;

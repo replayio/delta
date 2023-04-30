@@ -14,19 +14,16 @@
 ## Concepts
 
 - Snapshot - Metadata about an image
-- Action - 1:1. w/ a GitHub Action
-- Job - 1:1. w/ a GitHub Workflow job
+- Run - 1:1. w/ a GitHub Workflow run
 - Branch - 1:1 w/ a GitHub Branch
 - Project - Team, workspace, etc.
 - GitHub Event - GitHub webhook event
 - Check Run - GitHub check that we create to update the status
 
 Table relationships
-
 - Branches belong to a project
-- Jobs belong to a branch
-- Actions belong to a job
-- Snapshots belong to an action
+- Runs belong to a branch
+- Snapshots belong to an run
 
 ## Flows
 

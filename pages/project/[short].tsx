@@ -8,26 +8,24 @@ import { Snapshot } from "../../components/Snapshot";
 import { SnapshotRow } from "../../components/SnapshotRow";
 import useSnapshotPrefetchedData from "../../lib/hooks/useSnapshotPrefetchedData";
 import {
-  Action,
   Branch,
-  Job,
-  JobId,
+  Run,
+  RunId,
   Project,
   ProjectShort,
-  RunId,
+  GithubRunId,
 } from "../../lib/types";
 
 import withSuspenseLoader from "../../components/withSuspenseLoader";
-import { actionsCache } from "../../suspense/ActionCache";
 import { branchCache, branchesCache } from "../../suspense/BranchCache";
-import { jobsCache } from "../../suspense/JobCache";
+import { runsCache } from "../../suspense/RunCache";
 import { projectCache } from "../../suspense/ProjectCache";
 import { SnapshotFile, snapshotFilesCache } from "../../suspense/SnapshotCache";
 
 export default function Short() {
   const router = useRouter();
   const {
-    job: jobIdFromUrl,
+    run: runIdFromUrl,
     branch: branchName,
     fileName: currentFileName,
     short: projectShort,
@@ -44,7 +42,7 @@ export default function Short() {
     <ShortSuspends
       branchName={branchName ?? null}
       currentFileName={currentFileName ?? null}
-      jobId={(jobIdFromUrl as JobId) ?? null}
+      runId={(runIdFromUrl as RunId) ?? null}
       projectShort={projectShort as ProjectShort}
     />
   );
@@ -53,12 +51,12 @@ export default function Short() {
 const ShortSuspends = withSuspenseLoader(function ShortSuspends({
   branchName,
   currentFileName,
-  jobId,
+  runId,
   projectShort,
 }: {
   branchName: string | null;
   currentFileName: string | null;
-  jobId: JobId | null;
+  runId: RunId | null;
   projectShort: ProjectShort;
 }) {
   // TODO If we passed branch id instead of name, we wouldn't need to fetch the branch here.
@@ -72,21 +70,19 @@ const ShortSuspends = withSuspenseLoader(function ShortSuspends({
   const currentBranch = branchName
     ? branchCache.read(branchName as string)
     : null;
-  const jobs = currentBranch ? jobsCache.read(currentBranch.id) : null;
+  const runs = currentBranch ? runsCache.read(currentBranch.id) : null;
 
-  if (!jobId) {
-    jobId = jobs?.[0]?.id ?? null;
+  if (!runId) {
+    runId = runs?.[0]?.id ?? null;
   }
 
-  const currentJob = jobId
-    ? jobs?.find((job) => job.id === jobId) ?? null
+  const currentRun = runId
+    ? runs?.find((run) => run.id === runId) ?? null
     : null;
 
-  const snapshotFiles = currentJob
-    ? snapshotFilesCache.read(project.id, currentJob.id)
+  const snapshotFiles = currentRun
+    ? snapshotFilesCache.read(project.id, currentRun.id)
     : null;
-
-  const actions = jobId ? actionsCache.read(jobId) : null;
 
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
@@ -94,71 +90,67 @@ const ShortSuspends = withSuspenseLoader(function ShortSuspends({
   //   console.log("project:", project);
   //   console.log("branches:", branches);
   //   console.log("current branch:", currentBranch);
-  //   console.log("jobs:", jobs);
-  //   console.log("current job:", currentJob);
-  //   console.log("actions:", actions);
+  //   console.log("runs:", runs);
+  //   console.log("current run:", currentRun);
   //   console.log("snapshotFiles:", snapshotFiles);
   //   console.groupEnd();
   // }
 
   return (
     <ShortWithData
-      actions={actions}
       branches={branches}
       currentBranch={currentBranch}
       currentFileName={currentFileName}
-      currentJob={currentJob}
+      currentRun={currentRun}
       project={project}
       snapshotFiles={snapshotFiles}
-      jobs={jobs}
+      runs={runs}
     />
   );
 });
 
 function ShortWithData({
-  actions,
   branches,
   currentBranch,
   currentFileName,
-  currentJob,
+  currentRun,
   project,
   snapshotFiles,
-  jobs,
+  runs,
 }: {
-  actions: Action[] | null;
   branches: Branch[];
   currentBranch: Branch | null;
   currentFileName: string | null;
-  currentJob: Job | null;
+  currentRun: Run | null;
   project: Project;
   snapshotFiles: SnapshotFile[] | null;
-  jobs: Job[] | null;
+  runs: Run[] | null;
 }) {
   const shownBranches = branches.filter(
     (branch) => branch.name !== project.primary_branch
   );
 
-  const isPending = currentJob?.status === null;
+  const isPending = currentRun?.status === null;
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <Header
         branches={shownBranches}
         currentBranch={currentBranch}
-        currentJob={currentJob}
+        currentRun={currentRun}
         project={project}
-        jobs={jobs}
+        runs={runs}
       />
 
       {isPending ? (
-        <SubViewJobPending project={project} runId={currentJob.run_id} />
+        <SubViewRunPending project={project} runId={currentRun.github_run_id} />
       ) : shownBranches.length == 0 ? (
         <SubViewNoOpenBranches />
       ) : snapshotFiles === null || snapshotFiles.length == 0 ? (
         <SubViewNoChanges />
       ) : (
         <SubViewLoadedData
-          currentJob={currentJob}
+          currentRun={currentRun}
           currentFileName={currentFileName}
           snapshotFiles={snapshotFiles}
         />
@@ -167,12 +159,12 @@ function ShortWithData({
   );
 }
 
-function SubViewJobPending({
+function SubViewRunPending({
   project,
   runId,
 }: {
   project: Project;
-  runId: RunId;
+  runId: GithubRunId;
 }) {
   return (
     <div className="flex justify-center items-center mt-10 italic underline text-violet-600">
@@ -181,18 +173,18 @@ function SubViewJobPending({
         rel="noreferrer"
         href={`https://github.com/${project.organization}/${project.repository}/actions/runs/${runId}`}
       >
-        Job running...
+        Workflow running...
       </a>
     </div>
   );
 }
 
 function SubViewLoadedData({
-  currentJob,
+  currentRun,
   currentFileName,
   snapshotFiles,
 }: {
-  currentJob: Job | null;
+  currentRun: Run | null;
   currentFileName: string | null;
   snapshotFiles: SnapshotFile[];
 }) {
@@ -241,7 +233,7 @@ function SubViewLoadedData({
           <div className="w-full h-full flex flex-col h-full overflow-y-auto overflow-x-hidden bg-slate-100 py-1">
             {filteredSnapshotFiles.map((snapshotFile) => (
               <SnapshotRow
-                currentJob={currentJob}
+                currentRun={currentRun}
                 isSelected={snapshotFile.fileName === currentFileName}
                 key={snapshotFile.fileName}
                 snapshotFile={snapshotFile}

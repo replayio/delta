@@ -3,10 +3,6 @@ import type {
   ResponseData as DownloadSnapshotResponseData,
 } from "../pages/api/downloadSnapshot";
 import type {
-  RequestParams as GetActionsRequestParams,
-  ResponseData as GetActionsResponseData,
-} from "../pages/api/getActions";
-import type {
   RequestParams as GetBranchByNameRequestParams,
   ResponseData as GetBranchByNameResponseData,
 } from "../pages/api/getBranchByName";
@@ -15,9 +11,9 @@ import type {
   ResponseData as GetBranchesResponseData,
 } from "../pages/api/getBranches";
 import type {
-  RequestParams as GetJobsRequestParams,
-  ResponseData as GetJobsResponseData,
-} from "../pages/api/getJobs";
+  RequestParams as GetRunsRequestParams,
+  ResponseData as GetRunsResponseData,
+} from "../pages/api/getRuns";
 import type {
   RequestParams as GetMostFrequentlyUpdatedSnapshotsRequestParams,
   ResponseData as GetMostFrequentlyUpdatedSnapshotsResponseData,
@@ -43,9 +39,9 @@ import type {
   ResponseData as GetSnapshotsForBranchResponseData,
 } from "../pages/api/getSnapshotsForBranch";
 import type {
-  RequestParams as GetSnapshotsForJobRequestParams,
-  ResponseData as GetSnapshotsForJobResponseData,
-} from "../pages/api/getSnapshotsForJob";
+  RequestParams as GetSnapshotsForRunRequestParams,
+  ResponseData as GetSnapshotsForRunResponseData,
+} from "../pages/api/getSnapshotsForRun";
 import type {
   RequestParams as UpdateBranchStatusRequestParams,
   ResponseData as UpdateBranchStatusResponseData,
@@ -67,14 +63,6 @@ export async function downloadSnapshot(
   );
 }
 
-export async function getActions(
-  params: GetActionsRequestParams
-): Promise<GetActionsResponseData> {
-  return fetchDataFromEndpoint<GetActionsResponseData>(
-    `/api/getActions?${paramsToUrlString(params)}`
-  );
-}
-
 export async function getMostFrequentlyUpdatedSnapshots(
   params: GetMostFrequentlyUpdatedSnapshotsRequestParams
 ): Promise<GetMostFrequentlyUpdatedSnapshotsResponseData> {
@@ -83,11 +71,11 @@ export async function getMostFrequentlyUpdatedSnapshots(
   );
 }
 
-export async function getJobs(
-  params: GetJobsRequestParams
-): Promise<GetJobsResponseData> {
-  return fetchDataFromEndpoint<GetJobsResponseData>(
-    `/api/getJobs?${paramsToUrlString(params)}`
+export async function getRuns(
+  params: GetRunsRequestParams
+): Promise<GetRunsResponseData> {
+  return fetchDataFromEndpoint<GetRunsResponseData>(
+    `/api/getRuns?${paramsToUrlString(params)}`
   );
 }
 
@@ -131,11 +119,11 @@ export async function getSnapshotDiff(
   );
 }
 
-export async function getSnapshotsForJob(
-  params: GetSnapshotsForJobRequestParams
-): Promise<GetSnapshotsForJobResponseData> {
-  return fetchDataFromEndpoint<GetSnapshotsForJobResponseData>(
-    `/api/getSnapshotsForJob?${paramsToUrlString(params)}`
+export async function getSnapshotsForRun(
+  params: GetSnapshotsForRunRequestParams
+): Promise<GetSnapshotsForRunResponseData> {
+  return fetchDataFromEndpoint<GetSnapshotsForRunResponseData>(
+    `/api/getSnapshotsForRun?${paramsToUrlString(params)}`
   );
 }
 

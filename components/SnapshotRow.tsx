@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Job } from "../lib/types";
+import { Run } from "../lib/types";
 import { SnapshotFile } from "../suspense/SnapshotCache";
 
 export function SnapshotRow({
-  currentJob,
+  currentRun,
   isSelected,
   snapshotFile,
 }: {
-  currentJob: Job | null;
+  currentRun: Run | null;
   isSelected: boolean;
   snapshotFile: SnapshotFile;
 }) {
@@ -19,7 +19,7 @@ export function SnapshotRow({
     .replace(/-/g, " ")
     .replace(".png", "");
 
-  const jobId = currentJob?.id || "";
+  const runId = currentRun?.id || "";
 
   return (
     <Link
@@ -27,7 +27,7 @@ export function SnapshotRow({
         isSelected ? "bg-violet-200" : "hover:bg-violet-100"
       }`}
       href={encodeURI(
-        `/project/${shortProjectId}?job=${jobId}&branch=${branchName}&fileName=${snapshotFile.fileName}&`
+        `/project/${shortProjectId}?run=${runId}&branch=${branchName}&fileName=${snapshotFile.fileName}&`
       )}
     >
       {displayName}

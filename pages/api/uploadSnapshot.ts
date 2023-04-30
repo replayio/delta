@@ -3,16 +3,21 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { diffWithPrimaryBranch } from "../../lib/server/diffWithPrimaryBranch";
 import { isPostgrestError } from "../../lib/server/supabase/errors";
 import {
-  getJobForBranch,
+  getRunForBranch,
   incrementNumSnapshotsChanged,
-} from "../../lib/server/supabase/jobs";
+} from "../../lib/server/supabase/runs";
 import {
   getSnapshotForBranch,
   insertSnapshot,
   updateSnapshot,
 } from "../../lib/server/supabase/snapshots";
 import { uploadSnapshot } from "../../lib/server/supabase/storage";
-import { ProjectId, RunId, Snapshot, SnapshotStatus } from "../../lib/types";
+import {
+  ProjectId,
+  GithubRunId,
+  Snapshot,
+  SnapshotStatus,
+} from "../../lib/types";
 import {
   GenericResponse,
   sendErrorMissingParametersResponse,
@@ -31,7 +36,7 @@ export type RequestParams = {
   branchName: string;
   image: Image;
   projectId: ProjectId;
-  runId: RunId;
+  runId: GithubRunId;
 };
 export type ResponseData = Snapshot;
 export type Response = GenericResponse<ResponseData>;
@@ -127,12 +132,12 @@ export default async function handler(
         return branch.error;
       }
 
-      const job = await getJobForBranch(branch.data.id, runId);
-      if (job.error) {
-        return job.error;
+      const run = await getRunForBranch(branch.data.id, runId);
+      if (run.error) {
+        return run.error;
       }
 
-      await incrementNumSnapshotsChanged(job.data.id);
+      await incrementNumSnapshotsChanged(run.data.id);
 
       return sendResponse<ResponseData>(response, updatedSnapshot.data);
     }

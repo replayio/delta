@@ -1,14 +1,14 @@
 import sortedIndexBy from "lodash/sortedIndexBy";
 
 import { createCache } from "suspense";
-import { JobId, ProjectId, ProjectShort, Snapshot } from "../lib/types";
+import { RunId, ProjectId, ProjectShort, Snapshot } from "../lib/types";
 import { ResponseData } from "../pages/api/getMostFrequentlyUpdatedSnapshots";
 import {
   downloadSnapshot,
   getMostFrequentlyUpdatedSnapshots,
   getSnapshotDiff,
   getSnapshotsForBranch,
-  getSnapshotsForJob,
+  getSnapshotsForRun,
 } from "../utils/ApiClient";
 import { projectCache } from "./ProjectCache";
 
@@ -89,17 +89,17 @@ export const snapshotDiffCache = createCache<
   },
 });
 
-// Fetch list of snapshots for a Workflow job
-export const snapshotsForJobCache = createCache<
-  [projectId: ProjectId, jobId: JobId],
+// Fetch list of snapshots for a Workflow run
+export const snapshotsForRunCache = createCache<
+  [projectId: ProjectId, runId: RunId],
   Snapshot[]
 >({
-  debugLabel: "snapshotsForJob",
-  getKey([projectId, jobId]) {
-    return JSON.stringify({ jobId, projectId });
+  debugLabel: "snapshotsForRun",
+  getKey([projectId, runId]) {
+    return JSON.stringify({ runId, projectId });
   },
-  async load([projectId, jobId]) {
-    return await getSnapshotsForJob({ jobId, projectId });
+  async load([projectId, runId]) {
+    return await getSnapshotsForRun({ runId: runId, projectId });
   },
 });
 
@@ -119,19 +119,19 @@ export const snapshotsForBranchCache = createCache<
 
 // Fetch list of snapshots and their change metadata, grouped by file
 export const snapshotFilesCache = createCache<
-  [projectId: ProjectId, jobId: JobId],
+  [projectId: ProjectId, runId: RunId],
   SnapshotFile[]
 >({
   debugLabel: "snapshotFiles",
-  getKey([projectId, jobId]) {
-    return JSON.stringify({ jobId, projectId });
+  getKey([projectId, runId]) {
+    return JSON.stringify({ runId, projectId });
   },
-  async load([projectId, jobId]) {
+  async load([projectId, runId]) {
     const project = await projectCache.readAsync(projectId, null);
     const primaryBranch = project.primary_branch;
-    const [snapshotsForPrimaryBranch, snapshotsForJob] = await Promise.all([
+    const [snapshotsForPrimaryBranch, snapshotsForRun] = await Promise.all([
       snapshotsForBranchCache.readAsync(projectId, primaryBranch),
-      snapshotsForJobCache.readAsync(projectId, jobId),
+      snapshotsForRunCache.readAsync(projectId, runId),
     ]);
 
     // Gather the unique set of snapshots;
@@ -166,7 +166,7 @@ export const snapshotFilesCache = createCache<
       return fileNameToBranchSnapshotsMap.get(fileName)!;
     };
 
-    snapshotsForJob.forEach((snapshot) => {
+    snapshotsForRun.forEach((snapshot) => {
       const [fileName, theme] = parseFilePath(snapshot.file);
 
       const record = getOrCreateRecord(fileName);

@@ -63,7 +63,7 @@ describe("github event", () => {
     const project = await getProject(projectId);
     const branchName = "visuals21";
     const branch = await getBranchForProject(project.data.id, branchName);
-    const action = await getActionFromBranch(branch.data.id);
+    // const action = await getActionFromBranch(branch.data.id);
 
     const snapshots = await getSnapshotsForAction(action.data.id);
     const comment = formatComment({
@@ -79,7 +79,7 @@ describe("github event", () => {
     const project = await getProject(projectId);
     const branchName = "visuals21";
     const branch = await getBranchForProject(project.data.id, branchName);
-    const action = await getActionFromBranch(branch.data.id);
+    // const action = await getActionFromBranch(branch.data.id);
 
     const snapshots = await getSnapshotsForAction(action.data.id);
     const comment = formatComment({

@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 
 import createClient from "../../lib/initServerSupabase";
 import { retryOnError } from "../../lib/server/supabase/supabase";
-import { Action, JobId } from "../../lib/types";
+import { BranchId, Run } from "../../lib/types";
 import {
   GenericResponse,
   sendErrorResponse,
@@ -11,9 +11,10 @@ import {
 } from "./utils";
 
 export type RequestParams = {
-  jobId: JobId;
+  branchId: BranchId;
+  limit?: string;
 };
-export type ResponseData = Action[];
+export type ResponseData = Run[];
 export type Response = GenericResponse<ResponseData>;
 
 const supabase = createClient();
@@ -22,15 +23,15 @@ export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  const { jobId } = request.query as RequestParams;
+  const { branchId, limit = "1000" } = request.query as RequestParams;
 
   const { data, error } = await retryOnError(() =>
     supabase
-      .from("Actions")
+      .from("Runs")
       .select("*")
-      .eq("job_id", jobId)
+      .eq("branch_id", branchId)
       .order("created_at", { ascending: false })
-      .limit(1000)
+      .limit(parseInt(limit, 10))
   );
 
   if (error) {
@@ -38,7 +39,7 @@ export default async function handler(
   } else if (!data) {
     return sendErrorResponse(
       response,
-      `No actions found for branch id "${jobId}"`,
+      `No runs found for branch id "${branchId}"`,
       404
     );
   } else {

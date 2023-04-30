@@ -42,16 +42,16 @@ export type BranchId = Branch["id"];
 export type CheckId = Branch["check_id"];
 export type CommentId = Branch["comment_id"];
 
-export type JobStatus = "success" | "failure" | "neutral";
-export type Job = {
+export type RunStatus = "success" | "failure" | "neutral";
+export type Run = {
   created_at: string;
 
   // Database ids and keys
-  id: Opaque<"string", Job>;
+  id: Opaque<"string", Run>;
   branch_id: BranchId;
 
   // GitHub API ids
-  run_id: Opaque<"number", Job>;
+  github_run_id: Opaque<"number", Run>;
 
   // Cached attributes
   actor: string;
@@ -62,19 +62,10 @@ export type Job = {
 
   // Set based on the initial results of running the Workflow
   // Updated based on user actions
-  status: JobStatus | null;
+  status: RunStatus | null;
 };
-export type JobId = Job["id"];
-export type RunId = Job["run_id"];
-
-export type Action = {
-  created_at: string;
-
-  // Database ids and keys
-  id: Opaque<"string", Action>;
-  job_id: JobId;
-};
-export type ActionId = Action["id"];
+export type RunId = Run["id"];
+export type GithubRunId = Run["github_run_id"];
 
 export type SnapshotStatus = "Duplicate" | "Uploaded";
 export type Snapshot = {
@@ -82,7 +73,10 @@ export type Snapshot = {
 
   // Database ids and keys
   id: Opaque<"string", Snapshot>;
-  job_id: JobId;
+  run_id: RunId;
+
+  // GitHub API ids
+  github_job_id: Opaque<"number", Run>;
 
   // Cached attributes
   // Snapshot file name (as declared in test);
@@ -101,3 +95,19 @@ export type Snapshot = {
   status: SnapshotStatus | null;
 };
 export type SnapshotId = Snapshot["id"];
+export type GithubJobId = Snapshot["github_job_id"];
+
+export type GithubEvent = {
+  action: string;
+  branch_name?: string;
+  check: Object;
+  comment: Object;
+  event_type: string;
+  head_sha: string;
+  id: number;
+  payload: Object;
+  pr_number?: string;
+
+  github_job_id?: GithubJobId;
+  github_run_id?: GithubRunId;
+};

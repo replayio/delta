@@ -91,7 +91,7 @@ export async function getSnapshotsForRun(
   runId: GithubRunId
 ): Promise<PostgrestResponse<Snapshot>> {
   return retryOnError(() =>
-    supabase.rpc("snapshots_for_run", { run_id: runId })
+    supabase.rpc("snapshots_for_github_run", { github_run_id: runId })
   );
 }
 

@@ -10,7 +10,7 @@ export async function insertGithubEvent(
   event: Partial<GithubEvent>
 ): Promise<PostgrestSingleResponse<GithubEvent>> {
   return retryOnError(() =>
-    supabase.from("GithubEvent").insert(event).single()
+    supabase.from("GithubEvents").insert(event).single()
   );
 }
 
@@ -19,7 +19,11 @@ export async function updateGithubEvent(
   event: Partial<GithubEvent>
 ): Promise<PostgrestSingleResponse<GithubEvent>> {
   return retryOnError(() =>
-    supabase.from("GithubEvent").update(event).eq("id", githubEvent.id).single()
+    supabase
+      .from("GithubEvents")
+      .update(event)
+      .eq("id", githubEvent.id)
+      .single()
   );
 }
 

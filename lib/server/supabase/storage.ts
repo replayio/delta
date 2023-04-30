@@ -1,7 +1,8 @@
-import createClient from "../../initServerSupabase";
 import { createHash } from "crypto";
+import createClient from "../../initServerSupabase";
 
 import type { FileObject } from "@supabase/storage-js";
+import { ProjectId } from "../../types";
 import { maybeRetry, retryOnError } from "./supabase";
 
 const supabase = createClient();
@@ -19,7 +20,7 @@ type UploadResult = {
 
 export async function uploadSnapshot(
   content: string | Buffer,
-  projectId: string
+  projectId: ProjectId
 ): Promise<UploadResult> {
   const sha = createHash("sha256").update(content).digest("hex");
   const path = `${projectId}/${sha}.png`;
@@ -62,7 +63,7 @@ export async function downloadSnapshot(
 }
 
 export async function listSnapshots(
-  projectId: string
+  projectId: ProjectId
 ): Promise<{ data: FileObject[] | null; error: string | null }> {
   const { data, error } = await retryOnError(() =>
     supabase.storage.from("snapshots").list(projectId, {
@@ -78,7 +79,7 @@ export async function listSnapshots(
 }
 
 export async function listCorruptedSnapshots(
-  projectId: string
+  projectId: ProjectId
 ): Promise<any[]> {
   const { data, error } = await listSnapshots(projectId);
   if (data == null || error) {
@@ -88,7 +89,7 @@ export async function listCorruptedSnapshots(
   return data.filter((s) => s.metadata == null);
 }
 
-export async function removeCorruptedSnapshots(projectId: string) {
+export async function removeCorruptedSnapshots(projectId: ProjectId) {
   const snapshots = await listCorruptedSnapshots(projectId);
   if (snapshots.length === 0) {
     return;

@@ -1,22 +1,26 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
+import { diffWithPrimaryBranch } from "../../lib/server/diffWithPrimaryBranch";
+import { isPostgrestError } from "../../lib/server/supabase/errors";
 import {
-  getSnapshotFromBranch,
+  getJobForBranch,
+  incrementNumSnapshotsChanged,
+} from "../../lib/server/supabase/jobs";
+import {
+  getSnapshotForBranch,
   insertSnapshot,
   updateSnapshot,
 } from "../../lib/server/supabase/snapshots";
 import { uploadSnapshot } from "../../lib/server/supabase/storage";
-import { diffWithPrimaryBranch } from "../../lib/server/diffWithPrimaryBranch";
-import { incrementActionNumSnapshotsChanged } from "../../lib/server/supabase/incrementActionNumSnapshotsChanged";
-import { isPostgrestError } from "../../lib/server/supabase/errors";
-import { Snapshot, SnapshotStatus } from "../../lib/server/supabase/supabase";
+import { ProjectId, RunId, Snapshot, SnapshotStatus } from "../../lib/types";
 import {
   GenericResponse,
-  sendErrorResponseFromPostgrestError,
-  sendErrorResponse,
-  sendResponse,
   sendErrorMissingParametersResponse,
+  sendErrorResponse,
+  sendErrorResponseFromPostgrestError,
+  sendResponse,
 } from "./utils";
+import { getBranchByName } from "../../lib/server/supabase/branches";
 
 export type Image = {
   content: string;
@@ -26,8 +30,8 @@ export type Image = {
 export type RequestParams = {
   branchName: string;
   image: Image;
-  projectId: string;
-  runId: string;
+  projectId: ProjectId;
+  runId: RunId;
 };
 export type ResponseData = Snapshot;
 export type Response = GenericResponse<ResponseData>;
@@ -77,10 +81,10 @@ export default async function handler(
     let snapshot: Snapshot | null = insertedSnapshot.data;
     if (!snapshot) {
       console.log("Getting previous snapshot");
-      const previousSnapshot = await getSnapshotFromBranch(
-        image.file,
+      const previousSnapshot = await getSnapshotForBranch(
         projectId,
-        branchName
+        branchName,
+        image.file
       );
       if (previousSnapshot.error) {
         return isPostgrestError(previousSnapshot.error)
@@ -105,24 +109,35 @@ export default async function handler(
       image
     );
 
-    console.log("Updating snapshot");
-    const updatedSnapshot = await updateSnapshot(snapshot.id, {
-      primary_changed: primaryDiff.changed,
-      primary_diff_path: primaryDiff.diffSnapshot?.path,
-      primary_num_pixels: primaryDiff.numPixels,
-    });
-    if (updatedSnapshot.error) {
-      return sendErrorResponseFromPostgrestError(
-        response,
-        updatedSnapshot.error
-      );
+    if (primaryDiff.changed && primaryDiff.diffSnapshot?.path) {
+      console.log("Updating snapshot");
+
+      const updatedSnapshot = await updateSnapshot(snapshot.id, {
+        primary_diff_path: primaryDiff.diffSnapshot?.path,
+      });
+      if (updatedSnapshot.error) {
+        return sendErrorResponseFromPostgrestError(
+          response,
+          updatedSnapshot.error
+        );
+      }
+
+      const branch = await getBranchByName(branchName);
+      if (branch.error) {
+        return branch.error;
+      }
+
+      const job = await getJobForBranch(branch.data.id, runId);
+      if (job.error) {
+        return job.error;
+      }
+
+      await incrementNumSnapshotsChanged(job.data.id);
+
+      return sendResponse<ResponseData>(response, updatedSnapshot.data);
     }
 
-    if (primaryDiff.changed) {
-      await incrementActionNumSnapshotsChanged(projectId, branchName);
-    }
-
-    return sendResponse<ResponseData>(response, updatedSnapshot.data);
+    return sendResponse<ResponseData>(response, snapshot);
   } catch (error) {
     console.error("uploadSnapshot caught error:", error);
     return sendErrorResponse(

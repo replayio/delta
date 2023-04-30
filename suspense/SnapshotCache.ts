@@ -1,15 +1,15 @@
 import sortedIndexBy from "lodash/sortedIndexBy";
 
-import { Snapshot } from "../lib/server/supabase/supabase";
+import { createCache } from "suspense";
+import { JobId, ProjectId, ProjectShort, Snapshot } from "../lib/types";
 import { ResponseData } from "../pages/api/getMostFrequentlyUpdatedSnapshots";
 import {
   downloadSnapshot,
   getMostFrequentlyUpdatedSnapshots,
   getSnapshotDiff,
-  getSnapshotsForAction,
   getSnapshotsForBranch,
+  getSnapshotsForJob,
 } from "../utils/ApiClient";
-import { createCache } from "suspense";
 import { projectCache } from "./ProjectCache";
 
 export type SnapshotTheme = "dark" | "light";
@@ -46,7 +46,7 @@ export type SnapshotFile = {
 
 // Fetch list of snapshots for a branch
 export const frequentlyUpdatedSnapshotsCache = createCache<
-  [projectShort: string, afterDate: string],
+  [projectShort: ProjectShort, afterDate: string],
   ResponseData
 >({
   debugLabel: "frequentlyUpdatedSnapshots",
@@ -56,7 +56,6 @@ export const frequentlyUpdatedSnapshotsCache = createCache<
   async load([projectShort, afterDate]) {
     return await getMostFrequentlyUpdatedSnapshots({
       afterDate,
-      projectId: "",
       projectShort,
     });
   },
@@ -73,7 +72,7 @@ export const snapshotCache = createCache<[path: string], SnapshotImage>({
 
 // Fetch base64 encoded snapshot diff image (with dimensions)
 export const snapshotDiffCache = createCache<
-  [projectId: string, branchName: string, snapshotFile: string],
+  [projectId: ProjectId, branchName: string, snapshotFile: string],
   SnapshotImage
 >({
   debugLabel: "snapshotDiff",
@@ -90,23 +89,23 @@ export const snapshotDiffCache = createCache<
   },
 });
 
-// Fetch list of snapshots for an action
-export const snapshotsForActionCache = createCache<
-  [projectId: string, actionId: string],
+// Fetch list of snapshots for a Workflow job
+export const snapshotsForJobCache = createCache<
+  [projectId: ProjectId, jobId: JobId],
   Snapshot[]
 >({
-  debugLabel: "snapshotsForAction",
-  getKey([projectId, actionId]) {
-    return JSON.stringify({ actionId, projectId });
+  debugLabel: "snapshotsForJob",
+  getKey([projectId, jobId]) {
+    return JSON.stringify({ jobId, projectId });
   },
-  async load([projectId, actionId]) {
-    return await getSnapshotsForAction({ actionId, projectId });
+  async load([projectId, jobId]) {
+    return await getSnapshotsForJob({ jobId, projectId });
   },
 });
 
 // Fetch list of snapshots for a branch
 export const snapshotsForBranchCache = createCache<
-  [projectId: string, branchName: string],
+  [projectId: ProjectId, branchName: string],
   Snapshot[]
 >({
   debugLabel: "snapshotsForBranch",
@@ -120,25 +119,20 @@ export const snapshotsForBranchCache = createCache<
 
 // Fetch list of snapshots and their change metadata, grouped by file
 export const snapshotFilesCache = createCache<
-  [projectId: string, actionId: string],
+  [projectId: ProjectId, jobId: JobId],
   SnapshotFile[]
 >({
   debugLabel: "snapshotFiles",
-  getKey([projectId, actionId]) {
-    return JSON.stringify({ actionId, projectId });
+  getKey([projectId, jobId]) {
+    return JSON.stringify({ jobId, projectId });
   },
-  async load([projectId, actionId]) {
-    // TODO We could parallelize some of the requests below.
+  async load([projectId, jobId]) {
     const project = await projectCache.readAsync(projectId, null);
     const primaryBranch = project.primary_branch;
-    const snapshotsForPrimaryBranch = await snapshotsForBranchCache.readAsync(
-      projectId,
-      primaryBranch
-    );
-    const snapshotsForAction = await snapshotsForActionCache.readAsync(
-      projectId,
-      actionId
-    );
+    const [snapshotsForPrimaryBranch, snapshotsForJob] = await Promise.all([
+      snapshotsForBranchCache.readAsync(projectId, primaryBranch),
+      snapshotsForJobCache.readAsync(projectId, jobId),
+    ]);
 
     // Gather the unique set of snapshots;
     // Be sure to scan both arrays to handle added and deleted snapshots.
@@ -172,7 +166,7 @@ export const snapshotFilesCache = createCache<
       return fileNameToBranchSnapshotsMap.get(fileName)!;
     };
 
-    snapshotsForAction.forEach((snapshot) => {
+    snapshotsForJob.forEach((snapshot) => {
       const [fileName, theme] = parseFilePath(snapshot.file);
 
       const record = getOrCreateRecord(fileName);
@@ -201,10 +195,7 @@ export const snapshotFilesCache = createCache<
       } else if (snapshotMain === null) {
         changed = true;
         status = "added";
-      } else if (snapshotBranch.action_changed) {
-        changed = true;
-        status = "changed-action";
-      } else if (snapshotBranch.primary_changed) {
+      } else if (snapshotBranch.primary_diff_path !== null) {
         changed = true;
         status = "changed-primary";
       }

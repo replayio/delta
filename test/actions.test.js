@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
-  getBranchFromProject,
-  getBranchesFromProject,
+  getBranchForProject,
+  getBranchesForProject,
 } from "../lib/server/supabase/branches";
 import {
   getActionFromBranch,
@@ -12,7 +12,7 @@ const projectId = "dcb5df26-b418-4fe2-9bdf-5a838e604ec4";
 
 describe("actions", () => {
   it("can get the latest action for a branch", async () => {
-    const branch = await getBranchFromProject(projectId, "visuals10");
+    const branch = await getBranchForProject(projectId, "visuals10");
     expect(branch.data.id).toEqual("ca7f4ea9-c13a-46c3-96c5-2cb972c514ef");
 
     const action = await getActionFromBranch(branch.data.id);
@@ -20,7 +20,7 @@ describe("actions", () => {
   });
 
   it.skip("can update the snapshot count for open branches", async () => {
-    const branches = await getBranchesFromProject(projectId);
+    const branches = await getBranchesForProject(projectId);
     const openBranches = branches.data.filter((b) => b.status == "open");
 
     const actions = await Promise.all(
@@ -31,7 +31,7 @@ describe("actions", () => {
       const snapshots = await getSnapshotsForAction(action.data.id);
       const snapshotCount = snapshots.data.length;
       const snapshotChangedCount = snapshots.data.filter(
-        (snapshot) => snapshot.primary_changed
+        (snapshot) => snapshot.primary_diff_path != null
       ).length;
 
       console.log(

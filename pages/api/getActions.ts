@@ -1,16 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import createClient from "../../lib/initServerSupabase";
-import { Action, retryOnError } from "../../lib/server/supabase/supabase";
+import { retryOnError } from "../../lib/server/supabase/supabase";
+import { Action, JobId } from "../../lib/types";
 import {
   GenericResponse,
-  sendErrorResponseFromPostgrestError,
   sendErrorResponse,
+  sendErrorResponseFromPostgrestError,
   sendResponse,
 } from "./utils";
 
 export type RequestParams = {
-  branchId: string;
+  jobId: JobId;
 };
 export type ResponseData = Action[];
 export type Response = GenericResponse<ResponseData>;
@@ -21,13 +22,13 @@ export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  const { branchId } = request.query as RequestParams;
+  const { jobId } = request.query as RequestParams;
 
   const { data, error } = await retryOnError(() =>
     supabase
       .from("Actions")
       .select("*")
-      .eq("branch_id", branchId)
+      .eq("job_id", jobId)
       .order("created_at", { ascending: false })
       .limit(1000)
   );
@@ -37,7 +38,7 @@ export default async function handler(
   } else if (!data) {
     return sendErrorResponse(
       response,
-      `No actions found for branch id "${branchId}"`,
+      `No actions found for branch id "${jobId}"`,
       404
     );
   } else {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getBranchFromProject } from "../lib/server/supabase/branches";
+import { getBranchForProject } from "../lib/server/supabase/branches";
 import { getSnapshotsForAction } from "../lib/server/supabase/snapshots";
 import { getProject } from "../lib/server/supabase/supabase";
 import { getActionFromBranch } from "../lib/server/supabase/actions";
@@ -62,7 +62,7 @@ describe("github event", () => {
   it("format comments", async () => {
     const project = await getProject(projectId);
     const branchName = "visuals21";
-    const branch = await getBranchFromProject(project.data.id, branchName);
+    const branch = await getBranchForProject(project.data.id, branchName);
     const action = await getActionFromBranch(branch.data.id);
 
     const snapshots = await getSnapshotsForAction(action.data.id);
@@ -78,7 +78,7 @@ describe("github event", () => {
   it("format comment w/ subtitle", async () => {
     const project = await getProject(projectId);
     const branchName = "visuals21";
-    const branch = await getBranchFromProject(project.data.id, branchName);
+    const branch = await getBranchForProject(project.data.id, branchName);
     const action = await getActionFromBranch(branch.data.id);
 
     const snapshots = await getSnapshotsForAction(action.data.id);

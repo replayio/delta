@@ -2,135 +2,128 @@ import {
   PostgrestResponse,
   PostgrestSingleResponse,
 } from "@supabase/supabase-js";
-const { createHash } = require("crypto");
-import {
-  Snapshot,
-  supabase,
-  ResponseError,
-  createError,
-  Action,
-  SnapshotStatus,
-  retryOnError,
-} from "./supabase";
-import { getBranchFromProject } from "./branches";
-import {
-  getActionFromBranch,
-  getActionsFromBranch,
-  incrementActionNumSnapshots,
-} from "./actions";
 import { Image } from "../../../pages/api/uploadSnapshot";
+import {
+  JobId,
+  ProjectId,
+  RunId,
+  Snapshot,
+  SnapshotId,
+  SnapshotStatus,
+} from "../../types";
+import { getBranchForProject } from "./branches";
+import { getJobForBranch, incrementNumSnapshots } from "./jobs";
+import { ResponseError, createError, retryOnError, supabase } from "./supabase";
+const { createHash } = require("crypto");
 
-export async function getSnapshotFromBranch(
-  file: string,
-  projectId: string,
-  branchName: string
+export async function getMostRecentlyChangedSnapshotsForProject(
+  projectId: ProjectId,
+  afterDate: Date = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000),
+  limit: number = 1000
+): Promise<PostgrestResponse<Snapshot>> {
+  return await retryOnError(() =>
+    supabase.rpc("recently_updated_snapshots_for_project", {
+      project_id: projectId,
+      after_created_at: afterDate.toISOString(),
+      max_limit: limit,
+    })
+  );
+}
+
+export async function getSnapshotForBranch(
+  projectId: ProjectId,
+  branchName: string,
+  file: string
 ): Promise<
   | { error: { message: string; code: null }; data: null }
   | PostgrestSingleResponse<Snapshot>
 > {
-  const branch = await getBranchFromProject(projectId, branchName);
-
+  const branch = await getBranchForProject(projectId, branchName);
   if (branch.error) {
     return { error: { message: "Branch not found", code: null }, data: null };
   }
 
-  const action = await getActionFromBranch(branch.data.id);
-  if (action.data == null) {
-    return { error: { message: "Action not found", code: null }, data: null };
+  const job = await getJobForBranch(branch.data.id);
+  if (job.data == null) {
+    return { error: { message: "Job not found", code: null }, data: null };
   }
 
-  return retryOnError(() =>
+  const result = await retryOnError(() =>
     supabase
       .from("Snapshots")
       .select("*")
       .eq("file", file)
-      .eq("action_id", action.data.id)
+      .eq("job_id", job.data.id)
       .order("created_at", { ascending: false })
       .limit(1)
       .single()
   );
+
+  if (result.data) {
+    return result.data;
+  }
+
+  return {
+    error: { message: `Snapshot not found for file "${file}"`, code: null },
+    data: null,
+  };
 }
 
-export async function getChangedSnapshotsForActions(
-  actionIds: string[]
+export async function getSnapshotsForBranch(
+  projectId: ProjectId,
+  branchName: string
+): Promise<ResponseError | PostgrestResponse<Snapshot>> {
+  return supabase.rpc("snapshots_for_most_recent_job_on_branch", {
+    project_id: projectId,
+    branch_name: branchName,
+  });
+}
+
+export async function getSnapshotsForJob(
+  jobId: JobId
 ): Promise<PostgrestResponse<Snapshot>> {
   return await retryOnError(() =>
-    supabase
-      .from("Snapshots")
-      .select("action_id, id, file, path, primary_diff_path")
-      .in("action_id", actionIds)
-      .is("primary_changed", true)
-      .order("file", { ascending: true })
+    supabase.from("Snapshots").select("*").eq("job_id", jobId).order("file")
   );
 }
 
-export async function getSnapshotsFromBranch(
-  projectId: string,
-  branchName: string
-): Promise<ResponseError | PostgrestResponse<Snapshot>> {
-  const branch = await getBranchFromProject(projectId, branchName);
-
-  if (branch.error) {
-    return createError("Branch not found");
-  }
-
-  const actions = await getActionsFromBranch(branch.data.id);
-
-  if (actions.error) {
-    return createError("Action not found");
-  }
-
-  for (const action of actions.data) {
-    const snapshots = await getSnapshotsForAction(action.id);
-    if (snapshots.error) {
-      continue;
-    }
-
-    if (snapshots.data.length > 0) {
-      return snapshots;
-    }
-  }
-
-  return createError("No snapshots found");
-}
-
-export async function getSnapshotsForAction(
-  actionId: string
+export async function getSnapshotsForRun(
+  runId: RunId
 ): Promise<PostgrestResponse<Snapshot>> {
   return retryOnError(() =>
-    supabase.from("Snapshots").select("*").eq("action_id", actionId)
+    supabase.rpc("snapshots_for_run", { run_id: runId })
   );
 }
 
 export async function insertSnapshot(
   branchName: string,
-  projectId: string,
+  projectId: ProjectId,
   image: Image,
-  runId: string,
+  runId: RunId,
   uploadStatus: SnapshotStatus | null
 ): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
-  const branch = await getBranchFromProject(projectId, branchName);
+  const branch = await getBranchForProject(projectId, branchName);
   if (branch.error) {
     return createError(
       `Branch with name "${branchName}" not found for project "${projectId}"`
     );
   }
 
-  const action = await getActionFromBranch(branch.data.id, runId);
-  if (action.error) {
+  const job = await getJobForBranch(branch.data.id, runId);
+  if (job.error) {
     return createError(
-      `Action not found for branch ${
+      `Job not found for branch ${
         branch.data.id
-      } ("${branchName}") and run ${runId}\n\n${JSON.stringify(action.error)}`
+      } ("${branchName}") and run ${runId}\n\n${JSON.stringify(job.error)}`
     );
   }
 
   const sha = createHash("sha256").update(image.content).digest("hex");
 
-  await incrementActionNumSnapshots(action.data.id);
+  await incrementNumSnapshots(job.data.id);
 
   const snapshot: Partial<Snapshot> = {
-    action_id: action.data.id,
+    job_id: job.data.id,
     path: `${projectId}/${sha}.png`,
     file: image.file,
     status: uploadStatus,
@@ -142,7 +135,7 @@ export async function insertSnapshot(
 }
 
 export async function updateSnapshot(
-  snapshotId: string,
+  snapshotId: SnapshotId,
   snapshot: Partial<Snapshot>
 ): Promise<PostgrestSingleResponse<Snapshot>> {
   return retryOnError(() =>

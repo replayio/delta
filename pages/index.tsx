@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense, useLayoutEffect } from "react";
 import { Loader } from "../components/Loader";
 import useDidMount from "../lib/hooks/useDidMount";
-import { Project } from "../lib/server/supabase/supabase";
+import { Project } from "../lib/types";
 import { projectsCache } from "../suspense/ProjectCache";
 
 export default function Home() {

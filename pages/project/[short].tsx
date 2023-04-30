@@ -1,61 +1,68 @@
 import Image from "next/image";
 import { useRouter } from "next/router";
-import { Suspense, useMemo } from "react";
+import { useMemo } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { Header } from "../../components/Header";
 import Icon from "../../components/Icon";
-import { Loader } from "../../components/Loader";
 import { Snapshot } from "../../components/Snapshot";
 import { SnapshotRow } from "../../components/SnapshotRow";
 import useSnapshotPrefetchedData from "../../lib/hooks/useSnapshotPrefetchedData";
-import { Action, Branch, Project } from "../../lib/server/supabase/supabase";
+import {
+  Action,
+  Branch,
+  Job,
+  JobId,
+  Project,
+  ProjectShort,
+  RunId,
+} from "../../lib/types";
 
+import withSuspenseLoader from "../../components/withSuspenseLoader";
 import { actionsCache } from "../../suspense/ActionCache";
 import { branchCache, branchesCache } from "../../suspense/BranchCache";
+import { jobsCache } from "../../suspense/JobCache";
 import { projectCache } from "../../suspense/ProjectCache";
-import { snapshotFilesCache, SnapshotFile } from "../../suspense/SnapshotCache";
+import { SnapshotFile, snapshotFilesCache } from "../../suspense/SnapshotCache";
 
 export default function Short() {
   const router = useRouter();
   const {
-    action: actionIdFromUrl,
+    job: jobIdFromUrl,
     branch: branchName,
     fileName: currentFileName,
-    short: shortProjectId,
+    short: projectShort,
   } = router.query as { [key: string]: string };
 
   // Note this route may render on the server, in which case all query params are undefined.
   // TODO Can we access these params on the server somehow so we can server-render the page?
-  if (!shortProjectId) {
+  if (!projectShort) {
     console.error("No project id in URL");
     return null;
   }
 
   return (
-    <Suspense fallback={<Loader />}>
-      <ShortSuspends
-        actionId={actionIdFromUrl ?? null}
-        branchName={branchName ?? null}
-        currentFileName={currentFileName ?? null}
-        shortProjectId={shortProjectId}
-      />
-    </Suspense>
+    <ShortSuspends
+      branchName={branchName ?? null}
+      currentFileName={currentFileName ?? null}
+      jobId={(jobIdFromUrl as JobId) ?? null}
+      projectShort={projectShort as ProjectShort}
+    />
   );
 }
 
-function ShortSuspends({
-  actionId,
+const ShortSuspends = withSuspenseLoader(function ShortSuspends({
   branchName,
   currentFileName,
-  shortProjectId,
+  jobId,
+  projectShort,
 }: {
-  actionId: string | null;
   branchName: string | null;
   currentFileName: string | null;
-  shortProjectId: string;
+  jobId: JobId | null;
+  projectShort: ProjectShort;
 }) {
   // TODO If we passed branch id instead of name, we wouldn't need to fetch the branch here.
-  const project = projectCache.read(null, shortProjectId as string);
+  const project = projectCache.read(null, projectShort);
   const branches = branchesCache.read(project.id);
 
   if (!branchName) {
@@ -65,19 +72,21 @@ function ShortSuspends({
   const currentBranch = branchName
     ? branchCache.read(branchName as string)
     : null;
-  const actions = currentBranch ? actionsCache.read(currentBranch.id) : null;
+  const jobs = currentBranch ? jobsCache.read(currentBranch.id) : null;
 
-  if (!actionId) {
-    actionId = actions?.[0]?.id ?? null;
+  if (!jobId) {
+    jobId = jobs?.[0]?.id ?? null;
   }
 
-  const currentAction = actionId
-    ? actions?.find((action) => action.id === actionId) ?? null
+  const currentJob = jobId
+    ? jobs?.find((job) => job.id === jobId) ?? null
     : null;
 
-  const snapshotFiles = currentAction
-    ? snapshotFilesCache.read(project.id, currentAction.id)
+  const snapshotFiles = currentJob
+    ? snapshotFilesCache.read(project.id, currentJob.id)
     : null;
+
+  const actions = jobId ? actionsCache.read(jobId) : null;
 
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
@@ -85,8 +94,9 @@ function ShortSuspends({
   //   console.log("project:", project);
   //   console.log("branches:", branches);
   //   console.log("current branch:", currentBranch);
+  //   console.log("jobs:", jobs);
+  //   console.log("current job:", currentJob);
   //   console.log("actions:", actions);
-  //   console.log("current action:", currentAction);
   //   console.log("snapshotFiles:", snapshotFiles);
   //   console.groupEnd();
   // }
@@ -95,55 +105,60 @@ function ShortSuspends({
     <ShortWithData
       actions={actions}
       branches={branches}
-      currentAction={currentAction}
       currentBranch={currentBranch}
       currentFileName={currentFileName}
+      currentJob={currentJob}
       project={project}
       snapshotFiles={snapshotFiles}
+      jobs={jobs}
     />
   );
-}
+});
 
 function ShortWithData({
   actions,
   branches,
-  currentAction,
   currentBranch,
   currentFileName,
+  currentJob,
   project,
   snapshotFiles,
+  jobs,
 }: {
   actions: Action[] | null;
   branches: Branch[];
-  currentAction: Action | null;
   currentBranch: Branch | null;
   currentFileName: string | null;
+  currentJob: Job | null;
   project: Project;
   snapshotFiles: SnapshotFile[] | null;
+  jobs: Job[] | null;
 }) {
   const shownBranches = branches.filter(
     (branch) => branch.name !== project.primary_branch
   );
 
+  const isPending = currentJob?.status === null;
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <Header
-        actions={actions}
         branches={shownBranches}
-        currentAction={currentAction}
         currentBranch={currentBranch}
+        currentJob={currentJob}
         project={project}
+        jobs={jobs}
       />
 
-      {currentAction?.status == "neutral" ? (
-        <SubViewActionPending currentAction={currentAction} project={project} />
+      {isPending ? (
+        <SubViewJobPending project={project} runId={currentJob.run_id} />
       ) : shownBranches.length == 0 ? (
         <SubViewNoOpenBranches />
       ) : snapshotFiles === null || snapshotFiles.length == 0 ? (
         <SubViewNoChanges />
       ) : (
         <SubViewLoadedData
-          currentAction={currentAction}
+          currentJob={currentJob}
           currentFileName={currentFileName}
           snapshotFiles={snapshotFiles}
         />
@@ -152,32 +167,32 @@ function ShortWithData({
   );
 }
 
-function SubViewActionPending({
-  currentAction,
+function SubViewJobPending({
   project,
+  runId,
 }: {
-  currentAction: Action;
   project: Project;
+  runId: RunId;
 }) {
   return (
     <div className="flex justify-center items-center mt-10 italic underline text-violet-600">
       <a
         target="_blank"
         rel="noreferrer"
-        href={`https://github.com/${project.organization}/${project.repository}/actions/runs/${currentAction.run_id}`}
+        href={`https://github.com/${project.organization}/${project.repository}/actions/runs/${runId}`}
       >
-        Action running...
+        Job running...
       </a>
     </div>
   );
 }
 
 function SubViewLoadedData({
-  currentAction,
+  currentJob,
   currentFileName,
   snapshotFiles,
 }: {
-  currentAction: Action | null;
+  currentJob: Job | null;
   currentFileName: string | null;
   snapshotFiles: SnapshotFile[];
 }) {
@@ -226,7 +241,7 @@ function SubViewLoadedData({
           <div className="w-full h-full flex flex-col h-full overflow-y-auto overflow-x-hidden bg-slate-100 py-1">
             {filteredSnapshotFiles.map((snapshotFile) => (
               <SnapshotRow
-                currentAction={currentAction}
+                currentJob={currentJob}
                 isSelected={snapshotFile.fileName === currentFileName}
                 key={snapshotFile.fileName}
                 snapshotFile={snapshotFile}

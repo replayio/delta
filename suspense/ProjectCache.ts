@@ -1,9 +1,9 @@
 import { createCache, createSingleEntryCache } from "suspense";
-import { Project } from "../lib/server/supabase/supabase";
+import { Project, ProjectId, ProjectShort } from "../lib/types";
 import { getProject, getPublicProjects } from "../utils/ApiClient";
 
 export const projectCache = createCache<
-  [projectId: string | null, projectShort: string | null],
+  [projectId: ProjectId | null, projectShort: ProjectShort | null],
   Project
 >({
   debugLabel: "project",

@@ -1,48 +1,44 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import createClient from "../../lib/initServerSupabase";
+import omit from "lodash/omit";
 import {
   createCheck,
-  updateCheck,
   createComment,
+  updateCheck,
   updateComment,
 } from "../../lib/github";
-import omit from "lodash/omit";
 
+import { getDeltaBranchUrl } from "../../lib/delta";
+import { getHTTPRequests, setupHook } from "../../lib/server/http-replay";
+import { insertAction } from "../../lib/server/supabase/actions";
 import {
-  getProjectFromRepo,
-  Project,
-  retryOnError,
-  Snapshot,
-} from "../../lib/server/supabase/supabase";
+  getBranchForProject,
+  getBranchForPullRequest,
+  insertBranch,
+  updateBranch,
+} from "../../lib/server/supabase/branches";
 import {
   HTTPMetadata,
+  WorkflowId,
   insertHTTPEvent,
   insertHTTPMetadata,
   updateHTTPMetadata,
 } from "../../lib/server/supabase/httpEvent";
 import {
-  getBranchFromProject,
-  getBranchFromPr,
-  insertBranch,
-  updateBranch,
-} from "../../lib/server/supabase/branches";
+  getJobForRun,
+  insertJob,
+  updateJob,
+} from "../../lib/server/supabase/jobs";
+import { getProjectForOrganizationAndRepository } from "../../lib/server/supabase/projects";
+import { getSnapshotsForRun } from "../../lib/server/supabase/snapshots";
+import { CheckId, JobId, Project, RunId, Snapshot } from "../../lib/types";
 import {
-  getActionFromRunId,
-  updateAction,
-} from "../../lib/server/supabase/actions";
-import { getSnapshotsForAction } from "../../lib/server/supabase/snapshots";
-import { getDeltaBranchUrl } from "../../lib/delta";
-import { getHTTPRequests, setupHook } from "../../lib/server/http-replay";
-import {
+  ErrorLike,
   GenericResponse,
+  createErrorMessageFromPostgrestError,
   sendErrorResponse,
   sendResponse,
-  createErrorMessageFromPostgrestError,
-  ErrorLike,
 } from "./utils";
-
-const supabase = createClient();
 
 // Spy on HTTP client requests for debug logging in Supabase.
 setupHook();
@@ -79,7 +75,7 @@ export type PullRequestEventParams = CommonGitHubParams & {
   };
 };
 
-export type WorkflowJobEventParams = CommonGitHubParams & {
+export type JobEventParams = CommonGitHubParams & {
   action: "completed" | "queued";
   workflow_job: {
     head_branch: string;
@@ -149,19 +145,19 @@ export default async function handler(
 
   let branchName: string | undefined = undefined;
   let headSha: string | undefined = undefined;
-  let jobId: string | undefined = undefined;
   let prNumber: string | undefined = undefined;
-  let runId: string | undefined = undefined;
+  let runId: RunId | undefined = undefined;
+  let workflowId: WorkflowId | undefined = undefined;
   if (isPullRequestEventParams(request.body)) {
     const { pull_request: pullRequest, number } = request.body;
     branchName = pullRequest.head.ref;
     prNumber = "" + number;
-  } else if (isWorkflowJobEventParams(request.body)) {
+  } else if (isJobEventParams(request.body)) {
     const { workflow_job: workflowJob } = request.body;
     branchName = workflowJob.head_branch;
     headSha = workflowJob.head_sha;
-    jobId = "" + workflowJob.id;
-    runId = "" + workflowJob.run_id;
+    workflowId = ("" + workflowJob.id) as WorkflowId;
+    runId = ("" + workflowJob.run_id) as RunId;
   }
 
   // HTTP metadata is used for debug logging only; if it fails, ignore it (for now)
@@ -170,16 +166,19 @@ export default async function handler(
     branch_name: branchName,
     event_type: eventType,
     head_sha: headSha,
-    job_id: jobId,
     payload: request.body,
     pr_number: prNumber,
     run_id: runId,
+    workflow_id: workflowId,
   });
   if (httpMetadata.error) {
     console.error(httpMetadata.error);
   }
 
-  const project = await getProjectFromRepo(repository.name, organization.login);
+  const project = await getProjectForOrganizationAndRepository(
+    organization.login,
+    repository.name
+  );
   if (project.error) {
     return await logAndSendResponse(
       null,
@@ -213,13 +212,13 @@ export default async function handler(
         case "completed":
           return handleWorkflowCompleted(
             project.data,
-            request.body as WorkflowJobEventParams,
+            request.body as JobEventParams,
             logAndSendResponse
           );
         case "queued":
           return handleWorkflowQueued(
             project.data,
-            request.body as WorkflowJobEventParams,
+            request.body as JobEventParams,
             logAndSendResponse,
             httpMetadata.data
           );
@@ -253,11 +252,11 @@ export function formatComment({
   const deltaUrl = getDeltaBranchUrl(project, branchName);
 
   const numDifferent = snapshots.filter(
-    (snapshot) => snapshot.primary_changed
+    (snapshot) => snapshot.primary_diff_path != null
   ).length;
 
   const snapshotList = snapshots
-    .filter((snapshot) => snapshot.primary_changed)
+    .filter((snapshot) => snapshot.primary_diff_path != null)
     .slice(0, 10)
     .map(
       (snapshot) =>
@@ -289,7 +288,7 @@ async function handlePullRequestClosed(
 ) {
   const { number } = params;
 
-  let branch = await getBranchFromPr(project.id, number);
+  let branch = await getBranchForPullRequest(project.id, number);
   if (branch.error) {
     return logAndSendResponse(
       null,
@@ -326,8 +325,7 @@ async function handlePullRequestOpened(
   const branch = await insertBranch({
     name: pullRequest.head.ref,
     project_id: project.id,
-    pr_title: pullRequest.title,
-    pr_number: "" + number,
+    pr_number: number,
     status: "open",
   });
   if (branch.error) {
@@ -342,14 +340,14 @@ async function handlePullRequestOpened(
 
 async function handleWorkflowCompleted(
   project: Project,
-  params: WorkflowJobEventParams,
+  params: JobEventParams,
   logAndSendResponse: LogAndSendResponse
 ) {
   const { organization, repository, workflow_job: workflowJob } = params;
 
   const branchName = workflowJob.head_branch;
 
-  let branch = await getBranchFromProject(project.id, branchName);
+  let branch = await getBranchForProject(project.id, branchName);
   if (branch.error) {
     return logAndSendResponse(
       null,
@@ -371,23 +369,9 @@ async function handleWorkflowCompleted(
     );
   }
 
-  const runId = "" + workflowJob.run_id;
-  const action = await getActionFromRunId(runId);
-  if (action.error) {
-    return logAndSendResponse(
-      null,
-      createErrorMessageFromPostgrestError(action.error)
-    );
-  } else if (!action.data) {
-    return logAndSendResponse(
-      null,
-      `Could not find action for run ${runId}`,
-      404
-    );
-  }
+  const runId = ("" + workflowJob.run_id) as RunId;
 
-  const actionId = action.data.id;
-  const snapshots = await getSnapshotsForAction(actionId);
+  const snapshots = await getSnapshotsForRun(runId);
   if (snapshots.error) {
     return logAndSendResponse(
       null,
@@ -396,20 +380,19 @@ async function handleWorkflowCompleted(
   } else if (!snapshots.data) {
     return logAndSendResponse(
       null,
-      `Could not find snapshots for run action ${actionId}`,
+      `Could not find snapshots for run run ${runId}`,
       404
     );
   }
 
   const numDifferent = snapshots.data.filter(
-    (snapshot) => snapshot.primary_changed
+    (snapshot) => snapshot.primary_diff_path != null
   ).length;
   const conclusion = numDifferent > 0 ? "failure" : "success";
   const title = `${numDifferent} of ${snapshots.data.length} snapshots are different`;
 
-  let updatedCheck;
   if (branch.data.check_id) {
-    updatedCheck = await updateCheck(
+    await updateCheck(
       organization.login,
       repository.name,
       branch.data.check_id,
@@ -474,13 +457,27 @@ async function handleWorkflowCompleted(
     }
   }
 
-  const updatedAction = await updateAction(action.data.id, {
-    status: conclusion,
-  });
-  if (updatedAction.error) {
+  const job = await getJobForRun(runId);
+  if (job.error) {
     return logAndSendResponse(
       null,
-      createErrorMessageFromPostgrestError(updatedAction.error)
+      createErrorMessageFromPostgrestError(job.error)
+    );
+  } else if (!job.data) {
+    return logAndSendResponse(
+      null,
+      `Could not find job for run run ${runId}`,
+      404
+    );
+  }
+
+  const updatedJob = await updateJob(job.data.id, {
+    status: conclusion,
+  });
+  if (updatedJob.error) {
+    return logAndSendResponse(
+      null,
+      createErrorMessageFromPostgrestError(updatedJob.error)
     );
   }
 
@@ -489,7 +486,7 @@ async function handleWorkflowCompleted(
 
 async function handleWorkflowQueued(
   project: Project,
-  params: WorkflowJobEventParams,
+  params: JobEventParams,
   logAndSendResponse: LogAndSendResponse,
   httpMetadata: HTTPMetadata | null
 ) {
@@ -500,18 +497,23 @@ async function handleWorkflowQueued(
     workflow_job: workflowJob,
   } = params;
 
+  const {
+    head_branch: branchName,
+    head_sha: headSha,
+    run_id: runId,
+    workflow_name: workflowName,
+  } = workflowJob;
+
   // HACK This check ignores non-Delta actions but it relies on a particular naming convention.
-  if (!workflowJob.workflow_name.startsWith("Playwright Snapshot")) {
+  if (!workflowName.startsWith("Playwright Snapshot")) {
     return await logAndSendResponse(
-      `Ignoring workflow job "${workflowJob.workflow_name}"`,
+      `Ignoring workflow job "${workflowName}"`,
       null,
       204
     );
   }
 
-  const branchName = workflowJob.head_branch;
-
-  let branch = await getBranchFromProject(project.id, branchName);
+  let branch = await getBranchForProject(project.id, branchName);
   if (branch.error) {
     return logAndSendResponse(
       null,
@@ -526,7 +528,7 @@ async function handleWorkflowQueued(
   }
 
   const check = await createCheck(organization.login, repository.name, {
-    head_sha: workflowJob.head_sha,
+    head_sha: headSha,
     details_url: getDeltaBranchUrl(project, branchName),
     title: "Tests are running",
     status: "in_progress",
@@ -539,8 +541,8 @@ async function handleWorkflowQueued(
   }
 
   branch = await updateBranch(branch.data.id, {
-    check_id: check.id != null ? "" + check.id : undefined,
-    head_sha: workflowJob.head_sha,
+    check_id: check.id != null ? (("" + check.id) as CheckId) : undefined,
+    head_sha: headSha,
   });
   if (branch.error) {
     return logAndSendResponse(
@@ -548,20 +550,35 @@ async function handleWorkflowQueued(
       createErrorMessageFromPostgrestError(branch.error)
     );
   }
+  const branchId = branch.data.id;
 
-  const branch_id = branch.data.id;
-  const action = await retryOnError(() =>
-    supabase
-      .from("Actions")
-      .insert({
-        run_id: workflowJob.run_id,
-        branch_id,
-        head_sha: workflowJob.head_sha,
-        actor: sender.login,
-        status: "neutral",
-      })
-      .single()
-  );
+  let job = await getJobForRun(runId as unknown as RunId);
+  if (!job.data) {
+    job = await insertJob({
+      actor: sender.login,
+      branch_id: branchId,
+      num_snapshots: 0,
+      num_snapshots_changed: 0,
+      run_id: runId as unknown as RunId,
+      status: "neutral",
+    });
+    if (job.error) {
+      return logAndSendResponse(
+        null,
+        createErrorMessageFromPostgrestError(job.error)
+      );
+    } else if (!job.data) {
+      return logAndSendResponse(
+        null,
+        `Could not find job for run run ${runId}`,
+        404
+      );
+    }
+  }
+
+  const action = await insertAction({
+    job_id: job.data.id,
+  });
   if (action.error) {
     return logAndSendResponse(
       null,
@@ -578,8 +595,6 @@ function isPullRequestEventParams(
   return params.action === "opened" || params.action === "closed";
 }
 
-function isWorkflowJobEventParams(
-  params: any
-): params is WorkflowJobEventParams {
+function isJobEventParams(params: any): params is JobEventParams {
   return params.action === "completed" || params.action === "queued";
 }

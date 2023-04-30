@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { getPublicProjects, Project } from "../../lib/server/supabase/supabase";
+import { getPublicProjects } from "../../lib/server/supabase/projects";
+import { Project } from "../../lib/types";
 import {
   GenericResponse,
   sendErrorResponseFromPostgrestError,

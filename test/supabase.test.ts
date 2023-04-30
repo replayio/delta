@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
-import orderBy from "lodash/orderBy";
 import {
-  getActionFromRunId,
+  getActionsFromRunId,
   updateAction,
   incrementActionNumSnapshots,
   getAction,
@@ -10,20 +9,21 @@ import {
 import omit from "lodash/omit";
 import { incrementActionNumSnapshotsChanged } from "../lib/server/supabase/incrementActionNumSnapshotsChanged";
 import {
-  getSnapshotsFromBranch,
+  getSnapshotsForBranch,
   getSnapshotsForAction,
-  getSnapshotFromBranch,
+  getSnapshotForBranch,
 } from "../lib/server/supabase/snapshots";
 
-import { getBranchFromProject } from "../lib/server/supabase/branches";
+import { getBranchForProject } from "../lib/server/supabase/branches";
 
 import { downloadSnapshot } from "../lib/server/supabase/storage";
+import { ProjectId } from "../lib/server/supabase/supabase";
 
-const projectId = "dcb5df26-b418-4fe2-9bdf-5a838e604ec4";
+const projectId = "dcb5df26-b418-4fe2-9bdf-5a838e604ec4" as ProjectId;
 
 describe("supabase", () => {
   it("get snapshots", async () => {
-    const sn = await getSnapshotsFromBranch(projectId, "main");
+    const sn = await getSnapshotsForBranch(projectId, "main");
     expect(sn.data.length).toBeGreaterThan(0);
   });
 
@@ -31,16 +31,18 @@ describe("supabase", () => {
     const file = "./playwright/visuals/light/warning-stack-collapsed.png";
     const branchName = "mbudayr/BAC-2510/use-focus-window-to-load-regions";
 
-    const branch = await getBranchFromProject(projectId, branchName);
-    const snapshot = await getSnapshotFromBranch(file, projectId, branchName);
+    const branch = await getBranchForProject(projectId, branchName);
+    const snapshot = await getSnapshotForBranch(projectId, branchName, file);
 
     expect(omit(snapshot.data, ["created_at", "id"])).toMatchSnapshot();
     expect(branch.data).toMatchSnapshot();
   });
 
   it("get action from run_id", async () => {
-    const action = await getActionFromRunId("3796486541");
-    expect(action.data.id).toEqual("1f11d17c-aa97-4c1f-b312-b1c1954c13f4");
+    const actions = await getActionsFromRunId("3796486541");
+    expect(actions.data?.[0].id).toEqual(
+      "1f11d17c-aa97-4c1f-b312-b1c1954c13f4"
+    );
   });
 
   it("get snapshots for action", async () => {
@@ -80,7 +82,7 @@ describe("supabase", () => {
   });
 
   it("increments num_snapshots_changed", async () => {
-    const branch = await getBranchFromProject(projectId, "visuals10");
+    const branch = await getBranchForProject(projectId, "visuals10");
     const action = await getActionFromBranch(branch.data.id);
 
     const { num_snapshots_changed } = action.data;

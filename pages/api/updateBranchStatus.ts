@@ -1,42 +1,35 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
+import { getDeltaBranchUrl } from "../../lib/delta";
 import {
-  Action,
-  getProject,
-  Project,
-  Snapshot,
-} from "../../lib/server/supabase/supabase";
-import {
-  updateAction,
-  getActionFromBranch,
-} from "../../lib/server/supabase/actions";
-import { getSnapshotsForAction } from "../../lib/server/supabase/snapshots";
-import {
-  updateComment,
-  updateCheck,
   CheckRun,
   IssueComment,
+  updateCheck,
+  updateComment,
 } from "../../lib/github";
+import { getBranch } from "../../lib/server/supabase/branches";
+import { getJobForBranch, updateJob } from "../../lib/server/supabase/jobs";
+import { getProject } from "../../lib/server/supabase/projects";
+import { BranchId, Job, Project, ProjectId, Snapshot } from "../../lib/types";
 import {
   GenericResponse,
+  sendErrorMissingParametersResponse,
   sendErrorResponseFromPostgrestError,
   sendResponse,
-  sendErrorMissingParametersResponse,
 } from "./utils";
-import { getDeltaBranchUrl } from "../../lib/delta";
-import { getBranch } from "../../lib/server/supabase/branches";
+import { getSnapshotsForJob } from "../../lib/server/supabase/snapshots";
 
 export type BranchStatus = "failure" | "neutral" | "success";
 
 export type RequestParams = {
-  branchId: string;
-  projectId: string;
+  branchId: BranchId;
+  projectId: ProjectId;
   status: BranchStatus;
 };
 export type ResponseData = {
-  action: Action;
   check: CheckRun;
   comment: IssueComment | null;
+  job: Job;
 };
 export type Response = GenericResponse<ResponseData>;
 
@@ -69,18 +62,18 @@ export default async function handler(
   const organization = projectRecord.data.organization;
   const repository = projectRecord.data.repository;
 
-  const action = await getActionFromBranch(branchId);
-  if (action.error) {
+  const { data: jobData, error: jobError } = await getJobForBranch(branchId);
+  if (jobError) {
     response.setHeader("Content-Type", "application/json");
-    return sendErrorResponseFromPostgrestError(response, action.error);
+    return sendErrorResponseFromPostgrestError(response, jobError);
   }
 
-  const { data: actionData, error: actionError } = await updateAction(
-    action.data.id,
-    { status }
-  );
-  if (actionError) {
-    return sendErrorResponseFromPostgrestError(response, actionError);
+  const job = jobData;
+  const jobId = job.id;
+
+  const { error: updateError } = await updateJob(jobId, { status });
+  if (updateError) {
+    return sendErrorResponseFromPostgrestError(response, updateError);
   }
 
   const check = await updateCheck(organization, repository, branch.check_id, {
@@ -91,7 +84,7 @@ export default async function handler(
 
   let issueComment: IssueComment | null = null;
   if (branch.comment_id) {
-    const snapshots = await getSnapshotsForAction(action.data.id);
+    const snapshots = await getSnapshotsForJob(jobId);
 
     issueComment = await updateComment(
       organization,
@@ -109,9 +102,9 @@ export default async function handler(
   }
 
   return sendResponse<ResponseData>(response, {
-    action: actionData,
     check,
     comment: issueComment,
+    job,
   });
 }
 
@@ -129,11 +122,11 @@ export function formatComment({
   const deltaUrl = getDeltaBranchUrl(project, branchName);
 
   const numDifferent = snapshots.filter(
-    (snapshot) => snapshot.primary_changed
+    (snapshot) => snapshot.primary_diff_path != null
   ).length;
 
   const snapshotList = snapshots
-    .filter((snapshot) => snapshot.primary_changed)
+    .filter((snapshot) => snapshot.primary_diff_path != null)
     .slice(0, 10)
     .map(
       (snapshot) =>

@@ -2,12 +2,10 @@
 
 exports[`supabase > get snapshot - warning-stack-collapsed.png 1`] = `
 {
-  "action_changed": null,
   "action_id": "0cf7f2d3-92c3-4025-87a0-0004b23cc747",
   "changed": null,
   "file": "./playwright/visuals/light/warning-stack-collapsed.png",
   "path": "dcb5df26-b418-4fe2-9bdf-5a838e604ec4/010e1fec31fb30e6771f3ae7b7f7f7053112929b48b9ca612098cb1735c452b8.png",
-  "primary_changed": false,
   "primary_diff_path": "dcb5df26-b418-4fe2-9bdf-5a838e604ec4/8d095ab48e0091f7e0a6ad7959a322f0ad97a392ae34269b2c8a6977a047a3a4.png",
   "primary_num_pixels": null,
   "sha": "010e1fec31fb30e6771f3ae7b7f7f7053112929b48b9ca612098cb1735c452b8",

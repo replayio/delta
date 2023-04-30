@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import { downloadSnapshot } from "../lib/server/supabase/storage";
 import { diffWithPrimaryBranch } from "../lib/server/diffWithPrimaryBranch";
-import { getSnapshotFromBranch } from "../lib/server/supabase/snapshots";
+import { getSnapshotForBranch } from "../lib/server/supabase/snapshots";
 
 const projectId = "dcb5df26-b418-4fe2-9bdf-5a838e604ec4";
 
@@ -29,7 +29,7 @@ describe("diffWithPrimaryBranch", () => {
   it.only("./playwright/visuals/light/searchable-result-updated-after-filter.png", async () => {
     const file = "./playwright/visuals/light/warning-stack-collapsed.png";
     const branch = "visuals9";
-    const snapshot = await getSnapshotFromBranch(file, projectId, branch);
+    const snapshot = await getSnapshotForBranch(projectId, branch, file);
     const downloadedSnapshot = await downloadSnapshot(snapshot.data.path);
     const image = {
       content: downloadedSnapshot.data,

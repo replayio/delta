@@ -1,23 +1,26 @@
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import createClient from "../../initServerSupabase";
+import { JobId, ProjectId, RunId } from "../../types";
 import { safeStringify } from "../json";
 import { retryOnError } from "./supabase";
+import Opaque from "ts-opaque";
 
 export const supabase = createClient();
 
 export type HTTPMetadata = {
-  id: number;
-  event_type: string;
   action: string;
-  payload: Object;
-  pr_number?: string;
-  head_sha: string;
   branch_name?: string;
-  job_id?: string;
-  run_id?: string;
   check: Object;
   comment: Object;
+  event_type: string;
+  head_sha: string;
+  id: number;
+  payload: Object;
+  pr_number?: string;
+  run_id?: RunId;
+  workflow_id?: Opaque<"string", HTTPMetadata>;
 };
+export type WorkflowId = HTTPMetadata["workflow_id"];
 
 export async function insertHTTPMetadata(
   event: Partial<HTTPMetadata>
@@ -42,7 +45,7 @@ export async function updateHTTPMetadata(
 
 export async function insertHTTPEvent(
   id: number,
-  projectId: string,
+  projectId: ProjectId,
   data: any
 ) {
   const path = `${projectId}/${id}.json`;

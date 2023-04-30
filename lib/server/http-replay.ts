@@ -5,8 +5,7 @@ import { join } from "path";
 import { safeStringify } from "./json";
 
 function log(...args) {
-  return;
-  console.log(...args);
+  // console.log(...args);
 }
 
 let requests = {};

@@ -26,7 +26,7 @@ export async function getActionsForJob(
 }
 
 export async function insertAction(
-  newAction: Partial<Action>
+  newAction: Pick<Action, "job_id">
 ): Promise<PostgrestSingleResponse<Action>> {
   return retryOnError(() =>
     supabase.from("Actions").insert(newAction).single()

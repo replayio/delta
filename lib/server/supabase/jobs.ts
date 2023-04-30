@@ -49,7 +49,15 @@ export async function incrementNumSnapshotsChanged(jobId: JobId) {
 }
 
 export async function insertJob(
-  newJob: Partial<Job>
+  newJob: Pick<
+    Job,
+    | "actor"
+    | "branch_id"
+    | "num_snapshots"
+    | "num_snapshots_changed"
+    | "run_id"
+    | "status"
+  >
 ): Promise<PostgrestSingleResponse<Job>> {
   return retryOnError(() => supabase.from("Jobs").insert(newJob).single());
 }

@@ -52,6 +52,10 @@ export async function diffWithPrimaryBranch(
     await getSnapshotForBranch(projectId, project.primary_branch, image.file);
   if (primarySnapshotError) {
     return createErrorDiff(primarySnapshotError.message);
+  } else if (primarySnapshotData == null) {
+    return createErrorDiff(
+      `Cannot find primary branch snapshot data for file "${image.file}"`
+    );
   }
 
   const primaryImage = await downloadSnapshot(primarySnapshotData.path);

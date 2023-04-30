@@ -9,13 +9,16 @@ export async function getBranchForProject(
   projectId: ProjectId,
   branchName: string
 ): Promise<PostgrestSingleResponse<Branch>> {
+  // There may be other branches with the same name as the primary branch;
+  // e.g. PRs opened from forks
+  // We want the primary branch for the main repository (organization)
   return retryOnError(() =>
     supabase
       .from("Branches")
       .select("*")
       .eq("project_id", projectId)
       .eq("name", `${branchName}`)
-      .order("created_at", { ascending: false })
+      .eq("status", "open")
       .limit(1)
       .single()
   );
@@ -74,7 +77,10 @@ export async function updateBranch(branchId: BranchId, data: Partial<Branch>) {
 }
 
 export async function insertBranch(
-  newBranch: Partial<Branch>
+  newBranch: Pick<
+    Branch,
+    "name" | "organization" | "pr_number" | "project_id" | "status"
+  >
 ): Promise<PostgrestSingleResponse<Branch>> {
   return retryOnError(() =>
     supabase.from("Branches").insert(newBranch).single()

@@ -320,12 +320,13 @@ async function handlePullRequestOpened(
   params: PullRequestEventParams,
   logAndSendResponse: LogAndSendResponse
 ) {
-  const { number, pull_request: pullRequest } = params;
+  const { number, organization, pull_request: pullRequest } = params;
 
   const branch = await insertBranch({
     name: pullRequest.head.ref,
-    project_id: project.id,
+    organization: organization.login,
     pr_number: number,
+    project_id: project.id,
     status: "open",
   });
   if (branch.error) {

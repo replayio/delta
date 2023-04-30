@@ -32,6 +32,7 @@ export type Branch = {
   // Cached attributes
   head_sha: string;
   name: string;
+  organization: string;
   pr_number: number;
 
   // Update in response to Workflow jobs

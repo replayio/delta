@@ -1,6 +1,6 @@
 import { PostgrestError } from "@supabase/supabase-js";
 
-class ErrorWithCode extends Error {
+export class ErrorWithCode extends Error {
   code: string;
   details: string;
   hint: string;

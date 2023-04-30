@@ -1,7 +1,8 @@
+import { ProjectId } from "../types";
 import { diffBase64Images } from "./diff";
-import { getProject } from "./supabase/supabase";
-import { getSnapshotFromBranch } from "./supabase/snapshots";
+import { getSnapshotForBranch } from "./supabase/snapshots";
 
+import { getProject } from "./supabase/projects";
 import {
   downloadSnapshot,
   StoredSnapshot,
@@ -34,7 +35,7 @@ function createErrorDiff(errorMessage: string): Diff {
 }
 
 export async function diffWithPrimaryBranch(
-  projectId: string,
+  projectId: ProjectId,
   branchName: string,
   image: Image
 ): Promise<Diff> {
@@ -48,7 +49,7 @@ export async function diffWithPrimaryBranch(
   }
 
   const { data: primarySnapshotData, error: primarySnapshotError } =
-    await getSnapshotFromBranch(image.file, projectId, project.primary_branch);
+    await getSnapshotForBranch(projectId, project.primary_branch, image.file);
   if (primarySnapshotError) {
     return createErrorDiff(primarySnapshotError.message);
   }

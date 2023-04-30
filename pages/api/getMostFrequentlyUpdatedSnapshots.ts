@@ -1,8 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getMostRecentActionsFromProject } from "../../lib/server/supabase/actions";
-import { getChangedSnapshotsForActions } from "../../lib/server/supabase/snapshots";
+import { getMostRecentlyChangedSnapshotsForProject } from "../../lib/server/supabase/snapshots";
 
-import { getProjectByShort } from "../../lib/server/supabase/supabase";
 import {
   GenericResponse,
   sendErrorResponseFromPostgrestError,
@@ -10,6 +8,8 @@ import {
   sendResponse,
   sendErrorMissingParametersResponse,
 } from "./utils";
+import { ProjectId, ProjectShort } from "../../lib/types";
+import { getProjectForShort } from "../../lib/server/supabase/projects";
 
 export type PathMetadata = {
   count: number;
@@ -25,8 +25,8 @@ export type SnapshotMetadata = {
 
 export type RequestParams = {
   afterDate: string;
-  projectId: string;
-  projectShort: string;
+  projectId?: ProjectId;
+  projectShort?: ProjectShort;
 };
 export type ResponseData = SnapshotMetadata[];
 export type Response = GenericResponse<ResponseData>;
@@ -48,15 +48,10 @@ export default async function handler(
     });
   }
 
-  // If no minimum date is provided, default to the last week.
-  const date = afterDate
-    ? new Date(afterDate)
-    : new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000);
-
   // Convert short Project ID to id if necessary.
   if (!projectId) {
-    const { data: projectData, error: projectError } = await getProjectByShort(
-      projectShort
+    const { data: projectData, error: projectError } = await getProjectForShort(
+      projectShort as ProjectShort
     );
     if (projectError) {
       return sendErrorResponseFromPostgrestError(response, projectError);
@@ -71,24 +66,12 @@ export default async function handler(
     }
   }
 
-  // Find all recent actions for this project.
-  const { data: actionsData, error: actionsError } =
-    await getMostRecentActionsFromProject(projectId, date.toISOString());
-  if (actionsError) {
-    return sendErrorResponseFromPostgrestError(response, actionsError);
-  } else if (!actionsData) {
-    return sendErrorResponse(
-      response,
-      `No Branches found for id "${projectId}"`,
-      404
-    );
-  }
-
-  const actionIds = actionsData.map(({ id }) => id);
-
-  // Find changed snapshots for recent actions
+  // Find all recent snapshots for this project.
   const { data: snapshotsData, error: snapshotsError } =
-    await getChangedSnapshotsForActions(actionIds);
+    await getMostRecentlyChangedSnapshotsForProject(
+      projectId,
+      afterDate ? new Date(afterDate) : undefined
+    );
   if (snapshotsError) {
     return sendErrorResponseFromPostgrestError(response, snapshotsError);
   } else if (!snapshotsData) {

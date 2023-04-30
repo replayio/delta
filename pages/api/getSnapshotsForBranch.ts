@@ -1,18 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { getSnapshotsFromBranch } from "../../lib/server/supabase/snapshots";
-import { Snapshot } from "../../lib/server/supabase/supabase";
+import { getSnapshotsForBranch } from "../../lib/server/supabase/snapshots";
+import { ProjectId, Snapshot } from "../../lib/types";
 import {
   GenericResponse,
-  sendErrorResponseFromPostgrestError,
-  sendErrorResponse,
-  sendResponse,
   sendErrorMissingParametersResponse,
+  sendErrorResponse,
+  sendErrorResponseFromPostgrestError,
+  sendResponse,
 } from "./utils";
 
 export type RequestParams = {
   branchName: string;
-  projectId: string;
+  projectId: ProjectId;
 };
 export type ResponseData = Snapshot[];
 export type Response = GenericResponse<ResponseData>;
@@ -29,7 +29,7 @@ export default async function handler(
     });
   }
 
-  const { data, error } = await getSnapshotsFromBranch(projectId, branchName);
+  const { data, error } = await getSnapshotsForBranch(projectId, branchName);
 
   if (error) {
     return typeof error === "string"

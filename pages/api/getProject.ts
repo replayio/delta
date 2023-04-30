@@ -1,10 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import {
-  getProject,
-  getProjectByShort,
-  Project,
-} from "../../lib/server/supabase/supabase";
+import { Project, ProjectId, ProjectShort } from "../../lib/types";
 import {
   GenericResponse,
   sendErrorMissingParametersResponse,
@@ -12,10 +8,14 @@ import {
   sendErrorResponseFromPostgrestError,
   sendResponse,
 } from "./utils";
+import {
+  getProject,
+  getProjectForShort,
+} from "../../lib/server/supabase/projects";
 
 export type RequestParams = {
-  projectId: string | null;
-  projectShort: string | null;
+  projectId: ProjectId | null;
+  projectShort: ProjectShort | null;
 };
 export type ResponseData = Project;
 export type Response = GenericResponse<ResponseData>;
@@ -34,7 +34,7 @@ export default async function handler(
 
   const { data, error } = await (projectId
     ? getProject(projectId)
-    : getProjectByShort(projectShort!));
+    : getProjectForShort(projectShort!));
 
   if (error) {
     sendErrorResponseFromPostgrestError(response, error);

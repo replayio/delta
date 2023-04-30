@@ -1,11 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import { getBranchByName } from "../../lib/server/supabase/branches";
-import { Branch } from "../../lib/server/supabase/supabase";
+import { Branch } from "../../lib/types";
 import {
   GenericResponse,
-  sendErrorResponseFromPostgrestError,
   sendErrorResponse,
+  sendErrorResponseFromPostgrestError,
   sendResponse,
 } from "./utils";
 

@@ -2,35 +2,35 @@ import moment from "moment";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Action, Branch, Project } from "../lib/server/supabase/supabase";
-import { mostRecentActionForBranchCache } from "../suspense/ActionCache";
+import { isPromiseLike } from "suspense";
+import { Branch, Job, Project } from "../lib/types";
+import { mostRecentJobCache } from "../suspense/JobCache";
 import classNames from "../utils/classNames";
 import { ApproveButton } from "./ApproveButton";
 import Dropdown from "./Dropdown";
 import { Github } from "./SVGs";
 import { Toggle } from "./Toggle";
-import { isPromiseLike } from "suspense";
 
 export function Header({
-  actions,
   branches,
-  currentAction,
   currentBranch,
+  currentJob,
   project,
+  jobs,
 }: {
-  actions: Action[] | null;
   branches: Branch[];
-  currentAction: Action | null;
   currentBranch: Branch | null;
+  currentJob: Job | null;
   project: Project;
+  jobs: Job[] | null;
 }) {
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
   //   console.groupCollapsed("<Header>");
   //   console.log("branches:", branches);
   //   console.log("current branch:", currentBranch);
-  //   console.log("actions:", actions);
-  //   console.log("current action:", currentAction);
+  //   console.log("workflow jobs:", jobs);
+  //   console.log("current workflow job:", currentJob);
   //   console.log("project:", project);
   //   console.groupEnd();
   // }
@@ -67,23 +67,21 @@ export function Header({
       </div>
 
       <div className="flex-1 flex justify-end items-center gap-2 text-violet-400">
-        {actions && (
+        {jobs && (
           <Dropdown
             align="right"
-            options={actions.map((action) => ({
-              isSelected: action.id == currentAction?.id,
-              key: action.id,
+            options={jobs.map((job) => ({
+              isSelected: job.id == currentJob?.id,
+              key: job.id,
               render: () => (
-                <ActionDropDownItem
-                  action={action}
+                <JobDropDownItem
                   currentBranchName={currentBranch?.name || ""}
                   project={project}
+                  job={job}
                 />
               ),
             }))}
-            selected={
-              currentAction ? relativeTime(currentAction.created_at) : "-"
-            }
+            selected={currentJob ? relativeTime(currentJob.created_at) : "-"}
           />
         )}
 
@@ -96,10 +94,10 @@ export function Header({
           <Github />
         </a>
 
-        {currentAction && currentBranch && (
+        {currentJob && currentBranch && (
           <ApproveButton
-            currentAction={currentAction}
             currentBranch={currentBranch}
+            currentJob={currentJob}
             project={project}
           />
         )}
@@ -108,40 +106,49 @@ export function Header({
   );
 }
 
-function ActionDropDownItem({
-  action,
+const JobDropDownItem = function JobDropDownItem({
   currentBranchName,
   project,
+  job,
 }: {
-  action: Action;
   currentBranchName: string;
   project: Project;
+  job: Job;
 }) {
-  const count = action.num_snapshots_changed || 0;
+  // Debug logging
+  // if (process.env.NODE_ENV === "development") {
+  //   console.groupCollapsed("<JobDropDownItem>");
+  //   console.log("project:", project);
+  //   console.log("currentBranchName:", currentBranchName);
+  //   console.log("job:", job);
+  //   console.log("actions:", actions);
+  //   console.log("count:", count);
+  //   console.groupEnd();
+  // }
 
   return (
     <Link
       className="h-full w-full"
-      href={`/project/${project.short}/?branch=${currentBranchName}&action=${action.id}`}
+      href={`/project/${project.short}/?branch=${currentBranchName}&job=${job.id}`}
     >
       <div className="flex justify-between w-full">
         <div
           className={classNames(
             "truncate pr-4",
-            count === 0 && "text-slate-400"
+            job.num_snapshots_changed === 0 && "text-slate-400"
           )}
         >
-          {relativeTime(action.created_at)}
+          {relativeTime(job.created_at)}
         </div>
-        {count > 0 && (
+        {job.num_snapshots_changed > 0 && (
           <div className="bg-violet-500 px-2 rounded text-white text-xs font-bold flex items-center">
-            {count}
+            {job.num_snapshots_changed}
           </div>
         )}
       </div>
     </Link>
   );
-}
+};
 
 function BranchDropDownItem({
   branch,
@@ -150,18 +157,35 @@ function BranchDropDownItem({
   branch: Branch;
   project: Project;
 }) {
-  let action: Action | null = null;
+  let job: Job | null = null;
   try {
-    action = mostRecentActionForBranchCache.read(branch.id);
+    job = mostRecentJobCache.read(branch.id);
   } catch (errorOrThennable) {
     if (isPromiseLike(errorOrThennable)) {
       throw errorOrThennable;
     } else {
-      // Ignore branches with no actions.
+      // Ignore branches with no Workflow jobs.
     }
   }
 
-  const count = action?.num_snapshots_changed || 0;
+  if (job == null) {
+    return (
+      <div className="h-full w-full cursor-default">
+        <div className="flex justify-between w-full">
+          <div className="truncate pr-4 text-slate-400">{branch.name}</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Debug logging
+  // if (process.env.NODE_ENV === "development") {
+  //   console.groupCollapsed("<BranchDropDownItem>");
+  //   console.log("job:", job);
+  //   console.log("actions:", actions);
+  //   console.log("count:", count);
+  //   console.groupEnd();
+  // }
 
   return (
     <Link
@@ -172,14 +196,14 @@ function BranchDropDownItem({
         <div
           className={classNames(
             "truncate pr-4",
-            count === 0 && "text-slate-400"
+            job.num_snapshots_changed === 0 && "text-slate-400"
           )}
         >
           {branch.name}
         </div>
-        {count > 0 && (
+        {job.num_snapshots_changed > 0 && (
           <div className="bg-violet-500 px-2 rounded text-white text-xs font-bold flex items-center">
-            {count}
+            {job.num_snapshots_changed}
           </div>
         )}
       </div>
@@ -187,8 +211,7 @@ function BranchDropDownItem({
   );
 }
 
-// transfor a date into a relative time from now
-// e.g. 2 days ago
-export function relativeTime(date) {
+// Transform a date into a relative time from now, e.g. 2 days ago
+function relativeTime(date) {
   return moment(date).fromNow();
 }

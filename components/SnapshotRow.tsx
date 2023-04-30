@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Action } from "../lib/server/supabase/supabase";
+import { Job } from "../lib/types";
 import { SnapshotFile } from "../suspense/SnapshotCache";
 
 export function SnapshotRow({
-  currentAction,
+  currentJob,
   isSelected,
   snapshotFile,
 }: {
-  currentAction: Action | null;
+  currentJob: Job | null;
   isSelected: boolean;
   snapshotFile: SnapshotFile;
 }) {
@@ -19,7 +19,7 @@ export function SnapshotRow({
     .replace(/-/g, " ")
     .replace(".png", "");
 
-  const actionId = currentAction?.id || "";
+  const jobId = currentJob?.id || "";
 
   return (
     <Link
@@ -27,7 +27,7 @@ export function SnapshotRow({
         isSelected ? "bg-violet-200" : "hover:bg-violet-100"
       }`}
       href={encodeURI(
-        `/project/${shortProjectId}?action=${actionId}&branch=${branchName}&fileName=${snapshotFile.fileName}&`
+        `/project/${shortProjectId}?job=${jobId}&branch=${branchName}&fileName=${snapshotFile.fileName}&`
       )}
     >
       {displayName}

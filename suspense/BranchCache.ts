@@ -1,5 +1,5 @@
 import { createCache } from "suspense";
-import { Branch } from "../lib/server/supabase/supabase";
+import { Branch, ProjectId } from "../lib/types";
 import { getBranchByName, getBranches } from "../utils/ApiClient";
 
 export const branchCache = createCache<[branchName: string], Branch>({
@@ -9,7 +9,7 @@ export const branchCache = createCache<[branchName: string], Branch>({
   },
 });
 
-export const branchesCache = createCache<[projectId: string], Branch[]>({
+export const branchesCache = createCache<[projectId: ProjectId], Branch[]>({
   debugLabel: "branches",
   async load([projectId]) {
     return getBranches({ projectId });

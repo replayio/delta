@@ -1,21 +1,24 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { getSnapshotFromBranch } from "../../lib/server/supabase/snapshots";
-import { downloadSnapshot } from "../../lib/server/supabase/storage";
 import { diffWithPrimaryBranch } from "../../lib/server/diffWithPrimaryBranch";
-import { updateSnapshot } from "../../lib/server/supabase/snapshots";
 import { isPostgrestError } from "../../lib/server/supabase/errors";
 import {
+  getSnapshotForBranch,
+  updateSnapshot,
+} from "../../lib/server/supabase/snapshots";
+import { downloadSnapshot } from "../../lib/server/supabase/storage";
+import { ProjectId } from "../../lib/types";
+import {
   GenericResponse,
-  sendErrorResponseFromPostgrestError,
-  sendErrorResponse,
-  sendResponse,
   sendErrorMissingParametersResponse,
+  sendErrorResponse,
+  sendErrorResponseFromPostgrestError,
+  sendResponse,
 } from "./utils";
 
 export type RequestParams = {
   branchName: string;
-  projectId: string;
+  projectId: ProjectId;
   snapshotFile: string;
 };
 export type ResponseData = string;
@@ -36,7 +39,7 @@ export default async function handler(
   }
 
   const { data: snapshotData, error: snapshotError } =
-    await getSnapshotFromBranch(snapshotFile, projectId, branchName);
+    await getSnapshotForBranch(projectId, branchName, snapshotFile);
   if (snapshotError) {
     return isPostgrestError(snapshotError)
       ? sendErrorResponseFromPostgrestError(response, snapshotError)
@@ -45,7 +48,10 @@ export default async function handler(
     return sendErrorResponse(response, "Could not download snapshot data");
   }
 
-  if (snapshotData.primary_diff_path) {
+  let changed = false;
+  if (!snapshotData.primary_diff_path) {
+    changed = true;
+  } else {
     const { data, error } = await downloadSnapshot(
       snapshotData.primary_diff_path
     );
@@ -73,11 +79,9 @@ export default async function handler(
   }
 
   // Save the primary_diff_path to the snapshot if it exists
-  if (diff.diffSnapshot?.path) {
+  if (diff.changed && diff.diffSnapshot?.path) {
     const updatedSnapshot = await updateSnapshot(snapshotData.id, {
       primary_diff_path: diff.diffSnapshot.path,
-      primary_num_pixels: diff.numPixels,
-      primary_changed: diff.changed,
     });
     if (updatedSnapshot.error) {
       return sendErrorResponse(response, "Failed to update snapshot diff");

@@ -3,6 +3,7 @@ import { Suspense, useState } from "react";
 import Icon from "../components/Icon";
 import { Loader } from "../components/Loader";
 import SnapshotImage from "../components/SnapshotImage";
+import { ProjectShort } from "../lib/types";
 import { frequentlyUpdatedSnapshotsCache } from "../suspense/SnapshotCache";
 import classNames from "../utils/classNames";
 import {
@@ -27,7 +28,7 @@ export default function Flaky() {
     <Suspense fallback={<Loader />}>
       <FlakySuspends
         afterDate={afterDate ?? null}
-        projectShort={projectShort}
+        projectShort={projectShort as ProjectShort}
       />
     </Suspense>
   );
@@ -38,7 +39,7 @@ function FlakySuspends({
   projectShort,
 }: {
   afterDate: string;
-  projectShort: string;
+  projectShort: ProjectShort;
 }) {
   const metadata = frequentlyUpdatedSnapshotsCache.read(
     projectShort,
@@ -56,6 +57,9 @@ function FlakySuspends({
 
 function SnapshotListItem({ metadata }: { metadata: SnapshotMetadata }) {
   const [expanded, setExpanded] = useState(false);
+  if (expanded) {
+    console.log("<SnapshotListItem>", metadata);
+  }
 
   return (
     <li>

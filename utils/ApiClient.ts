@@ -7,14 +7,6 @@ import type {
   ResponseData as GetActionsResponseData,
 } from "../pages/api/getActions";
 import type {
-  RequestParams as GetMostFrequentlyUpdatedSnapshotsRequestParams,
-  ResponseData as GetMostFrequentlyUpdatedSnapshotsResponseData,
-} from "../pages/api/getMostFrequentlyUpdatedSnapshots";
-import type {
-  RequestParams as GetMostRecentActionRequestParams,
-  ResponseData as GetMostRecentActionResponseData,
-} from "../pages/api/getMostRecentAction";
-import type {
   RequestParams as GetBranchByNameRequestParams,
   ResponseData as GetBranchByNameResponseData,
 } from "../pages/api/getBranchByName";
@@ -22,6 +14,14 @@ import type {
   RequestParams as GetBranchesRequestParams,
   ResponseData as GetBranchesResponseData,
 } from "../pages/api/getBranches";
+import type {
+  RequestParams as GetJobsRequestParams,
+  ResponseData as GetJobsResponseData,
+} from "../pages/api/getJobs";
+import type {
+  RequestParams as GetMostFrequentlyUpdatedSnapshotsRequestParams,
+  ResponseData as GetMostFrequentlyUpdatedSnapshotsResponseData,
+} from "../pages/api/getMostFrequentlyUpdatedSnapshots";
 import type {
   RequestParams as GetProjectRequestParams,
   ResponseData as GetProjectResponseData,
@@ -31,23 +31,22 @@ import type {
   ResponseData as GetPublicProjectsResponseData,
 } from "../pages/api/getPublicProjects";
 import type {
+  RequestParams as GetSnapshotRequestParams,
+  ResponseData as GetSnapshotResponseData,
+} from "../pages/api/getSnapshot";
+import type {
   RequestParams as GetSnapshotDiffRequestParams,
   ResponseData as GetSnapshotDiffResponseData,
 } from "../pages/api/getSnapshotDiff";
-import type {
-  RequestParams as GetSnapshotsForActionRequestParams,
-  ResponseData as GetSnapshotsForActionResponseData,
-} from "../pages/api/getSnapshotsForAction";
 import type {
   RequestParams as GetSnapshotsForBranchRequestParams,
   ResponseData as GetSnapshotsForBranchResponseData,
 } from "../pages/api/getSnapshotsForBranch";
 import type {
-  RequestParams as GetSnapshotRequestParams,
-  ResponseData as GetSnapshotResponseData,
-} from "../pages/api/getSnapshot";
+  RequestParams as GetSnapshotsForJobRequestParams,
+  ResponseData as GetSnapshotsForJobResponseData,
+} from "../pages/api/getSnapshotsForJob";
 import type {
-  BranchStatus,
   RequestParams as UpdateBranchStatusRequestParams,
   ResponseData as UpdateBranchStatusResponseData,
 } from "../pages/api/updateBranchStatus";
@@ -84,11 +83,11 @@ export async function getMostFrequentlyUpdatedSnapshots(
   );
 }
 
-export async function getMostRecentAction(
-  params: GetMostRecentActionRequestParams
-): Promise<GetMostRecentActionResponseData> {
-  return fetchDataFromEndpoint<GetMostRecentActionResponseData>(
-    `/api/getMostRecentAction?${paramsToUrlString(params)}`
+export async function getJobs(
+  params: GetJobsRequestParams
+): Promise<GetJobsResponseData> {
+  return fetchDataFromEndpoint<GetJobsResponseData>(
+    `/api/getJobs?${paramsToUrlString(params)}`
   );
 }
 
@@ -132,11 +131,11 @@ export async function getSnapshotDiff(
   );
 }
 
-export async function getSnapshotsForAction(
-  params: GetSnapshotsForActionRequestParams
-): Promise<GetSnapshotsForActionResponseData> {
-  return fetchDataFromEndpoint<GetSnapshotsForActionResponseData>(
-    `/api/getSnapshotsForAction?${paramsToUrlString(params)}`
+export async function getSnapshotsForJob(
+  params: GetSnapshotsForJobRequestParams
+): Promise<GetSnapshotsForJobResponseData> {
+  return fetchDataFromEndpoint<GetSnapshotsForJobResponseData>(
+    `/api/getSnapshotsForJob?${paramsToUrlString(params)}`
   );
 }
 

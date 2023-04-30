@@ -1,17 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import createClient from "../../lib/initServerSupabase";
-import { Branch, retryOnError } from "../../lib/server/supabase/supabase";
+import { retryOnError } from "../../lib/server/supabase/supabase";
+import { Branch, ProjectId } from "../../lib/types";
 import {
   GenericResponse,
-  sendErrorResponseFromPostgrestError,
-  sendErrorResponse,
-  sendResponse,
   sendErrorMissingParametersResponse,
+  sendErrorResponse,
+  sendErrorResponseFromPostgrestError,
+  sendResponse,
 } from "./utils";
 
 export type RequestParams = {
-  projectId: string;
+  projectId: ProjectId;
 };
 export type ResponseData = Branch[];
 export type Response = GenericResponse<ResponseData>;

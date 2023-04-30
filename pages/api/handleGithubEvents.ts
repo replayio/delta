@@ -10,7 +10,6 @@ import {
 
 import { getDeltaBranchUrl } from "../../lib/delta";
 import { getHTTPRequests, setupHook } from "../../lib/server/http-replay";
-import { insertAction } from "../../lib/server/supabase/actions";
 import {
   getBranchForProject,
   getBranchForPullRequest,
@@ -31,7 +30,7 @@ import {
 } from "../../lib/server/supabase/jobs";
 import { getProjectForOrganizationAndRepository } from "../../lib/server/supabase/projects";
 import { getSnapshotsForRun } from "../../lib/server/supabase/snapshots";
-import { CheckId, JobId, Project, RunId, Snapshot } from "../../lib/types";
+import { CheckId, Project, RunId, Snapshot } from "../../lib/types";
 import {
   ErrorLike,
   GenericResponse,
@@ -575,18 +574,6 @@ async function handleWorkflowQueued(
         404
       );
     }
-  }
-
-  const action = await insertAction({
-    job_id: job.data.id,
-  });
-  if (action.error) {
-    return logAndSendResponse(
-      null,
-      createErrorMessageFromPostgrestError(action.error)
-    );
-  } else {
-    return logAndSendResponse();
   }
 }
 

@@ -8,7 +8,6 @@ import { Snapshot } from "../../components/Snapshot";
 import { SnapshotRow } from "../../components/SnapshotRow";
 import useSnapshotPrefetchedData from "../../lib/hooks/useSnapshotPrefetchedData";
 import {
-  Action,
   Branch,
   Job,
   JobId,
@@ -18,7 +17,6 @@ import {
 } from "../../lib/types";
 
 import withSuspenseLoader from "../../components/withSuspenseLoader";
-import { actionsCache } from "../../suspense/ActionCache";
 import { branchCache, branchesCache } from "../../suspense/BranchCache";
 import { jobsCache } from "../../suspense/JobCache";
 import { projectCache } from "../../suspense/ProjectCache";
@@ -86,8 +84,6 @@ const ShortSuspends = withSuspenseLoader(function ShortSuspends({
     ? snapshotFilesCache.read(project.id, currentJob.id)
     : null;
 
-  const actions = jobId ? actionsCache.read(jobId) : null;
-
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
   //   console.groupCollapsed("<ShortSuspends>");
@@ -96,14 +92,12 @@ const ShortSuspends = withSuspenseLoader(function ShortSuspends({
   //   console.log("current branch:", currentBranch);
   //   console.log("jobs:", jobs);
   //   console.log("current job:", currentJob);
-  //   console.log("actions:", actions);
   //   console.log("snapshotFiles:", snapshotFiles);
   //   console.groupEnd();
   // }
 
   return (
     <ShortWithData
-      actions={actions}
       branches={branches}
       currentBranch={currentBranch}
       currentFileName={currentFileName}
@@ -116,7 +110,6 @@ const ShortSuspends = withSuspenseLoader(function ShortSuspends({
 });
 
 function ShortWithData({
-  actions,
   branches,
   currentBranch,
   currentFileName,
@@ -125,7 +118,6 @@ function ShortWithData({
   snapshotFiles,
   jobs,
 }: {
-  actions: Action[] | null;
   branches: Branch[];
   currentBranch: Branch | null;
   currentFileName: string | null;

@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { getActionsForJob } from "../../lib/server/supabase/actions";
 import { getJob } from "../../lib/server/supabase/jobs";
 import { getSnapshotsForJob } from "../../lib/server/supabase/snapshots";
 import { JobId, ProjectId, Snapshot } from "../../lib/types";
@@ -36,19 +35,6 @@ export default async function handler(
     return sendErrorResponseFromPostgrestError(response, jobError);
   } else if (jobData == null) {
     return sendErrorResponse(response, `No job found with id "${jobId}"`, 404);
-  }
-
-  const { data: actionsData, error: actionsError } = await getActionsForJob(
-    jobId
-  );
-  if (actionsError) {
-    return sendErrorResponseFromPostgrestError(response, actionsError);
-  } else if (actionsData == null) {
-    return sendErrorResponse(
-      response,
-      `No actions found for job id "${jobId}"`,
-      404
-    );
   }
 
   const { data: snapshotData, error: snapshotError } = await getSnapshotsForJob(

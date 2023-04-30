@@ -88,7 +88,7 @@ function SnapshotListItem({ metadata }: { metadata: SnapshotMetadata }) {
         <ul className="list-none p-1 bg-slate-100 flex flex-col gap-1">
           {metadata.paths.map((path) => (
             <Suspense fallback={<Loader />} key={path.path}>
-              <Action path={path} />
+              <SnapshotImages path={path} />
             </Suspense>
           ))}
         </ul>
@@ -97,7 +97,7 @@ function SnapshotListItem({ metadata }: { metadata: SnapshotMetadata }) {
   );
 }
 
-function Action({ path }: { path: PathMetadata }) {
+function SnapshotImages({ path }: { path: PathMetadata }) {
   return (
     <li className="flex flex-row gap-1 items-center">
       <SnapshotImage className="shrink min-w-0" path={path.path} />

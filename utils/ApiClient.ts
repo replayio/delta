@@ -3,10 +3,6 @@ import type {
   ResponseData as DownloadSnapshotResponseData,
 } from "../pages/api/downloadSnapshot";
 import type {
-  RequestParams as GetActionsRequestParams,
-  ResponseData as GetActionsResponseData,
-} from "../pages/api/getActions";
-import type {
   RequestParams as GetBranchByNameRequestParams,
   ResponseData as GetBranchByNameResponseData,
 } from "../pages/api/getBranchByName";
@@ -64,14 +60,6 @@ export async function downloadSnapshot(
 ): Promise<DownloadSnapshotResponseData> {
   return fetchDataFromEndpoint<DownloadSnapshotResponseData>(
     `/api/downloadSnapshot?${paramsToUrlString(params)}`
-  );
-}
-
-export async function getActions(
-  params: GetActionsRequestParams
-): Promise<GetActionsResponseData> {
-  return fetchDataFromEndpoint<GetActionsResponseData>(
-    `/api/getActions?${paramsToUrlString(params)}`
   );
 }
 

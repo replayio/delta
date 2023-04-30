@@ -121,7 +121,6 @@ const JobDropDownItem = function JobDropDownItem({
   //   console.log("project:", project);
   //   console.log("currentBranchName:", currentBranchName);
   //   console.log("job:", job);
-  //   console.log("actions:", actions);
   //   console.log("count:", count);
   //   console.groupEnd();
   // }
@@ -182,7 +181,6 @@ function BranchDropDownItem({
   // if (process.env.NODE_ENV === "development") {
   //   console.groupCollapsed("<BranchDropDownItem>");
   //   console.log("job:", job);
-  //   console.log("actions:", actions);
   //   console.log("count:", count);
   //   console.groupEnd();
   // }

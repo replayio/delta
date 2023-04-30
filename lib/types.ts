@@ -67,15 +67,6 @@ export type Job = {
 export type JobId = Job["id"];
 export type RunId = Job["run_id"];
 
-export type Action = {
-  created_at: string;
-
-  // Database ids and keys
-  id: Opaque<"string", Action>;
-  job_id: JobId;
-};
-export type ActionId = Action["id"];
-
 export type SnapshotStatus = "Duplicate" | "Uploaded";
 export type Snapshot = {
   created_at: string;

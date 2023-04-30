@@ -62,7 +62,7 @@ export async function insertRun(
   return retryOnError(() => supabase.from("Runs").insert(data).single());
 }
 
-export async function updateJob(
+export async function updateRun(
   runId: RunId,
   run: Partial<Run>
 ): Promise<PostgrestSingleResponse<Run>> {

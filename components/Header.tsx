@@ -74,7 +74,7 @@ export function Header({
               isSelected: run.id == currentRun?.id,
               key: run.id,
               render: () => (
-                <JobDropDownItem
+                <RunDropDownItem
                   currentBranchName={currentBranch?.name || ""}
                   project={project}
                   run={run}
@@ -106,7 +106,7 @@ export function Header({
   );
 }
 
-const JobDropDownItem = function JobDropDownItem({
+const RunDropDownItem = function RunDropDownItem({
   currentBranchName,
   project,
   run,
@@ -117,7 +117,7 @@ const JobDropDownItem = function JobDropDownItem({
 }) {
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
-  //   console.groupCollapsed("<JobDropDownItem>");
+  //   console.groupCollapsed("<RunDropDownItem>");
   //   console.log("project:", project);
   //   console.log("currentBranchName:", currentBranchName);
   //   console.log("run:", run);

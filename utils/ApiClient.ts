@@ -39,8 +39,8 @@ import type {
   ResponseData as GetSnapshotsForBranchResponseData,
 } from "../pages/api/getSnapshotsForBranch";
 import type {
-  RequestParams as GetSnapshotsForJobRequestParams,
-  ResponseData as GetSnapshotsForJobResponseData,
+  RequestParams as GetSnapshotsForRunRequestParams,
+  ResponseData as GetSnapshotsForRunResponseData,
 } from "../pages/api/getSnapshotsForRun";
 import type {
   RequestParams as UpdateBranchStatusRequestParams,
@@ -119,11 +119,11 @@ export async function getSnapshotDiff(
   );
 }
 
-export async function getSnapshotsForJob(
-  params: GetSnapshotsForJobRequestParams
-): Promise<GetSnapshotsForJobResponseData> {
-  return fetchDataFromEndpoint<GetSnapshotsForJobResponseData>(
-    `/api/getSnapshotsForJob?${paramsToUrlString(params)}`
+export async function getSnapshotsForRun(
+  params: GetSnapshotsForRunRequestParams
+): Promise<GetSnapshotsForRunResponseData> {
+  return fetchDataFromEndpoint<GetSnapshotsForRunResponseData>(
+    `/api/getSnapshotsForRun?${paramsToUrlString(params)}`
   );
 }
 

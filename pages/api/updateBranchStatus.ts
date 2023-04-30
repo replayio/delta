@@ -8,7 +8,7 @@ import {
   updateComment,
 } from "../../lib/github";
 import { getBranch } from "../../lib/server/supabase/branches";
-import { getRunForBranch, updateJob } from "../../lib/server/supabase/runs";
+import { getRunForBranch, updateRun } from "../../lib/server/supabase/runs";
 import { getProject } from "../../lib/server/supabase/projects";
 import { BranchId, Run, Project, ProjectId, Snapshot } from "../../lib/types";
 import {
@@ -17,7 +17,7 @@ import {
   sendErrorResponseFromPostgrestError,
   sendResponse,
 } from "./utils";
-import { getSnapshotsForJob } from "../../lib/server/supabase/snapshots";
+import { getSnapshotsForRun } from "../../lib/server/supabase/snapshots";
 
 export type BranchStatus = "failure" | "neutral" | "success";
 
@@ -71,7 +71,7 @@ export default async function handler(
   const run = runData;
   const runId = run.id;
 
-  const { error: updateError } = await updateJob(runId, { status });
+  const { error: updateError } = await updateRun(runId, { status });
   if (updateError) {
     return sendErrorResponseFromPostgrestError(response, updateError);
   }
@@ -84,7 +84,7 @@ export default async function handler(
 
   let issueComment: IssueComment | null = null;
   if (branch.comment_id) {
-    const snapshots = await getSnapshotsForJob(runId);
+    const snapshots = await getSnapshotsForRun(runId);
 
     issueComment = await updateComment(
       organization,

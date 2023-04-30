@@ -24,10 +24,10 @@ import {
 import {
   getRunForGithubRun,
   insertRun,
-  updateJob,
+  updateRun,
 } from "../../lib/server/supabase/runs";
 import { getProjectForOrganizationAndRepository } from "../../lib/server/supabase/projects";
-import { getSnapshotsForRun } from "../../lib/server/supabase/snapshots";
+import { getSnapshotsForGithubRun } from "../../lib/server/supabase/snapshots";
 import {
   CheckId,
   Project,
@@ -376,7 +376,7 @@ async function handleWorkflowCompleted(
 
   const runId = ("" + workflowJob.run_id) as GithubRunId;
 
-  const snapshots = await getSnapshotsForRun(runId);
+  const snapshots = await getSnapshotsForGithubRun(runId);
   if (snapshots.error) {
     return logAndSendResponse(
       null,
@@ -476,7 +476,7 @@ async function handleWorkflowCompleted(
     );
   }
 
-  const updatedJob = await updateJob(run.data.id, {
+  const updatedJob = await updateRun(run.data.id, {
     status: conclusion,
   });
   if (updatedJob.error) {

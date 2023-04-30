@@ -42,7 +42,7 @@ export type BranchId = Branch["id"];
 export type CheckId = Branch["check_id"];
 export type CommentId = Branch["comment_id"];
 
-export type JobStatus = "success" | "failure" | "neutral";
+export type RunStatus = "success" | "failure" | "neutral";
 export type Run = {
   created_at: string;
 
@@ -62,7 +62,7 @@ export type Run = {
 
   // Set based on the initial results of running the Workflow
   // Updated based on user actions
-  status: JobStatus | null;
+  status: RunStatus | null;
 };
 export type RunId = Run["id"];
 export type GithubRunId = Run["github_run_id"];

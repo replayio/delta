@@ -143,7 +143,7 @@ function ShortWithData({
       />
 
       {isPending ? (
-        <SubViewJobPending project={project} runId={currentRun.github_run_id} />
+        <SubViewRunPending project={project} runId={currentRun.github_run_id} />
       ) : shownBranches.length == 0 ? (
         <SubViewNoOpenBranches />
       ) : snapshotFiles === null || snapshotFiles.length == 0 ? (
@@ -159,7 +159,7 @@ function ShortWithData({
   );
 }
 
-function SubViewJobPending({
+function SubViewRunPending({
   project,
   runId,
 }: {
@@ -173,7 +173,7 @@ function SubViewJobPending({
         rel="noreferrer"
         href={`https://github.com/${project.organization}/${project.repository}/actions/runs/${runId}`}
       >
-        Job running...
+        Workflow running...
       </a>
     </div>
   );

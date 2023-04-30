@@ -45,7 +45,7 @@ export async function getSnapshotForBranch(
 
   const run = await getRunForBranch(branch.data.id);
   if (run.data == null) {
-    return { error: { message: "Job not found", code: null }, data: null };
+    return { error: { message: "Run not found", code: null }, data: null };
   }
 
   const result = await retryOnError(() =>
@@ -79,7 +79,7 @@ export async function getSnapshotsForBranch(
   });
 }
 
-export async function getSnapshotsForJob(
+export async function getSnapshotsForRun(
   runId: RunId
 ): Promise<PostgrestResponse<Snapshot>> {
   return await retryOnError(() =>
@@ -87,11 +87,11 @@ export async function getSnapshotsForJob(
   );
 }
 
-export async function getSnapshotsForRun(
-  runId: GithubRunId
+export async function getSnapshotsForGithubRun(
+  githubRunId: GithubRunId
 ): Promise<PostgrestResponse<Snapshot>> {
   return retryOnError(() =>
-    supabase.rpc("snapshots_for_github_run", { github_run_id: runId })
+    supabase.rpc("snapshots_for_github_run", { github_run_id: githubRunId })
   );
 }
 
@@ -112,7 +112,7 @@ export async function insertSnapshot(
   const run = await getRunForBranch(branch.data.id, githubRunId);
   if (run.error) {
     return createError(
-      `Job not found for branch ${
+      `Run not found for branch ${
         branch.data.id
       } ("${branchName}") and run ${githubRunId}\n\n${JSON.stringify(
         run.error

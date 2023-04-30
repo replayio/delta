@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import { getRun } from "../../lib/server/supabase/runs";
-import { getSnapshotsForJob } from "../../lib/server/supabase/snapshots";
+import { getSnapshotsForRun } from "../../lib/server/supabase/snapshots";
 import { RunId, ProjectId, Snapshot } from "../../lib/types";
 import {
   GenericResponse,
@@ -37,7 +37,7 @@ export default async function handler(
     return sendErrorResponse(response, `No run found with id "${runId}"`, 404);
   }
 
-  const { data: snapshotData, error: snapshotError } = await getSnapshotsForJob(
+  const { data: snapshotData, error: snapshotError } = await getSnapshotsForRun(
     runId
   );
   if (snapshotError) {

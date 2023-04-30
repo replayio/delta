@@ -1,9 +1,8 @@
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import createClient from "../../initServerSupabase";
-import { JobId, ProjectId, RunId } from "../../types";
+import { GithubJobId, GithubRunId, ProjectId } from "../../types";
 import { safeStringify } from "../json";
 import { retryOnError } from "./supabase";
-import Opaque from "ts-opaque";
 
 export const supabase = createClient();
 
@@ -17,10 +16,14 @@ export type HTTPMetadata = {
   id: number;
   payload: Object;
   pr_number?: string;
-  run_id?: RunId;
-  workflow_id?: Opaque<"string", HTTPMetadata>;
+
+  github_job_id?: GithubJobId;
+  github_run_id?: GithubRunId;
+
+  // TODO [FE-1432] Delete these fields
+  // run_id?: GithubRunId;
+  // workflow_id?: Opaque<"string", HTTPMetadata>;
 };
-export type WorkflowId = HTTPMetadata["workflow_id"];
 
 export async function insertHTTPMetadata(
   event: Partial<HTTPMetadata>

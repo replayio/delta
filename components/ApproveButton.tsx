@@ -1,22 +1,22 @@
 import { useState } from "react";
 
-import { Branch, Job, Project } from "../lib/types";
+import { Branch, Run, Project } from "../lib/types";
 import { updateBranchStatus } from "../utils/ApiClient";
 
 type ApprovalStatus = "approved" | "needs-approval" | "no-changes";
 
 export function ApproveButton({
   currentBranch,
-  currentJob,
+  currentRun,
   project,
 }: {
   currentBranch: Branch;
-  currentJob: Job;
+  currentRun: Run;
   project: Project;
 }) {
   const [isPending, setIsPending] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus>(() =>
-    calculateApprovalStatus(currentJob)
+    calculateApprovalStatus(currentRun)
   );
 
   const toggleBranchStatus = async (status) => {
@@ -28,7 +28,7 @@ export function ApproveButton({
       status,
     });
 
-    setApprovalStatus(calculateApprovalStatus(response.job));
+    setApprovalStatus(calculateApprovalStatus(response.run));
 
     setIsPending(false);
   };
@@ -72,15 +72,15 @@ export function ApproveButton({
   }
 }
 
-function calculateApprovalStatus(job: Job): ApprovalStatus {
-  switch (job.status) {
+function calculateApprovalStatus(run: Run): ApprovalStatus {
+  switch (run.status) {
     case "neutral":
       return "no-changes";
     case "success":
-      return job.num_snapshots_changed > 0 ? "approved" : "no-changes";
+      return run.num_snapshots_changed > 0 ? "approved" : "no-changes";
     case "failure":
       return "needs-approval";
     default:
-      throw Error(`Unexpected status: "${job.status}"`);
+      throw Error(`Unexpected status: "${run.status}"`);
   }
 }

@@ -4,15 +4,15 @@ import {
 } from "@supabase/supabase-js";
 import { Image } from "../../../pages/api/uploadSnapshot";
 import {
-  JobId,
-  ProjectId,
   RunId,
+  ProjectId,
+  GithubRunId,
   Snapshot,
   SnapshotId,
   SnapshotStatus,
 } from "../../types";
 import { getBranchForProject } from "./branches";
-import { getJobForBranch, incrementNumSnapshots } from "./jobs";
+import { getRunForBranch, incrementNumSnapshots } from "./runs";
 import { ResponseError, createError, retryOnError, supabase } from "./supabase";
 const { createHash } = require("crypto");
 
@@ -43,8 +43,8 @@ export async function getSnapshotForBranch(
     return { error: { message: "Branch not found", code: null }, data: null };
   }
 
-  const job = await getJobForBranch(branch.data.id);
-  if (job.data == null) {
+  const run = await getRunForBranch(branch.data.id);
+  if (run.data == null) {
     return { error: { message: "Job not found", code: null }, data: null };
   }
 
@@ -53,7 +53,7 @@ export async function getSnapshotForBranch(
       .from("Snapshots")
       .select("*")
       .eq("file", file)
-      .eq("job_id", job.data.id)
+      .eq("run_id", run.data.id)
       .order("created_at", { ascending: false })
       .limit(1)
       .single()
@@ -73,22 +73,22 @@ export async function getSnapshotsForBranch(
   projectId: ProjectId,
   branchName: string
 ): Promise<ResponseError | PostgrestResponse<Snapshot>> {
-  return supabase.rpc("snapshots_for_most_recent_job_on_branch", {
+  return supabase.rpc("snapshots_for_most_recent_run_on_branch", {
     project_id: projectId,
     branch_name: branchName,
   });
 }
 
 export async function getSnapshotsForJob(
-  jobId: JobId
+  runId: RunId
 ): Promise<PostgrestResponse<Snapshot>> {
   return await retryOnError(() =>
-    supabase.from("Snapshots").select("*").eq("job_id", jobId).order("file")
+    supabase.from("Snapshots").select("*").eq("run_id", runId).order("file")
   );
 }
 
 export async function getSnapshotsForRun(
-  runId: RunId
+  runId: GithubRunId
 ): Promise<PostgrestResponse<Snapshot>> {
   return retryOnError(() =>
     supabase.rpc("snapshots_for_run", { run_id: runId })
@@ -99,7 +99,7 @@ export async function insertSnapshot(
   branchName: string,
   projectId: ProjectId,
   image: Image,
-  runId: RunId,
+  githubRunId: GithubRunId,
   uploadStatus: SnapshotStatus | null
 ): Promise<ResponseError | PostgrestSingleResponse<Snapshot>> {
   const branch = await getBranchForProject(projectId, branchName);
@@ -109,21 +109,23 @@ export async function insertSnapshot(
     );
   }
 
-  const job = await getJobForBranch(branch.data.id, runId);
-  if (job.error) {
+  const run = await getRunForBranch(branch.data.id, githubRunId);
+  if (run.error) {
     return createError(
       `Job not found for branch ${
         branch.data.id
-      } ("${branchName}") and run ${runId}\n\n${JSON.stringify(job.error)}`
+      } ("${branchName}") and run ${githubRunId}\n\n${JSON.stringify(
+        run.error
+      )}`
     );
   }
 
   const sha = createHash("sha256").update(image.content).digest("hex");
 
-  await incrementNumSnapshots(job.data.id);
+  await incrementNumSnapshots(run.data.id);
 
   const snapshot: Partial<Snapshot> = {
-    job_id: job.data.id,
+    run_id: run.data.id,
     path: `${projectId}/${sha}.png`,
     file: image.file,
     status: uploadStatus,

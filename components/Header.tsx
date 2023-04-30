@@ -3,8 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { isPromiseLike } from "suspense";
-import { Branch, Job, Project } from "../lib/types";
-import { mostRecentJobCache } from "../suspense/JobCache";
+import { Branch, Run, Project } from "../lib/types";
+import { mostRecentRunCache } from "../suspense/RunCache";
 import classNames from "../utils/classNames";
 import { ApproveButton } from "./ApproveButton";
 import Dropdown from "./Dropdown";
@@ -14,23 +14,23 @@ import { Toggle } from "./Toggle";
 export function Header({
   branches,
   currentBranch,
-  currentJob,
+  currentRun,
   project,
-  jobs,
+  runs,
 }: {
   branches: Branch[];
   currentBranch: Branch | null;
-  currentJob: Job | null;
+  currentRun: Run | null;
   project: Project;
-  jobs: Job[] | null;
+  runs: Run[] | null;
 }) {
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
   //   console.groupCollapsed("<Header>");
   //   console.log("branches:", branches);
   //   console.log("current branch:", currentBranch);
-  //   console.log("workflow jobs:", jobs);
-  //   console.log("current workflow job:", currentJob);
+  //   console.log("workflow runs:", runs);
+  //   console.log("current workflow run:", currentRun);
   //   console.log("project:", project);
   //   console.groupEnd();
   // }
@@ -67,21 +67,21 @@ export function Header({
       </div>
 
       <div className="flex-1 flex justify-end items-center gap-2 text-violet-400">
-        {jobs && (
+        {runs && (
           <Dropdown
             align="right"
-            options={jobs.map((job) => ({
-              isSelected: job.id == currentJob?.id,
-              key: job.id,
+            options={runs.map((run) => ({
+              isSelected: run.id == currentRun?.id,
+              key: run.id,
               render: () => (
                 <JobDropDownItem
                   currentBranchName={currentBranch?.name || ""}
                   project={project}
-                  job={job}
+                  run={run}
                 />
               ),
             }))}
-            selected={currentJob ? relativeTime(currentJob.created_at) : "-"}
+            selected={currentRun ? relativeTime(currentRun.created_at) : "-"}
           />
         )}
 
@@ -94,10 +94,10 @@ export function Header({
           <Github />
         </a>
 
-        {currentJob && currentBranch && (
+        {currentRun && currentBranch && (
           <ApproveButton
             currentBranch={currentBranch}
-            currentJob={currentJob}
+            currentRun={currentRun}
             project={project}
           />
         )}
@@ -109,18 +109,18 @@ export function Header({
 const JobDropDownItem = function JobDropDownItem({
   currentBranchName,
   project,
-  job,
+  run,
 }: {
   currentBranchName: string;
   project: Project;
-  job: Job;
+  run: Run;
 }) {
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
   //   console.groupCollapsed("<JobDropDownItem>");
   //   console.log("project:", project);
   //   console.log("currentBranchName:", currentBranchName);
-  //   console.log("job:", job);
+  //   console.log("run:", run);
   //   console.log("count:", count);
   //   console.groupEnd();
   // }
@@ -128,20 +128,20 @@ const JobDropDownItem = function JobDropDownItem({
   return (
     <Link
       className="h-full w-full"
-      href={`/project/${project.short}/?branch=${currentBranchName}&job=${job.id}`}
+      href={`/project/${project.short}/?branch=${currentBranchName}&run=${run.id}`}
     >
       <div className="flex justify-between w-full">
         <div
           className={classNames(
             "truncate pr-4",
-            job.num_snapshots_changed === 0 && "text-slate-400"
+            run.num_snapshots_changed === 0 && "text-slate-400"
           )}
         >
-          {relativeTime(job.created_at)}
+          {relativeTime(run.created_at)}
         </div>
-        {job.num_snapshots_changed > 0 && (
+        {run.num_snapshots_changed > 0 && (
           <div className="bg-violet-500 px-2 rounded text-white text-xs font-bold flex items-center">
-            {job.num_snapshots_changed}
+            {run.num_snapshots_changed}
           </div>
         )}
       </div>
@@ -156,18 +156,18 @@ function BranchDropDownItem({
   branch: Branch;
   project: Project;
 }) {
-  let job: Job | null = null;
+  let run: Run | null = null;
   try {
-    job = mostRecentJobCache.read(branch.id);
+    run = mostRecentRunCache.read(branch.id);
   } catch (errorOrThennable) {
     if (isPromiseLike(errorOrThennable)) {
       throw errorOrThennable;
     } else {
-      // Ignore branches with no Workflow jobs.
+      // Ignore branches with no Workflow runs.
     }
   }
 
-  if (job == null) {
+  if (run == null) {
     return (
       <div className="h-full w-full cursor-default">
         <div className="flex justify-between w-full">
@@ -180,7 +180,7 @@ function BranchDropDownItem({
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
   //   console.groupCollapsed("<BranchDropDownItem>");
-  //   console.log("job:", job);
+  //   console.log("run:", run);
   //   console.log("count:", count);
   //   console.groupEnd();
   // }
@@ -194,14 +194,14 @@ function BranchDropDownItem({
         <div
           className={classNames(
             "truncate pr-4",
-            job.num_snapshots_changed === 0 && "text-slate-400"
+            run.num_snapshots_changed === 0 && "text-slate-400"
           )}
         >
           {branch.name}
         </div>
-        {job.num_snapshots_changed > 0 && (
+        {run.num_snapshots_changed > 0 && (
           <div className="bg-violet-500 px-2 rounded text-white text-xs font-bold flex items-center">
-            {job.num_snapshots_changed}
+            {run.num_snapshots_changed}
           </div>
         )}
       </div>

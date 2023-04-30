@@ -7,8 +7,8 @@ returns setof record language sql as $$
 
 SELECT snapshots.*
 FROM "Snapshots" snapshots
-  INNER JOIN "Jobs" jobs ON snapshots.job_id = jobs.id
-WHERE jobs.run_id = run_id
+  INNER JOIN "Runs" runs ON snapshots.run_id = runs.id
+WHERE runs.run_id = run_id
 ORDER BY snapshots.path ASC;
 
 $$;

@@ -18,19 +18,24 @@ import {
 } from "../../lib/server/supabase/branches";
 import {
   HTTPMetadata,
-  WorkflowId,
   insertHTTPEvent,
   insertHTTPMetadata,
   updateHTTPMetadata,
 } from "../../lib/server/supabase/httpEvent";
 import {
-  getJobForRun,
-  insertJob,
+  getRunForGithubRun,
+  insertRun,
   updateJob,
-} from "../../lib/server/supabase/jobs";
+} from "../../lib/server/supabase/runs";
 import { getProjectForOrganizationAndRepository } from "../../lib/server/supabase/projects";
 import { getSnapshotsForRun } from "../../lib/server/supabase/snapshots";
-import { CheckId, Project, RunId, Snapshot } from "../../lib/types";
+import {
+  CheckId,
+  Project,
+  GithubRunId,
+  Snapshot,
+  GithubJobId,
+} from "../../lib/types";
 import {
   ErrorLike,
   GenericResponse,
@@ -145,8 +150,8 @@ export default async function handler(
   let branchName: string | undefined = undefined;
   let headSha: string | undefined = undefined;
   let prNumber: string | undefined = undefined;
-  let runId: RunId | undefined = undefined;
-  let workflowId: WorkflowId | undefined = undefined;
+  let githubRunId: GithubRunId | undefined = undefined;
+  let githubJobId: GithubJobId | undefined = undefined;
   if (isPullRequestEventParams(request.body)) {
     const { pull_request: pullRequest, number } = request.body;
     branchName = pullRequest.head.ref;
@@ -155,8 +160,8 @@ export default async function handler(
     const { workflow_job: workflowJob } = request.body;
     branchName = workflowJob.head_branch;
     headSha = workflowJob.head_sha;
-    workflowId = ("" + workflowJob.id) as WorkflowId;
-    runId = ("" + workflowJob.run_id) as RunId;
+    githubJobId = workflowJob.id as unknown as GithubJobId;
+    githubRunId = workflowJob.run_id as unknown as GithubRunId;
   }
 
   // HTTP metadata is used for debug logging only; if it fails, ignore it (for now)
@@ -167,8 +172,8 @@ export default async function handler(
     head_sha: headSha,
     payload: request.body,
     pr_number: prNumber,
-    run_id: runId,
-    workflow_id: workflowId,
+    github_run_id: githubRunId,
+    github_job_id: githubJobId,
   });
   if (httpMetadata.error) {
     console.error(httpMetadata.error);
@@ -369,7 +374,7 @@ async function handleWorkflowCompleted(
     );
   }
 
-  const runId = ("" + workflowJob.run_id) as RunId;
+  const runId = ("" + workflowJob.run_id) as GithubRunId;
 
   const snapshots = await getSnapshotsForRun(runId);
   if (snapshots.error) {
@@ -457,13 +462,13 @@ async function handleWorkflowCompleted(
     }
   }
 
-  const job = await getJobForRun(runId);
-  if (job.error) {
+  const run = await getRunForGithubRun(runId);
+  if (run.error) {
     return logAndSendResponse(
       null,
-      createErrorMessageFromPostgrestError(job.error)
+      createErrorMessageFromPostgrestError(run.error)
     );
-  } else if (!job.data) {
+  } else if (!run.data) {
     return logAndSendResponse(
       null,
       `Could not find job for run run ${runId}`,
@@ -471,7 +476,7 @@ async function handleWorkflowCompleted(
     );
   }
 
-  const updatedJob = await updateJob(job.data.id, {
+  const updatedJob = await updateJob(run.data.id, {
     status: conclusion,
   });
   if (updatedJob.error) {
@@ -552,25 +557,25 @@ async function handleWorkflowQueued(
   }
   const branchId = branch.data.id;
 
-  let job = await getJobForRun(runId as unknown as RunId);
-  if (!job.data) {
-    job = await insertJob({
+  let run = await getRunForGithubRun(runId as unknown as GithubRunId);
+  if (!run.data) {
+    run = await insertRun({
       actor: sender.login,
       branch_id: branchId,
       num_snapshots: 0,
       num_snapshots_changed: 0,
-      run_id: runId as unknown as RunId,
+      github_run_id: runId as unknown as GithubRunId,
       status: "neutral",
     });
-    if (job.error) {
+    if (run.error) {
       return logAndSendResponse(
         null,
-        createErrorMessageFromPostgrestError(job.error)
+        createErrorMessageFromPostgrestError(run.error)
       );
-    } else if (!job.data) {
+    } else if (!run.data) {
       return logAndSendResponse(
         null,
-        `Could not find job for run run ${runId}`,
+        `Could not find run for run run ${runId}`,
         404
       );
     }

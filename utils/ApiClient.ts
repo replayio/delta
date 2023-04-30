@@ -13,7 +13,7 @@ import type {
 import type {
   RequestParams as GetJobsRequestParams,
   ResponseData as GetJobsResponseData,
-} from "../pages/api/getJobs";
+} from "../pages/api/getRuns";
 import type {
   RequestParams as GetMostFrequentlyUpdatedSnapshotsRequestParams,
   ResponseData as GetMostFrequentlyUpdatedSnapshotsResponseData,
@@ -41,7 +41,7 @@ import type {
 import type {
   RequestParams as GetSnapshotsForJobRequestParams,
   ResponseData as GetSnapshotsForJobResponseData,
-} from "../pages/api/getSnapshotsForJob";
+} from "../pages/api/getSnapshotsForRun";
 import type {
   RequestParams as UpdateBranchStatusRequestParams,
   ResponseData as UpdateBranchStatusResponseData,

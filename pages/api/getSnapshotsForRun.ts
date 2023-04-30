@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { getJob } from "../../lib/server/supabase/jobs";
+import { getRun } from "../../lib/server/supabase/runs";
 import { getSnapshotsForJob } from "../../lib/server/supabase/snapshots";
-import { JobId, ProjectId, Snapshot } from "../../lib/types";
+import { RunId, ProjectId, Snapshot } from "../../lib/types";
 import {
   GenericResponse,
   sendErrorMissingParametersResponse,
@@ -12,7 +12,7 @@ import {
 } from "./utils";
 
 export type RequestParams = {
-  jobId: JobId;
+  runId: RunId;
   projectId: ProjectId;
 };
 export type ResponseData = Snapshot[];
@@ -22,30 +22,30 @@ export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  const { jobId, projectId } = request.query as RequestParams;
-  if (!jobId || !projectId) {
+  const { runId, projectId } = request.query as RequestParams;
+  if (!runId || !projectId) {
     return sendErrorMissingParametersResponse(response, {
-      jobId,
+      runId,
       projectId,
     });
   }
 
-  const { data: jobData, error: jobError } = await getJob(jobId);
-  if (jobError) {
-    return sendErrorResponseFromPostgrestError(response, jobError);
-  } else if (jobData == null) {
-    return sendErrorResponse(response, `No job found with id "${jobId}"`, 404);
+  const { data: runData, error: runError } = await getRun(runId);
+  if (runError) {
+    return sendErrorResponseFromPostgrestError(response, runError);
+  } else if (runData == null) {
+    return sendErrorResponse(response, `No run found with id "${runId}"`, 404);
   }
 
   const { data: snapshotData, error: snapshotError } = await getSnapshotsForJob(
-    jobId
+    runId
   );
   if (snapshotError) {
     return sendErrorResponseFromPostgrestError(response, snapshotError);
   } else if (!snapshotData) {
     return sendErrorResponse(
       response,
-      `No snapshots found for job id "${jobId}"`,
+      `No snapshots found for run id "${runId}"`,
       404
     );
   }

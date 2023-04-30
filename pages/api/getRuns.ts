@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 
 import createClient from "../../lib/initServerSupabase";
 import { retryOnError } from "../../lib/server/supabase/supabase";
-import { BranchId, Job } from "../../lib/types";
+import { BranchId, Run } from "../../lib/types";
 import {
   GenericResponse,
   sendErrorResponse,
@@ -14,7 +14,7 @@ export type RequestParams = {
   branchId: BranchId;
   limit?: string;
 };
-export type ResponseData = Job[];
+export type ResponseData = Run[];
 export type Response = GenericResponse<ResponseData>;
 
 const supabase = createClient();
@@ -27,7 +27,7 @@ export default async function handler(
 
   const { data, error } = await retryOnError(() =>
     supabase
-      .from("Jobs")
+      .from("Runs")
       .select("*")
       .eq("branch_id", branchId)
       .order("created_at", { ascending: false })
@@ -39,7 +39,7 @@ export default async function handler(
   } else if (!data) {
     return sendErrorResponse(
       response,
-      `No jobs found for branch id "${branchId}"`,
+      `No runs found for branch id "${branchId}"`,
       404
     );
   } else {

@@ -17,10 +17,9 @@ import {
   updateBranch,
 } from "../../lib/server/supabase/branches";
 import {
-  HTTPMetadata,
   insertHTTPEvent,
-  insertHTTPMetadata,
-  updateHTTPMetadata,
+  insertGithubEvent,
+  updateGithubEvent,
 } from "../../lib/server/supabase/httpEvent";
 import {
   getRunForGithubRun,
@@ -35,6 +34,7 @@ import {
   GithubRunId,
   Snapshot,
   GithubJobId,
+  GithubEvent,
 } from "../../lib/types";
 import {
   ErrorLike,
@@ -118,10 +118,10 @@ export default async function handler(
     error: ErrorLike | string | null = null,
     code?: number
   ) => {
-    const httpMetadataId = httpMetadata?.data?.id ?? null;
+    const githubEventId = githubEvent?.data?.id ?? null;
     const projectId = project?.data?.id ?? null;
-    if (httpMetadataId != null && projectId != null) {
-      await insertHTTPEvent(httpMetadataId, projectId, {
+    if (githubEventId != null && projectId != null) {
+      await insertHTTPEvent(githubEventId, projectId, {
         request: {
           body: request.body,
           method: request.method,
@@ -165,7 +165,7 @@ export default async function handler(
   }
 
   // HTTP metadata is used for debug logging only; if it fails, ignore it (for now)
-  const httpMetadata = await insertHTTPMetadata({
+  const githubEvent = await insertGithubEvent({
     action: actionType,
     branch_name: branchName,
     event_type: eventType,
@@ -175,8 +175,8 @@ export default async function handler(
     github_run_id: githubRunId,
     github_job_id: githubJobId,
   });
-  if (httpMetadata.error) {
-    console.error(httpMetadata.error);
+  if (githubEvent.error) {
+    console.error(githubEvent.error);
   }
 
   const project = await getProjectForOrganizationAndRepository(
@@ -224,7 +224,7 @@ export default async function handler(
             project.data,
             request.body as JobEventParams,
             logAndSendResponse,
-            httpMetadata.data
+            githubEvent.data
           );
       }
       break;
@@ -493,7 +493,7 @@ async function handleWorkflowQueued(
   project: Project,
   params: JobEventParams,
   logAndSendResponse: LogAndSendResponse,
-  httpMetadata: HTTPMetadata | null
+  githubEvent: GithubEvent | null
 ) {
   const {
     organization,
@@ -541,8 +541,8 @@ async function handleWorkflowQueued(
     summary: "",
   });
 
-  if (httpMetadata) {
-    await updateHTTPMetadata(httpMetadata, { check });
+  if (githubEvent) {
+    await updateGithubEvent(githubEvent, { check });
   }
 
   branch = await updateBranch(branch.data.id, {

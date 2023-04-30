@@ -96,3 +96,18 @@ export type Snapshot = {
 };
 export type SnapshotId = Snapshot["id"];
 export type GithubJobId = Snapshot["github_job_id"];
+
+export type GithubEvent = {
+  action: string;
+  branch_name?: string;
+  check: Object;
+  comment: Object;
+  event_type: string;
+  head_sha: string;
+  id: number;
+  payload: Object;
+  pr_number?: string;
+
+  github_job_id?: GithubJobId;
+  github_run_id?: GithubRunId;
+};

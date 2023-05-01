@@ -1,12 +1,12 @@
 import { PostgrestError } from "@supabase/supabase-js";
 import { NextApiResponse } from "next";
+import { insertError } from "../../lib/server/supabase/errors";
 import {
   DELTA_ERROR_CODE,
   DeltaErrorCode,
   HTTP_STATUS_CODES,
   HttpStatusCode,
 } from "./statusCodes";
-import { insertError } from "../../lib/server/supabase/errors";
 
 export type ErrorLike = {
   message: string;
@@ -49,7 +49,7 @@ export function sendErrorResponse(
     error.message = `${messagePrefix}\n\n${error.message}`;
   }
 
-  postMessage.arguments = `${deltaErrorCode.code}: ${error.message}`;
+  error.message = `${deltaErrorCode.code}: ${error.message}`;
 
   const data: ErrorResponse = { error };
 
@@ -101,7 +101,7 @@ export function sendErrorResponseFromPostgrestError(
     postgrestError.message = `${messagePrefix}\n\n${postgrestError.message}`;
   }
 
-  postMessage.arguments = `${deltaErrorCode.code}: ${postgrestError.message}`;
+  postgrestError.message = `${deltaErrorCode.code}: ${postgrestError.message}`;
 
   const data: ErrorResponse = {
     error: {

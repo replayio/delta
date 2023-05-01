@@ -636,9 +636,9 @@ async function handleWorkflowQueued(
 function isPullRequestEventParams(
   params: any
 ): params is PullRequestEventParams {
-  return params.action === "opened" || params.action === "closed";
+  return params.pull_request != null;
 }
 
 function isJobEventParams(params: any): params is JobEventParams {
-  return params.action === "completed" || params.action === "queued";
+  return params.workflow_job != null;
 }

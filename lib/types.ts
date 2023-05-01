@@ -104,10 +104,11 @@ export type GithubEvent = {
   comment: Object;
   event_type: string;
   head_sha: string;
-  id: number;
+  id: Opaque<"number", GithubEvent>;
   payload: Object;
   pr_number?: string;
 
   github_job_id?: GithubJobId;
   github_run_id?: GithubRunId;
 };
+export type GithubEventId = GithubEvent["id"];

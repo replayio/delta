@@ -1,6 +1,6 @@
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import createClient from "../../initServerSupabase";
-import { GithubEvent, ProjectId } from "../../types";
+import { GithubEvent, GithubEventId, ProjectId } from "../../types";
 import { safeStringify } from "../json";
 import { retryOnError } from "./supabase";
 
@@ -28,11 +28,11 @@ export async function updateGithubEvent(
 }
 
 export async function insertHTTPEvent(
-  id: number,
+  githubEventId: GithubEventId,
   projectId: ProjectId,
   data: any
 ) {
-  const path = `${projectId}/${id}.json`;
+  const path = `${projectId}/${githubEventId}.json`;
   const stringified = safeStringify(data, 2);
 
   return retryOnError(() =>

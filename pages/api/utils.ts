@@ -60,12 +60,13 @@ export function sendErrorResponse(
   try {
     insertError({
       data,
-      delta_error_code: deltaErrorCode,
+      delta_error_code: deltaErrorCode.code,
       error_message: error.message,
       error_stack: typeof error.stack === "string" ? error.stack : null,
-      http_status_code: httpStatusCode,
+      http_status_code: httpStatusCode.code,
     });
   } catch (error) {
+    console.error(error);
     // Fire and forget
   }
 }
@@ -116,12 +117,13 @@ export function sendErrorResponseFromPostgrestError(
   try {
     insertError({
       data: postgrestError,
-      delta_error_code: deltaErrorCode,
+      delta_error_code: deltaErrorCode.code,
       error_message: data.error.message,
       error_stack: null,
-      http_status_code: httpStatusCode,
+      http_status_code: httpStatusCode.code,
     });
   } catch (error) {
+    console.error(error);
     // Fire and forget
   }
 }

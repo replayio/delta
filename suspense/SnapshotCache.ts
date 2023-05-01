@@ -10,7 +10,6 @@ import {
   getSnapshotsForPrimaryBranch,
   getSnapshotsForRun,
 } from "../utils/ApiClient";
-import { projectCache } from "./ProjectCache";
 
 export type SnapshotTheme = "dark" | "light";
 
@@ -193,7 +192,10 @@ export const snapshotFilesCache = createCache<
       } else if (snapshotMain === null) {
         changed = true;
         status = "added";
-      } else if (snapshotBranch.primary_diff_path !== null) {
+      } else if (
+        snapshotBranch.primary_diff_path !== null &&
+        snapshotBranch.primary_num_pixels > 0
+      ) {
         changed = true;
         status = "changed-primary";
       }

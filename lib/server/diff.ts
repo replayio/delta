@@ -128,12 +128,19 @@ export async function diffImages(image1, image2): Promise<ImageDiff> {
 }
 
 export function diffBase64Images(image1, image2) {
-  if (!image1 || !image2) {
+  const buffer1 = image1 ? Buffer.from(image1, "base64") : null;
+  const buffer2 = image2 ? Buffer.from(image2, "base64") : null;
+
+  if (!buffer1 || !buffer2) {
     console.log(`diffBase64Images: bailing because one of the images is null`);
-    return { changed: false, error: null, png: null, numPixels: 0 };
+
+    return {
+      changed: true,
+      error: null,
+      numPixels: buffer1?.length ?? buffer2?.length ?? 0,
+      png: null,
+    };
   }
-  return diffImages(
-    Buffer.from(image1, "base64"),
-    Buffer.from(image2, "base64")
-  );
+
+  return diffImages(buffer1, buffer2);
 }

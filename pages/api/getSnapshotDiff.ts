@@ -50,6 +50,7 @@ export default async function handler(
 
   let changed = false;
   if (!snapshotData.primary_diff_path) {
+    // Exists in primary branch but deleted in this branch
     changed = true;
   } else {
     const { data, error } = await downloadSnapshot(

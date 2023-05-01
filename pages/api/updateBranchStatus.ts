@@ -126,7 +126,10 @@ export function formatComment({
   ).length;
 
   const snapshotList = snapshots
-    .filter((snapshot) => snapshot.primary_diff_path != null)
+    .filter(
+      (snapshot) =>
+        snapshot.primary_diff_path != null && snapshot.primary_num_pixels > 0
+    )
     .slice(0, 10)
     .map(
       (snapshot) =>

@@ -14,6 +14,7 @@ import { getProjectForShort } from "../../lib/server/supabase/projects";
 export type PathMetadata = {
   count: number;
   diffPath: string;
+  numPixelsChanged: number;
   path: string;
 };
 
@@ -92,6 +93,7 @@ export default async function handler(
       const pathMetadata = pathMetadataMap.get(key) ?? {
         count: 0,
         diffPath: snapshot.primary_diff_path!,
+        numPixelsChanged: snapshot.primary_num_pixels,
         path: snapshot.path,
       };
       pathMetadata.count++;

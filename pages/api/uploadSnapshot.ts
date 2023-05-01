@@ -119,6 +119,8 @@ export default async function handler(
 
       const updatedSnapshot = await updateSnapshot(snapshot.id, {
         primary_diff_path: primaryDiff.diffSnapshot?.path,
+        primary_num_pixels:
+          primaryDiff.numPixels != null ? primaryDiff.numPixels : 0,
       });
       if (updatedSnapshot.error) {
         return sendErrorResponseFromPostgrestError(

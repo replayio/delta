@@ -391,7 +391,8 @@ async function handleWorkflowCompleted(
   }
 
   const numDifferent = snapshots.data.filter(
-    (snapshot) => snapshot.primary_diff_path != null
+    (snapshot) =>
+      snapshot.primary_diff_path != null && snapshot.primary_num_pixels > 0
   ).length;
   const conclusion = numDifferent > 0 ? "failure" : "success";
   const title = `${numDifferent} of ${snapshots.data.length} snapshots are different`;

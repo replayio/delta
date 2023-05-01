@@ -1,31 +1,6 @@
-import { PostgrestSingleResponse } from "@supabase/supabase-js";
-import createClient from "../../initServerSupabase";
-import { GithubEvent, GithubEventId, ProjectId } from "../../types";
+import { GithubEventId, ProjectId } from "../../types";
 import { safeStringify } from "../json";
-import { retryOnError } from "./supabase";
-
-export const supabase = createClient();
-
-export async function insertGithubEvent(
-  event: Partial<GithubEvent>
-): Promise<PostgrestSingleResponse<GithubEvent>> {
-  return retryOnError(() =>
-    supabase.from("GithubEvents").insert(event).single()
-  );
-}
-
-export async function updateGithubEvent(
-  githubEvent: GithubEvent,
-  event: Partial<GithubEvent>
-): Promise<PostgrestSingleResponse<GithubEvent>> {
-  return retryOnError(() =>
-    supabase
-      .from("GithubEvents")
-      .update(event)
-      .eq("id", githubEvent.id)
-      .single()
-  );
-}
+import { retryOnError, supabase } from "./supabase";
 
 export async function insertHTTPEvent(
   githubEventId: GithubEventId,

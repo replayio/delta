@@ -6,6 +6,7 @@ import {
   HTTP_STATUS_CODES,
   HttpStatusCode,
 } from "./statusCodes";
+import { insertError } from "../../lib/server/supabase/errors";
 
 export type ErrorLike = {
   message: string;
@@ -50,11 +51,23 @@ export function sendErrorResponse(
 
   postMessage.arguments = `${deltaErrorCode.code}: ${error.message}`;
 
-  const json: ErrorResponse = { error };
+  const data: ErrorResponse = { error };
 
   response.setHeader("Content-Type", "application/json");
   response.status(httpStatusCode.code);
-  response.json(json);
+  response.json(data);
+
+  try {
+    insertError({
+      data,
+      delta_error_code: deltaErrorCode,
+      error_message: error.message,
+      error_stack: typeof error.stack === "string" ? error.stack : null,
+      http_status_code: httpStatusCode,
+    });
+  } catch (error) {
+    // Fire and forget
+  }
 }
 
 export function sendErrorMissingParametersResponse(
@@ -90,7 +103,7 @@ export function sendErrorResponseFromPostgrestError(
 
   postMessage.arguments = `${deltaErrorCode.code}: ${postgrestError.message}`;
 
-  const json: ErrorResponse = {
+  const data: ErrorResponse = {
     error: {
       message: createErrorMessageFromPostgrestError(postgrestError),
     },
@@ -98,7 +111,19 @@ export function sendErrorResponseFromPostgrestError(
 
   response.setHeader("Content-Type", "application/json");
   response.status(httpStatusCode.code);
-  response.json(json);
+  response.json(data);
+
+  try {
+    insertError({
+      data: postgrestError,
+      delta_error_code: deltaErrorCode,
+      error_message: data.error.message,
+      error_stack: null,
+      http_status_code: httpStatusCode,
+    });
+  } catch (error) {
+    // Fire and forget
+  }
 }
 
 export function sendResponse<ResponseData>(

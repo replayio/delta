@@ -43,6 +43,12 @@ import {
   sendErrorResponse,
   sendResponse,
 } from "./utils";
+import {
+  DELTA_ERROR_CODE,
+  DeltaErrorCode,
+  HTTP_STATUS_CODES,
+  HttpStatusCode,
+} from "./statusCodes";
 
 // Spy on HTTP client requests for debug logging in Supabase.
 setupHook();
@@ -94,9 +100,10 @@ export type ResponseData = string | null;
 export type Response = GenericResponse<ResponseData>;
 
 type LogAndSendResponse = (
+  httpStatusCode?: HttpStatusCode,
+  deltaErrorCode?: DeltaErrorCode,
   data?: ResponseData | null,
-  error?: ErrorLike | string | null,
-  code?: number
+  error?: ErrorLike | string | null
 ) => Promise<void>;
 
 export default async function handler(
@@ -114,9 +121,10 @@ export default async function handler(
 
   // Helper thats logs debug information to Supabase before sending an HTTP response.
   const logAndSendResponse: LogAndSendResponse = async (
+    httpStatusCode: HttpStatusCode,
+    deltaErrorCode: DeltaErrorCode,
     data: ResponseData | null = null,
-    error: ErrorLike | string | null = null,
-    code?: number
+    error: ErrorLike | string | null = null
   ) => {
     const githubEventId = githubEvent?.data?.id ?? null;
     const projectId = project?.data?.id ?? null;
@@ -130,7 +138,7 @@ export default async function handler(
           url: request.url,
         },
         response: {
-          code,
+          code: httpStatusCode,
           data,
           error,
         },
@@ -141,9 +149,9 @@ export default async function handler(
     }
 
     if (error !== null) {
-      await sendErrorResponse(response, error, code);
+      await sendErrorResponse(response, error, httpStatusCode, deltaErrorCode);
     } else {
-      await sendResponse<ResponseData>(response, data, code);
+      await sendResponse<ResponseData>(response, data, httpStatusCode);
     }
   };
 
@@ -185,9 +193,10 @@ export default async function handler(
   );
   if (project.error) {
     return await logAndSendResponse(
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
       null,
-      `No project found for repository "${repository.name}" and organization "${organization.login}"`,
-      404
+      `No project found for repository "${repository.name}" and organization "${organization.login}"\n\n${project.error.code}: ${project.error.message}`
     );
   }
 
@@ -232,9 +241,10 @@ export default async function handler(
   }
 
   return await logAndSendResponse(
+    HTTP_STATUS_CODES.NO_CONTENT,
+    DELTA_ERROR_CODE.API.UNHANDLED_EVENT_TYPE,
     `Ignoring event type "${eventType}"`,
-    null,
-    204
+    null
   );
 }
 
@@ -295,14 +305,17 @@ async function handlePullRequestClosed(
   let branch = await getBranchForPullRequest(project.id, number);
   if (branch.error) {
     return logAndSendResponse(
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
       null,
       createErrorMessageFromPostgrestError(branch.error)
     );
   } else if (!branch.data) {
     return logAndSendResponse(
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
       null,
-      `Could not find branch for PR ${number}`,
-      404
+      `Could not find branch for PR ${number}`
     );
   }
 
@@ -311,6 +324,8 @@ async function handlePullRequestClosed(
   });
   if (branch.error) {
     return logAndSendResponse(
+      HTTP_STATUS_CODES.FAILED_DEPENDENCY,
+      DELTA_ERROR_CODE.DATABASE.UPDATE_FAILED,
       null,
       createErrorMessageFromPostgrestError(branch.error)
     );
@@ -335,6 +350,8 @@ async function handlePullRequestOpened(
   });
   if (branch.error) {
     return logAndSendResponse(
+      HTTP_STATUS_CODES.FAILED_DEPENDENCY,
+      DELTA_ERROR_CODE.DATABASE.INSERT_FAILED,
       null,
       createErrorMessageFromPostgrestError(branch.error)
     );
@@ -355,22 +372,26 @@ async function handleWorkflowCompleted(
   let branch = await getBranchForProject(project.id, branchName);
   if (branch.error) {
     return logAndSendResponse(
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
       null,
       createErrorMessageFromPostgrestError(branch.error)
     );
   } else if (!branch.data) {
     return logAndSendResponse(
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
       null,
-      `Could not find branch with name "${branchName}"`,
-      404
+      `Could not find branch with name "${branchName}"`
     );
   }
 
   if (!branch.data.check_id) {
     return logAndSendResponse(
+      HTTP_STATUS_CODES.EXPECTATION_FAILED,
+      DELTA_ERROR_CODE.INVALID_STATE,
       null,
-      `Branch ${branch.data.name} is missing check`,
-      417
+      `Branch ${branch.data.name} is missing check`
     );
   }
 
@@ -379,14 +400,17 @@ async function handleWorkflowCompleted(
   const snapshots = await getSnapshotsForGithubRun(runId);
   if (snapshots.error) {
     return logAndSendResponse(
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
       null,
       createErrorMessageFromPostgrestError(snapshots.error)
     );
   } else if (!snapshots.data) {
     return logAndSendResponse(
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
       null,
-      `Could not find snapshots for run run ${runId}`,
-      404
+      `Could not find snapshots for run run ${runId}`
     );
   }
 
@@ -424,10 +448,15 @@ async function handleWorkflowCompleted(
     );
     if (!comment.id) {
       console.error("Create comment error:\n", comment);
-      return logAndSendResponse(null, {
-        message: "Create comment failed",
-        details: comment,
-      });
+      return logAndSendResponse(
+        HTTP_STATUS_CODES.FAILED_DEPENDENCY,
+        DELTA_ERROR_CODE.API.REQUEST_FAILED,
+        null,
+        {
+          message: "Create comment failed",
+          details: comment,
+        }
+      );
     }
 
     branch = await updateBranch(branch.data.id, {
@@ -435,6 +464,8 @@ async function handleWorkflowCompleted(
     });
     if (branch.error) {
       return logAndSendResponse(
+        HTTP_STATUS_CODES.FAILED_DEPENDENCY,
+        DELTA_ERROR_CODE.DATABASE.UPDATE_FAILED,
         null,
         createErrorMessageFromPostgrestError(branch.error)
       );
@@ -456,24 +487,32 @@ async function handleWorkflowCompleted(
     );
     if (!comment.id) {
       console.error("Update comment error:\n", comment);
-      return logAndSendResponse(null, {
-        message: "Update comment failed",
-        details: comment,
-      });
+      return logAndSendResponse(
+        HTTP_STATUS_CODES.FAILED_DEPENDENCY,
+        DELTA_ERROR_CODE.API.REQUEST_FAILED,
+        null,
+        {
+          message: "Update comment failed",
+          details: comment,
+        }
+      );
     }
   }
 
   const run = await getRunForGithubRun(runId);
   if (run.error) {
     return logAndSendResponse(
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
       null,
       createErrorMessageFromPostgrestError(run.error)
     );
   } else if (!run.data) {
     return logAndSendResponse(
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
       null,
-      `Could not find job for run run ${runId}`,
-      404
+      `Could not find job for run run ${runId}`
     );
   }
 
@@ -482,6 +521,8 @@ async function handleWorkflowCompleted(
   });
   if (updatedJob.error) {
     return logAndSendResponse(
+      HTTP_STATUS_CODES.FAILED_DEPENDENCY,
+      DELTA_ERROR_CODE.DATABASE.UPDATE_FAILED,
       null,
       createErrorMessageFromPostgrestError(updatedJob.error)
     );
@@ -513,23 +554,27 @@ async function handleWorkflowQueued(
   // HACK This check ignores non-Delta actions but it relies on a particular naming convention.
   if (!workflowName.startsWith("Playwright Snapshot")) {
     return await logAndSendResponse(
+      HTTP_STATUS_CODES.NO_CONTENT,
+      DELTA_ERROR_CODE.API.UNHANDLED_WORKFLOW_TYPE,
       `Ignoring workflow job "${workflowName}"`,
-      null,
-      204
+      null
     );
   }
 
   let branch = await getBranchForProject(project.id, branchName);
   if (branch.error) {
     return logAndSendResponse(
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
       null,
       createErrorMessageFromPostgrestError(branch.error)
     );
   } else if (!branch.data) {
     return logAndSendResponse(
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
       null,
-      `Could not find branch with name "${branchName}"`,
-      404
+      `Could not find branch with name "${branchName}"`
     );
   }
 
@@ -552,6 +597,8 @@ async function handleWorkflowQueued(
   });
   if (branch.error) {
     return logAndSendResponse(
+      HTTP_STATUS_CODES.FAILED_DEPENDENCY,
+      DELTA_ERROR_CODE.DATABASE.UPDATE_FAILED,
       null,
       createErrorMessageFromPostgrestError(branch.error)
     );
@@ -570,14 +617,17 @@ async function handleWorkflowQueued(
     });
     if (run.error) {
       return logAndSendResponse(
+        HTTP_STATUS_CODES.FAILED_DEPENDENCY,
+        DELTA_ERROR_CODE.DATABASE.INSERT_FAILED,
         null,
         createErrorMessageFromPostgrestError(run.error)
       );
     } else if (!run.data) {
       return logAndSendResponse(
+        HTTP_STATUS_CODES.FAILED_DEPENDENCY,
+        DELTA_ERROR_CODE.DATABASE.INSERT_FAILED,
         null,
-        `Could not find run for run run ${runId}`,
-        404
+        `Could not insert Run for GitHub run id ${runId}`
       );
     }
   }

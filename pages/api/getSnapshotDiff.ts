@@ -8,6 +8,7 @@ import {
 } from "../../lib/server/supabase/snapshots";
 import { downloadSnapshot } from "../../lib/server/supabase/storage";
 import { ProjectId } from "../../lib/types";
+import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./statusCodes";
 import {
   GenericResponse,
   sendErrorMissingParametersResponse,
@@ -41,11 +42,30 @@ export default async function handler(
   const { data: snapshotData, error: snapshotError } =
     await getSnapshotForBranch(projectId, branchName, snapshotFile);
   if (snapshotError) {
+    const message = `Could not find Snapshot for Project id "${projectId}" and Branch "${branchName}" and file "${snapshotFile}"`;
     return isPostgrestError(snapshotError)
-      ? sendErrorResponseFromPostgrestError(response, snapshotError)
-      : sendErrorResponse(response, snapshotError.message);
+      ? sendErrorResponseFromPostgrestError(
+          response,
+          snapshotError,
+          HTTP_STATUS_CODES.NOT_FOUND,
+          DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
+          message
+        )
+      : sendErrorResponse(
+          response,
+          snapshotError.message,
+          HTTP_STATUS_CODES.NOT_FOUND,
+          DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
+          message
+        );
   } else if (!snapshotData) {
-    return sendErrorResponse(response, "Could not download snapshot data");
+    return sendErrorResponse(
+      response,
+      "No data returned",
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
+      `Could not find Snapshot for Project id "${projectId}" and Branch "${branchName}" and file "${snapshotFile}"`
+    );
   }
 
   let changed = false;
@@ -57,12 +77,20 @@ export default async function handler(
       snapshotData.primary_diff_path
     );
     if (error) {
-      return sendErrorResponse(response, error.message);
+      return sendErrorResponse(
+        response,
+        error.message,
+        HTTP_STATUS_CODES.NOT_FOUND,
+        DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED,
+        `Snapshot download failed for path "${snapshotData.primary_diff_path}"`
+      );
     } else if (!data) {
       return sendErrorResponse(
         response,
-        "Could not download snapshot primary diff",
-        404
+        "No data returned",
+        HTTP_STATUS_CODES.NOT_FOUND,
+        DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED,
+        `Snapshot download failed for path "${snapshotData.primary_diff_path}"`
       );
     }
 
@@ -76,7 +104,13 @@ export default async function handler(
     content: imageRes.data || "",
   });
   if (diff.error || !diff.png) {
-    return sendErrorResponse(response, diff.error || "Could not create diff");
+    return sendErrorResponse(
+      response,
+      diff.error || `Error`,
+      HTTP_STATUS_CODES.FAILED_DEPENDENCY,
+      DELTA_ERROR_CODE.DIFF_FAILED,
+      `Diff creation failed for Project id ${projectId} and Branch "${branchName}"`
+    );
   }
 
   // Save the primary_diff_path to the snapshot if it exists
@@ -85,7 +119,12 @@ export default async function handler(
       primary_diff_path: diff.diffSnapshot.path,
     });
     if (updatedSnapshot.error) {
-      return sendErrorResponse(response, "Failed to update snapshot diff");
+      return sendErrorResponse(
+        response,
+        `Could not upload diff for Snapshot id "${snapshotData.id}"`,
+        HTTP_STATUS_CODES.FAILED_DEPENDENCY,
+        DELTA_ERROR_CODE.STORAGE.UPLOAD_FAILED
+      );
     }
   }
 

@@ -1,5 +1,11 @@
 import { PostgrestError } from "@supabase/supabase-js";
 import { NextApiResponse } from "next";
+import {
+  DELTA_ERROR_CODE,
+  DeltaErrorCode,
+  HTTP_STATUS_CODES,
+  HttpStatusCode,
+} from "./statusCodes";
 
 export type ErrorLike = {
   message: string;
@@ -32,15 +38,22 @@ export function isSuccessResponse<ResponseData>(
 
 export function sendErrorResponse(
   response: NextApiResponse,
-  error: ErrorLike | string,
-  statusCode: number = 500
+  errorLike: ErrorLike | string,
+  httpStatusCode: HttpStatusCode,
+  deltaErrorCode: DeltaErrorCode,
+  messagePrefix?: string
 ): void {
-  const json: ErrorResponse = {
-    error: typeof error === "string" ? { message: error } : error,
-  };
+  let error = typeof errorLike === "string" ? new Error(errorLike) : errorLike;
+  if (messagePrefix) {
+    error.message = `${messagePrefix}\n\n${error.message}`;
+  }
+
+  postMessage.arguments = `${deltaErrorCode.code}: ${error.message}`;
+
+  const json: ErrorResponse = { error };
 
   response.setHeader("Content-Type", "application/json");
-  response.status(statusCode);
+  response.status(httpStatusCode.code);
   response.json(json);
 }
 
@@ -56,14 +69,27 @@ export function sendErrorMissingParametersResponse(
       ? `Missing required params "${missingParamNames.join('", "')}"`
       : `Missing required param "${missingParamNames[0]}"`;
   const details = JSON.stringify(params, null, 2);
-  return sendErrorResponse(response, `${message}\n\n${details}}`, 422);
+  return sendErrorResponse(
+    response,
+    `${message}\n\n${details}}`,
+    HTTP_STATUS_CODES.BAD_REQUEST,
+    DELTA_ERROR_CODE.MISSING_PARAMETERS
+  );
 }
 
 export function sendErrorResponseFromPostgrestError(
   response: NextApiResponse,
   postgrestError: PostgrestError,
-  statusCode: number = 500
+  httpStatusCode: HttpStatusCode,
+  deltaErrorCode: DeltaErrorCode,
+  messagePrefix?: string
 ): void {
+  if (messagePrefix) {
+    postgrestError.message = `${messagePrefix}\n\n${postgrestError.message}`;
+  }
+
+  postMessage.arguments = `${deltaErrorCode.code}: ${postgrestError.message}`;
+
   const json: ErrorResponse = {
     error: {
       message: createErrorMessageFromPostgrestError(postgrestError),
@@ -71,16 +97,16 @@ export function sendErrorResponseFromPostgrestError(
   };
 
   response.setHeader("Content-Type", "application/json");
-  response.status(statusCode);
+  response.status(httpStatusCode.code);
   response.json(json);
 }
 
 export function sendResponse<ResponseData>(
   response: NextApiResponse,
   data: ResponseData,
-  statusCode: number = 200
+  httpStatusCode: HttpStatusCode = HTTP_STATUS_CODES.OK
 ) {
   response.setHeader("Content-Type", "application/json");
-  response.status(statusCode);
+  response.status(httpStatusCode.code);
   response.json({ data });
 }

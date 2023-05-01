@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import createClient from "../../lib/initServerSupabase";
 import { retryOnError } from "../../lib/server/supabase/supabase";
 import { BranchId, Run } from "../../lib/types";
+import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./statusCodes";
 import {
   GenericResponse,
   sendErrorResponse,
@@ -35,12 +36,19 @@ export default async function handler(
   );
 
   if (error) {
-    return sendErrorResponseFromPostgrestError(response, error);
+    return sendErrorResponseFromPostgrestError(
+      response,
+      error,
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
+      `No Run found for Branch id "${branchId}"`
+    );
   } else if (!data) {
     return sendErrorResponse(
       response,
-      `No runs found for branch id "${branchId}"`,
-      404
+      `No Run found for Branch id "${branchId}"`,
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED
     );
   } else {
     return sendResponse<ResponseData>(response, data);

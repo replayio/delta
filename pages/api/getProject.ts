@@ -1,6 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
+import {
+  getProject,
+  getProjectForShort,
+} from "../../lib/server/supabase/projects";
 import { Project, ProjectId, ProjectShort } from "../../lib/types";
+import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./statusCodes";
 import {
   GenericResponse,
   sendErrorMissingParametersResponse,
@@ -8,10 +13,6 @@ import {
   sendErrorResponseFromPostgrestError,
   sendResponse,
 } from "./utils";
-import {
-  getProject,
-  getProjectForShort,
-} from "../../lib/server/supabase/projects";
 
 export type RequestParams = {
   projectId: ProjectId | null;
@@ -37,12 +38,19 @@ export default async function handler(
     : getProjectForShort(projectShort!));
 
   if (error) {
-    sendErrorResponseFromPostgrestError(response, error);
+    sendErrorResponseFromPostgrestError(
+      response,
+      error,
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
+      `No Project found for id "${projectId}" or short id "${projectShort}"`
+    );
   } else if (!data) {
     return sendErrorResponse(
       response,
-      `No project found for "${projectId || projectShort}"`,
-      404
+      `No Project found for id "${projectId}" or short id "${projectShort}"`,
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED
     );
   } else {
     return sendResponse<ResponseData>(response, data);

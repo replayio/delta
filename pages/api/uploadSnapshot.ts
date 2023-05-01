@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import { diffWithPrimaryBranch } from "../../lib/server/diffWithPrimaryBranch";
+import { getBranchByName } from "../../lib/server/supabase/branches";
 import { isPostgrestError } from "../../lib/server/supabase/errors";
 import {
   getRunForBranch,
@@ -13,11 +14,12 @@ import {
 } from "../../lib/server/supabase/snapshots";
 import { uploadSnapshot } from "../../lib/server/supabase/storage";
 import {
-  ProjectId,
   GithubRunId,
+  ProjectId,
   Snapshot,
   SnapshotStatus,
 } from "../../lib/types";
+import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./statusCodes";
 import {
   GenericResponse,
   sendErrorMissingParametersResponse,
@@ -25,7 +27,6 @@ import {
   sendErrorResponseFromPostgrestError,
   sendResponse,
 } from "./utils";
-import { getBranchByName } from "../../lib/server/supabase/branches";
 
 export type Image = {
   content: string;
@@ -78,9 +79,22 @@ export default async function handler(
       uploadStatus
     );
     if (insertedSnapshot.error) {
+      const message = `Insert Snapshot failed for project id "${projectId}" and Branch "${branchName}"`;
       return typeof insertedSnapshot.error === "string"
-        ? sendErrorResponse(response, insertedSnapshot.error)
-        : sendErrorResponseFromPostgrestError(response, insertedSnapshot.error);
+        ? sendErrorResponse(
+            response,
+            insertedSnapshot.error,
+            HTTP_STATUS_CODES.FAILED_DEPENDENCY,
+            DELTA_ERROR_CODE.DATABASE.INSERT_FAILED,
+            message
+          )
+        : sendErrorResponseFromPostgrestError(
+            response,
+            insertedSnapshot.error,
+            HTTP_STATUS_CODES.FAILED_DEPENDENCY,
+            DELTA_ERROR_CODE.DATABASE.INSERT_FAILED,
+            message
+          );
     }
 
     let snapshot: Snapshot | null = insertedSnapshot.data;
@@ -92,19 +106,34 @@ export default async function handler(
         image.file
       );
       if (previousSnapshot.error) {
+        const message = `Select previous Snapshot failed for project id "${projectId}" and Branch "${branchName}"`;
         return isPostgrestError(previousSnapshot.error)
           ? sendErrorResponseFromPostgrestError(
               response,
-              previousSnapshot.error
+              previousSnapshot.error,
+              HTTP_STATUS_CODES.NOT_FOUND,
+              DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
+              message
             )
-          : sendErrorResponse(response, previousSnapshot.error.message);
+          : sendErrorResponse(
+              response,
+              previousSnapshot.error.message,
+              HTTP_STATUS_CODES.NOT_FOUND,
+              DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
+              message
+            );
       }
 
       snapshot = previousSnapshot.data ?? null;
     }
 
     if (snapshot === null) {
-      return sendErrorResponse(response, "Could not find snapshot");
+      return sendErrorResponse(
+        response,
+        "Could not find snapshot",
+        HTTP_STATUS_CODES.NOT_FOUND,
+        DELTA_ERROR_CODE.UNKNOWN_ERROR
+      );
     }
 
     console.log("Diffing snapshots");
@@ -125,7 +154,10 @@ export default async function handler(
       if (updatedSnapshot.error) {
         return sendErrorResponseFromPostgrestError(
           response,
-          updatedSnapshot.error
+          updatedSnapshot.error,
+          HTTP_STATUS_CODES.FAILED_DEPENDENCY,
+          DELTA_ERROR_CODE.DATABASE.UPDATE_FAILED,
+          `Could not update Snapshot id "${snapshot.id}"`
         );
       }
 
@@ -149,7 +181,9 @@ export default async function handler(
     console.error("uploadSnapshot caught error:", error);
     return sendErrorResponse(
       response,
-      typeof error === "string" ? error : error.message ?? "Error"
+      error ?? "Error",
+      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+      DELTA_ERROR_CODE.UNKNOWN_ERROR
     );
   }
 }

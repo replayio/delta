@@ -2,8 +2,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 
 import { getBranchByName } from "../../lib/server/supabase/branches";
 import { Branch } from "../../lib/types";
+import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./statusCodes";
 import {
   GenericResponse,
+  sendErrorMissingParametersResponse,
   sendErrorResponse,
   sendErrorResponseFromPostgrestError,
   sendResponse,
@@ -21,17 +23,24 @@ export default async function handler(
 ) {
   const { name } = request.query as RequestParams;
   if (name == null) {
-    return sendErrorResponse(response, 'Parameter "branch" is required');
+    return sendErrorMissingParametersResponse(response, { name });
   }
 
   const { data, error } = await getBranchByName(name);
   if (error) {
-    return sendErrorResponseFromPostgrestError(response, error);
+    return sendErrorResponseFromPostgrestError(
+      response,
+      error,
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
+      `No Branch found with name "${name}"`
+    );
   } else if (!data) {
     return sendErrorResponse(
       response,
       `No branch found with name "${name}"`,
-      404
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED
     );
   } else {
     return sendResponse<ResponseData>(response, data);

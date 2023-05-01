@@ -1,15 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getMostRecentlyChangedSnapshotsForProject } from "../../lib/server/supabase/snapshots";
 
+import { getProjectForShort } from "../../lib/server/supabase/projects";
+import { ProjectId, ProjectShort } from "../../lib/types";
+import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./statusCodes";
 import {
   GenericResponse,
-  sendErrorResponseFromPostgrestError,
-  sendErrorResponse,
-  sendResponse,
   sendErrorMissingParametersResponse,
+  sendErrorResponse,
+  sendErrorResponseFromPostgrestError,
+  sendResponse,
 } from "./utils";
-import { ProjectId, ProjectShort } from "../../lib/types";
-import { getProjectForShort } from "../../lib/server/supabase/projects";
 
 export type PathMetadata = {
   count: number;
@@ -55,12 +56,19 @@ export default async function handler(
       projectShort as ProjectShort
     );
     if (projectError) {
-      return sendErrorResponseFromPostgrestError(response, projectError);
+      return sendErrorResponseFromPostgrestError(
+        response,
+        projectError,
+        HTTP_STATUS_CODES.NOT_FOUND,
+        DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
+        `No Project found for short id "${projectShort}"`
+      );
     } else if (!projectData) {
       return sendErrorResponse(
         response,
-        `No Project found for id "${projectShort}"`,
-        404
+        `No Project found for short id "${projectShort}"`,
+        HTTP_STATUS_CODES.NOT_FOUND,
+        DELTA_ERROR_CODE.DATABASE.SELECT_FAILED
       );
     } else {
       projectId = projectData.id;
@@ -74,9 +82,22 @@ export default async function handler(
       afterDate ? new Date(afterDate) : undefined
     );
   if (snapshotsError) {
-    return sendErrorResponseFromPostgrestError(response, snapshotsError);
+    return sendErrorResponseFromPostgrestError(
+      response,
+      snapshotsError,
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
+      `Recent Snapshot data could not be found for Project id "${projectId}" after date "${
+        afterDate ?? "N/A"
+      }"`
+    );
   } else if (!snapshotsData) {
-    return sendErrorResponse(response, `No matching snapshots found`, 404);
+    return sendErrorResponse(
+      response,
+      `No matching snapshots found`,
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.UNKNOWN_ERROR
+    );
   } else {
     const pathMetadataMap = new Map<string, PathMetadata>();
     const snapshotFileToMetadataMap = new Map<string, SnapshotMetadata>();

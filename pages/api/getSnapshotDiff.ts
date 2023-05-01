@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import { diffWithPrimaryBranch } from "../../lib/server/diffWithPrimaryBranch";
-import { isPostgrestError } from "../../lib/server/supabase/errors";
+import { isPostgrestError } from "../../lib/server/errors";
 import {
   getSnapshotForBranch,
   updateSnapshot,

@@ -16,11 +16,7 @@ import {
   insertBranch,
   updateBranch,
 } from "../../lib/server/supabase/branches";
-import {
-  insertHTTPEvent,
-  insertGithubEvent,
-  updateGithubEvent,
-} from "../../lib/server/supabase/httpEvent";
+import { insertHTTPEvent } from "../../lib/server/supabase/httpEvent";
 import {
   getRunForGithubRun,
   insertRun,
@@ -49,6 +45,10 @@ import {
   HTTP_STATUS_CODES,
   HttpStatusCode,
 } from "./statusCodes";
+import {
+  insertGithubEvent,
+  updateGithubEvent,
+} from "../../lib/server/supabase/githubEvents";
 
 // Spy on HTTP client requests for debug logging in Supabase.
 setupHook();

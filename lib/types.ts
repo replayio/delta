@@ -1,4 +1,5 @@
 import Opaque from "ts-opaque";
+import { DeltaErrorCode, HttpStatusCode } from "../pages/api/statusCodes";
 
 export type Project = {
   created_at: string;
@@ -102,6 +103,7 @@ export type GithubEvent = {
   branch_name?: string;
   check: Object;
   comment: Object;
+  created_at: string;
   event_type: string;
   head_sha: string;
   id: Opaque<"number", GithubEvent>;
@@ -112,3 +114,14 @@ export type GithubEvent = {
   github_run_id?: GithubRunId;
 };
 export type GithubEventId = GithubEvent["id"];
+
+export type Error = {
+  created_at: string;
+  data: Object;
+  delta_error_code: DeltaErrorCode;
+  error_message: string;
+  error_stack: string | null;
+  http_status_code: HttpStatusCode;
+  id: Opaque<"number", Error>;
+};
+export type ErrorId = Error["id"];

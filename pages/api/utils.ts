@@ -7,6 +7,7 @@ import {
   HTTP_STATUS_CODES,
   HttpStatusCode,
 } from "./statusCodes";
+import { error } from "console";
 
 export type ErrorLike = {
   message: string;
@@ -44,26 +45,25 @@ export function sendErrorResponse(
   deltaErrorCode: DeltaErrorCode,
   messagePrefix?: string
 ): void {
-  let error = typeof errorLike === "string" ? new Error(errorLike) : errorLike;
+  let errorMessage =
+    typeof errorLike === "string" ? errorLike : errorLike.message;
   if (messagePrefix) {
-    error.message = `${messagePrefix}\n\n${error.message}`;
+    errorMessage = `${messagePrefix}\n\n${errorMessage}`;
   }
+  errorMessage = `${deltaErrorCode.code}: ${errorMessage}`;
 
-  error.message = `${deltaErrorCode.code}: ${error.message}`;
-
-  const data: ErrorResponse = { error };
+  const error =
+    errorLike instanceof Error ? errorLike : new Error(errorMessage);
 
   response.setHeader("Content-Type", "application/json");
   response.status(httpStatusCode.code);
-  response.json(data);
+  response.json({ error: errorMessage });
 
   try {
     insertError({
-      data,
-      delta_error_code: deltaErrorCode.code,
-      error_message: error.message,
-      error_stack: typeof error.stack === "string" ? error.stack : null,
-      http_status_code: httpStatusCode.code,
+      deltaErrorCode,
+      error,
+      httpStatusCode,
     });
   } catch (error) {
     console.error(error);
@@ -98,29 +98,23 @@ export function sendErrorResponseFromPostgrestError(
   deltaErrorCode: DeltaErrorCode,
   messagePrefix?: string
 ): void {
+  let errorMessage = createErrorMessageFromPostgrestError(postgrestError);
   if (messagePrefix) {
-    postgrestError.message = `${messagePrefix}\n\n${postgrestError.message}`;
+    errorMessage = `${messagePrefix}\n\n${errorMessage}`;
   }
+  errorMessage = `${deltaErrorCode.code}: ${errorMessage}`;
 
-  postgrestError.message = `${deltaErrorCode.code}: ${postgrestError.message}`;
-
-  const data: ErrorResponse = {
-    error: {
-      message: createErrorMessageFromPostgrestError(postgrestError),
-    },
-  };
+  const error = new Error(errorMessage);
 
   response.setHeader("Content-Type", "application/json");
   response.status(httpStatusCode.code);
-  response.json(data);
+  response.json({ error: errorMessage });
 
   try {
     insertError({
-      data: postgrestError,
-      delta_error_code: deltaErrorCode.code,
-      error_message: data.error.message,
-      error_stack: null,
-      http_status_code: httpStatusCode.code,
+      deltaErrorCode,
+      error,
+      httpStatusCode,
     });
   } catch (error) {
     console.error(error);

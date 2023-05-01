@@ -117,11 +117,10 @@ export type GithubEventId = GithubEvent["id"];
 
 export type Error = {
   created_at: string;
-  data: Object;
   delta_error_code: number;
   error_message: string;
-  error_stack: string | null;
   http_status_code: number;
   id: Opaque<"number", Error>;
+  parsed_error_stack: Object;
 };
 export type ErrorId = Error["id"];

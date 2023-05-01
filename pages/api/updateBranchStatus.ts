@@ -8,16 +8,17 @@ import {
   updateComment,
 } from "../../lib/github";
 import { getBranch } from "../../lib/server/supabase/branches";
-import { getRunForBranch, updateRun } from "../../lib/server/supabase/runs";
 import { getProject } from "../../lib/server/supabase/projects";
-import { BranchId, Run, Project, ProjectId, Snapshot } from "../../lib/types";
+import { getRunForBranch, updateRun } from "../../lib/server/supabase/runs";
+import { getSnapshotsForRun } from "../../lib/server/supabase/snapshots";
+import { BranchId, Project, ProjectId, Run, Snapshot } from "../../lib/types";
+import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./statusCodes";
 import {
   GenericResponse,
   sendErrorMissingParametersResponse,
   sendErrorResponseFromPostgrestError,
   sendResponse,
 } from "./utils";
-import { getSnapshotsForRun } from "../../lib/server/supabase/snapshots";
 
 export type BranchStatus = "failure" | "neutral" | "success";
 
@@ -49,14 +50,26 @@ export default async function handler(
   const branchRecord = await getBranch(branchId);
   if (branchRecord.error) {
     response.setHeader("Content-Type", "application/json");
-    return sendErrorResponseFromPostgrestError(response, branchRecord.error);
+    return sendErrorResponseFromPostgrestError(
+      response,
+      branchRecord.error,
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
+      `Could not find Branch with id "${branchId}"`
+    );
   }
   const branch = branchRecord.data;
 
   const projectRecord = await getProject(projectId);
   if (projectRecord.error) {
     response.setHeader("Content-Type", "application/json");
-    return sendErrorResponseFromPostgrestError(response, projectRecord.error);
+    return sendErrorResponseFromPostgrestError(
+      response,
+      projectRecord.error,
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
+      `Could not find Project with id "${projectId}"`
+    );
   }
 
   const organization = projectRecord.data.organization;
@@ -65,7 +78,13 @@ export default async function handler(
   const { data: runData, error: runError } = await getRunForBranch(branchId);
   if (runError) {
     response.setHeader("Content-Type", "application/json");
-    return sendErrorResponseFromPostgrestError(response, runError);
+    return sendErrorResponseFromPostgrestError(
+      response,
+      runError,
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
+      `Could not find Run for Branch id "${branchId}"`
+    );
   }
 
   const run = runData;
@@ -73,7 +92,13 @@ export default async function handler(
 
   const { error: updateError } = await updateRun(runId, { status });
   if (updateError) {
-    return sendErrorResponseFromPostgrestError(response, updateError);
+    return sendErrorResponseFromPostgrestError(
+      response,
+      updateError,
+      HTTP_STATUS_CODES.FAILED_DEPENDENCY,
+      DELTA_ERROR_CODE.DATABASE.UPDATE_FAILED,
+      `Could not update Run with id "${runId}" to status "${status}"`
+    );
   }
 
   const check = await updateCheck(organization, repository, branch.check_id, {

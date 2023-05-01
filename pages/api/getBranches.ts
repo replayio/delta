@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import createClient from "../../lib/initServerSupabase";
 import { retryOnError } from "../../lib/server/supabase/supabase";
 import { Branch, ProjectId } from "../../lib/types";
+import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./statusCodes";
 import {
   GenericResponse,
   sendErrorMissingParametersResponse,
@@ -39,11 +40,19 @@ export default async function handler(
   );
 
   if (error) {
-    return sendErrorResponseFromPostgrestError(response, error);
+    return sendErrorResponseFromPostgrestError(
+      response,
+      error,
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
+      `No Branches found for Project id "${projectId}"`
+    );
   } else if (!data) {
     return sendErrorResponse(
       response,
-      `No branches found for project id "${projectId}"`
+      `No Branches found for Project id "${projectId}"`,
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED
     );
   } else {
     return sendResponse<ResponseData>(response, data);

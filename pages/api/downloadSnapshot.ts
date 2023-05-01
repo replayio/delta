@@ -1,7 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import { downloadSnapshot } from "../../lib/server/supabase/storage";
-import { sendErrorResponse, GenericResponse, sendResponse } from "./utils";
+import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./statusCodes";
+import {
+  GenericResponse,
+  sendErrorMissingParametersResponse,
+  sendErrorResponse,
+  sendResponse,
+} from "./utils";
 
 export type RequestParams = {
   path: string;
@@ -15,17 +21,24 @@ export default async function handler(
 ) {
   const { path } = request.query as RequestParams;
   if (!path) {
-    return sendErrorResponse(response, 'Missing required param "path"', 422);
+    return sendErrorMissingParametersResponse(response, { path });
   }
 
   const { data, error } = await downloadSnapshot(path);
   if (error) {
-    return sendErrorResponse(response, error.message);
+    return sendErrorResponse(
+      response,
+      error.message,
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED,
+      `Download failed for Snapshot with path "${path}"`
+    );
   } else if (!data) {
     return sendErrorResponse(
       response,
-      `No snapshot found for path "${path}"`,
-      404
+      `Download failed for Snapshot with path "${path}"`,
+      HTTP_STATUS_CODES.NOT_FOUND,
+      DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED
     );
   } else {
     return sendResponse<ResponseData>(response, data);

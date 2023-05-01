@@ -211,6 +211,7 @@ export default async function handler(
             logAndSendResponse
           );
         case "opened":
+        case "reopened":
           return handlePullRequestOpened(
             project.data,
             request.body as PullRequestEventParams,

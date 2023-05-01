@@ -47,15 +47,13 @@ export async function getBranch(
 }
 
 export async function getBranchByName(
-  name: string,
-  status: string = "open"
+  name: string
 ): Promise<PostgrestSingleResponse<Branch>> {
   return retryOnError(() =>
     supabase
       .from("Branches")
       .select("*")
       .eq("name", name)
-      .eq("status", status)
       .order("created_at", { ascending: false })
       .limit(1)
       .single()

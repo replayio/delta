@@ -11,6 +11,10 @@ import type {
   ResponseData as GetBranchesResponseData,
 } from "../pages/api/getBranches";
 import type {
+  RequestParams as GetDiffImageRequestParams,
+  ResponseData as GetDiffImageResponseData,
+} from "../pages/api/getDiffImage";
+import type {
   RequestParams as GetMostFrequentlyUpdatedSnapshotsRequestParams,
   ResponseData as GetMostFrequentlyUpdatedSnapshotsResponseData,
 } from "../pages/api/getMostFrequentlyUpdatedSnapshots";
@@ -61,6 +65,14 @@ export async function downloadSnapshot(
 ): Promise<DownloadSnapshotResponseData> {
   return fetchDataFromEndpoint<DownloadSnapshotResponseData>(
     `/api/downloadSnapshot?${paramsToUrlString(params)}`
+  );
+}
+
+export async function getDiffImage(
+  params: GetDiffImageRequestParams
+): Promise<GetDiffImageResponseData> {
+  return fetchDataFromEndpoint<GetDiffImageResponseData>(
+    `/api/getDiffImage?${paramsToUrlString(params)}`
   );
 }
 

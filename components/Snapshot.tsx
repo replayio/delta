@@ -168,12 +168,15 @@ function NoDiffData({ snapshotDiff }: { snapshotDiff: SnapshotDiffChanged }) {
 }
 
 function SubViewDiff({ snapshotDiff }: { snapshotDiff: SnapshotDiffChanged }) {
-  const diff = imageDiffCache.read(snapshotDiff.oldPath, snapshotDiff.newPath);
-  if (diff) {
+  const base64String = imageDiffCache.read(
+    snapshotDiff.oldPath,
+    snapshotDiff.newPath
+  );
+  if (base64String) {
     return (
       <ErrorBoundary FallbackComponent={Fallback}>
         <Suspense fallback={<Loader />}>
-          <SnapshotImage path={diff.base64String} />
+          <SnapshotImage path={base64String} />
         </Suspense>
       </ErrorBoundary>
     );

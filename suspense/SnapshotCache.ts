@@ -1,10 +1,10 @@
 import { createCache } from "suspense";
-import { diffBase64Images } from "../lib/server/diff";
 import { SnapshotDiff } from "../lib/server/types";
 import { ProjectSlug, RunId } from "../lib/types";
 import { ResponseData } from "../pages/api/getMostFrequentlyUpdatedSnapshots";
 import {
   downloadSnapshot,
+  getDiffImage,
   getMostFrequentlyUpdatedSnapshots,
   getSnapshotDiffsForRun,
 } from "../utils/ApiClient";
@@ -37,24 +37,14 @@ export const frequentlyUpdatedSnapshotsCache = createCache<
 // Compute diff between two images (as a base64 encoded image)
 export const imageDiffCache = createCache<
   [pathA: string, pathB: string],
-  Base64Image | null
+  string | null
 >({
   debugLabel: "imageDiffCache",
   getKey([pathA, pathB]) {
     return JSON.stringify({ pathA, pathB });
   },
   async load([pathA, pathB]) {
-    const imageA = snapshotCache.read(pathA);
-    const imageB = snapshotCache.read(pathB);
-    const diff = await diffBase64Images(
-      imageA.base64String,
-      imageB.base64String
-    );
-    if (!diff.png) {
-      return null;
-    }
-
-    return createSnapshotImage(diff.png.toString());
+    return getDiffImage({ pathA, pathB });
   },
 });
 

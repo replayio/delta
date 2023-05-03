@@ -1,71 +1,82 @@
 import { subClass } from "gm";
 import pixelmatch from "pixelmatch";
-import { PNG } from "pngjs";
+import { PNG, PNGWithMetadata } from "pngjs";
 
 const imageMagick = subClass({ imageMagick: true });
 
-function cropImage(image, width, height) {
+function cropImage(
+  buffer: Buffer,
+  width: number,
+  height: number
+): Promise<PNGWithMetadata> {
   return new Promise((resolve, reject) => {
-    imageMagick(image)
+    imageMagick(buffer)
       .crop(width, height, 0, 0)
-      .toBuffer("png", function (err, buffer) {
-        if (err) reject(err);
+      .toBuffer("png", function (error, buffer) {
+        if (error) {
+          reject(error);
+        }
 
         try {
           const png = PNG.sync.read(buffer);
           resolve(png);
-        } catch (e) {
-          console.log(`cropImage: error`, e, buffer, width, height);
-          reject(e);
+        } catch (error) {
+          console.log(`cropImage: error`, error, buffer, width, height);
+          reject(error);
         }
       });
   });
 }
 
-async function resizeImage(png1, png2, image1, image2) {
+async function resizeImage(
+  pngA: PNGWithMetadata,
+  pngB: PNGWithMetadata,
+  bufferA: Buffer,
+  bufferB: Buffer
+) {
   console.log(
     "resizeImage\nimage1:",
-    image1,
+    bufferA,
     "\nimage2:",
-    image2,
-    "\npng1:",
-    png1,
-    "\npng2:",
-    png2
+    bufferB,
+    "\npngA:",
+    pngA,
+    "\npngB:",
+    pngB
   );
   try {
-    if (png1.width > png2.width) {
+    if (pngA.width > pngB.width) {
       console.log(
-        `resizeImage: resizing image1 width from ${png1.width} to ${png2.width}`
+        `resizeImage: resizing image1 width from ${pngA.width} to ${pngB.width}`
       );
-      png1 = await cropImage(image1, png2.width, png1.height);
+      pngA = await cropImage(bufferA, pngB.width, pngA.height);
     }
 
-    if (png2.width > png1.width) {
+    if (pngB.width > pngA.width) {
       console.log(
-        `resizeImage: resizing image2 width from ${png2.width} to ${png1.width}`
+        `resizeImage: resizing image2 width from ${pngB.width} to ${pngA.width}`
       );
-      png2 = await cropImage(image2, png1.width, png2.height);
+      pngB = await cropImage(bufferB, pngA.width, pngB.height);
     }
 
-    if (png1.height > png2.height) {
+    if (pngA.height > pngB.height) {
       console.log(
-        `resizeImage: resizing image1 height from ${png1.height} to ${png2.height}`
+        `resizeImage: resizing image1 height from ${pngA.height} to ${pngB.height}`
       );
-      png1 = await cropImage(image1, png1.width, png2.height);
+      pngA = await cropImage(bufferA, pngA.width, pngB.height);
     }
 
-    if (png2.height > png1.height) {
+    if (pngB.height > pngA.height) {
       console.log(
-        `resizeImage: resizing image2 height from ${png2.height} to ${png1.height}`
+        `resizeImage: resizing image2 height from ${pngB.height} to ${pngA.height}`
       );
-      png2 = await cropImage(image2, png2.width, png1.height);
+      pngB = await cropImage(bufferB, pngB.width, pngA.height);
     }
 
-    return { png1, png2 };
-  } catch (e) {
-    console.log(`resizeImage: error`, e);
-    throw e;
+    return { pngA, pngB };
+  } catch (error) {
+    console.log(`resizeImage: error`, error);
+    throw error;
   }
 }
 
@@ -76,17 +87,38 @@ type ImageDiff = {
   png: Buffer | null;
 };
 
-export async function diffImages(image1, image2): Promise<ImageDiff> {
-  try {
-    let png1 = PNG.sync.read(image1);
-    let png2 = PNG.sync.read(image2);
+export async function diffBase64Images(imageA: string, imageB: string) {
+  const bufferA = imageA ? Buffer.from(imageA, "base64") : null;
+  const bufferB = imageB ? Buffer.from(imageB, "base64") : null;
 
-    if (png1.width !== png2.width || png1.height !== png2.height) {
+  if (!bufferA || !bufferB) {
+    console.log(`diffBase64Images: bailing because one of the images is null`);
+
+    return {
+      changed: true,
+      error: null,
+      numPixels: bufferA?.length ?? bufferB?.length ?? 0,
+      png: null,
+    };
+  }
+
+  return await diffImages(bufferA, bufferB);
+}
+
+export async function diffImages(
+  bufferA: Buffer,
+  bufferB: Buffer
+): Promise<ImageDiff> {
+  try {
+    let pngA = PNG.sync.read(bufferA);
+    let pngB = PNG.sync.read(bufferB);
+
+    if (pngA.width !== pngB.width || pngA.height !== pngB.height) {
       console.log(
-        `diffImages: resizing images (${png1.width}, ${png1.height}) (${png2.width}, ${png2.height})`
+        `diffImages: resizing images (${pngA.width}, ${pngA.height}) (${pngB.width}, ${pngB.height})`
       );
       try {
-        ({ png1, png2 } = await resizeImage(png1, png2, image1, image2));
+        ({ pngA, pngB } = await resizeImage(pngA, pngB, bufferA, bufferB));
       } catch (e) {
         console.log(`diffImages: resizeImage error`, e);
         return { error: e, changed: true, numPixels: 0, png: null };
@@ -94,16 +126,16 @@ export async function diffImages(image1, image2): Promise<ImageDiff> {
     }
 
     console.log(
-      `diffImages: resized images (${png1.width}, ${png1.height}) (${png2.width}, ${png2.height})`
+      `diffImages: resized images (${pngA.width}, ${pngA.height}) (${pngB.width}, ${pngB.height})`
     );
-    const diff = new PNG({ width: png1.width, height: png1.height });
+    const diff = new PNG({ width: pngA.width, height: pngA.height });
 
     const numPixels = pixelmatch(
-      png1.data,
-      png2.data,
+      pngA.data,
+      pngB.data,
       diff.data,
-      png1.width,
-      png2.height,
+      pngA.width,
+      pngB.height,
       {
         threshold: 0.2,
       }
@@ -125,22 +157,4 @@ export async function diffImages(image1, image2): Promise<ImageDiff> {
       png: null,
     };
   }
-}
-
-export function diffBase64Images(image1, image2) {
-  const buffer1 = image1 ? Buffer.from(image1, "base64") : null;
-  const buffer2 = image2 ? Buffer.from(image2, "base64") : null;
-
-  if (!buffer1 || !buffer2) {
-    console.log(`diffBase64Images: bailing because one of the images is null`);
-
-    return {
-      changed: true,
-      error: null,
-      numPixels: buffer1?.length ?? buffer2?.length ?? 0,
-      png: null,
-    };
-  }
-
-  return diffImages(buffer1, buffer2);
 }

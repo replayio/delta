@@ -1,133 +1,73 @@
 import { PostgrestError } from "@supabase/supabase-js";
+import ErrorStackParser from "error-stack-parser";
 import { NextApiResponse } from "next";
-import { insertError } from "../../lib/server/supabase/errors";
-import {
-  DELTA_ERROR_CODE,
-  DeltaErrorCode,
-  HTTP_STATUS_CODES,
-  HttpStatusCode,
-} from "./statusCodes";
-import { error } from "console";
+import { insertErrorLog } from "../../lib/server/supabase/tables/ErrorLogs";
+import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
+import { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from "./types";
 
-export type ErrorLike = {
-  message: string;
-  [key: string]: string | number | boolean;
-};
-
-export type ErrorResponse = { error: ErrorLike | { message: string } };
-export type SuccessResponse<ResponseData> = { data: ResponseData };
-export type GenericResponse<ResponseData> =
-  | ErrorResponse
-  | SuccessResponse<ResponseData>;
-
-export function createErrorMessageFromPostgrestError(
-  postgrestError: PostgrestError
-): string {
-  return `Error code ${postgrestError.code}: ${postgrestError.message}\n\n${postgrestError.details}`;
-}
-
-export function isErrorResponse(
-  response: GenericResponse<any>
-): response is ErrorResponse {
-  return "error" in response;
-}
-
-export function isSuccessResponse<ResponseData>(
-  response: GenericResponse<ResponseData>
-): response is SuccessResponse<ResponseData> {
-  return "data" in response;
-}
-
-export function sendErrorResponse(
-  response: NextApiResponse,
-  errorLike: ErrorLike | string,
-  httpStatusCode: HttpStatusCode,
-  deltaErrorCode: DeltaErrorCode,
-  messagePrefix?: string
-): void {
-  let errorMessage =
-    typeof errorLike === "string" ? errorLike : errorLike.message;
-  if (messagePrefix) {
-    errorMessage = `${messagePrefix}\n\n${errorMessage}`;
-  }
-  errorMessage = `${deltaErrorCode.code}: ${errorMessage}`;
-
-  const error =
-    errorLike instanceof Error ? errorLike : new Error(errorMessage);
-
-  response.setHeader("Content-Type", "application/json");
-  response.status(httpStatusCode.code);
-  response.json({ error: errorMessage });
-
-  try {
-    insertError({
-      deltaErrorCode,
-      error,
-      httpStatusCode,
-    });
-  } catch (error) {
-    console.error(error);
-    // Fire and forget
-  }
-}
-
-export function sendErrorMissingParametersResponse(
-  response: NextApiResponse,
-  params: Object
-): void {
-  const missingParamNames = Array.from(Object.keys(params)).filter(
-    (key) => !params[key]
-  );
-  const message =
-    missingParamNames.length > 1
-      ? `Missing required params "${missingParamNames.join('", "')}"`
-      : `Missing required param "${missingParamNames[0]}"`;
-  const details = JSON.stringify(params, null, 2);
-  return sendErrorResponse(
-    response,
-    `${message}\n\n${details}}`,
-    HTTP_STATUS_CODES.BAD_REQUEST,
-    DELTA_ERROR_CODE.MISSING_PARAMETERS
-  );
-}
-
-export function sendErrorResponseFromPostgrestError(
-  response: NextApiResponse,
+export function createErrorFromPostgrestError(
   postgrestError: PostgrestError,
-  httpStatusCode: HttpStatusCode,
-  deltaErrorCode: DeltaErrorCode,
   messagePrefix?: string
-): void {
-  let errorMessage = createErrorMessageFromPostgrestError(postgrestError);
+): Error {
+  let message = `Error code ${postgrestError.code}: ${postgrestError.message}\n\n${postgrestError.details}`;
   if (messagePrefix) {
-    errorMessage = `${messagePrefix}\n\n${errorMessage}`;
+    message = `${messagePrefix}\n\n${message}`;
   }
-  errorMessage = `${deltaErrorCode.code}: ${errorMessage}`;
 
-  const error = new Error(errorMessage);
-
-  response.setHeader("Content-Type", "application/json");
-  response.status(httpStatusCode.code);
-  response.json({ error: errorMessage });
-
-  try {
-    insertError({
-      deltaErrorCode,
-      error,
-      httpStatusCode,
-    });
-  } catch (error) {
-    console.error(error);
-    // Fire and forget
-  }
+  return Error(message);
 }
 
-export function sendResponse<ResponseData>(
-  response: NextApiResponse,
-  data: ResponseData,
-  httpStatusCode: HttpStatusCode = HTTP_STATUS_CODES.OK
+export function isApiErrorResponse(
+  response: ApiErrorResponse | ApiSuccessResponse
+): response is ApiErrorResponse {
+  return response && (response as Object).hasOwnProperty("deltaErrorCode");
+}
+
+export function isApiSuccessResponse(
+  response: ApiErrorResponse | ApiSuccessResponse
+): response is ApiSuccessResponse {
+  return response && !(response as Object).hasOwnProperty("deltaErrorCode");
+}
+
+export async function sendApiMissingParametersResponse(
+  nextApiResponse: NextApiResponse,
+  parametersObject: Object
 ) {
-  response.setHeader("Content-Type", "application/json");
-  response.status(httpStatusCode.code);
-  response.json({ data });
+  const missingParameters: string[] = [];
+  for (const [key, value] of Object.entries(parametersObject)) {
+    if (!value) {
+      missingParameters.push(key);
+    }
+  }
+
+  sendApiResponse(nextApiResponse, {
+    data: new Error(
+      `Missing required parameters: ${missingParameters.join(", ")}`
+    ),
+    deltaErrorCode: DELTA_ERROR_CODE.MISSING_PARAMETERS,
+    httpStatusCode: HTTP_STATUS_CODES.BAD_REQUEST,
+  });
+}
+
+export async function sendApiResponse<Type = unknown>(
+  nextApiResponse: NextApiResponse,
+  apiResponse: ApiResponse<Type>
+): Promise<void> {
+  nextApiResponse.setHeader("Content-Type", "application/json");
+  nextApiResponse.status(apiResponse.httpStatusCode.code);
+  nextApiResponse.json({ data: apiResponse.data });
+
+  if (isApiErrorResponse(apiResponse)) {
+    try {
+      // Fire and forget
+      await insertErrorLog({
+        delta_error_code: apiResponse.deltaErrorCode.code,
+        http_status_code: apiResponse.httpStatusCode.code,
+        message: apiResponse.data.message,
+        parsed_stack: ErrorStackParser.parse(apiResponse.data),
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
 }

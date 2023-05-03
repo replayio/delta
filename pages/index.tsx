@@ -38,7 +38,7 @@ function HomeWithData({ projects }: { projects: Project[] }) {
   useLayoutEffect(() => {
     if (projects.length === 1) {
       const project = projects[0];
-      window.location.href = `/project/${project.short}`;
+      window.location.href = `/project/${project.slug}`;
     }
   }, [projects]);
 
@@ -56,7 +56,7 @@ function HomeWithData({ projects }: { projects: Project[] }) {
       </div>
       <div className="flex flex-col items-center">
         {projects.map((project) => (
-          <Link href={`/project/${project.short}`} key={project.id}>
+          <Link href={`/project/${project.slug}`} key={project.id}>
             {project.name}
           </Link>
         ))}

@@ -1,32 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { diffWithPrimaryBranch } from "../../lib/server/diffWithPrimaryBranch";
-import { getBranchByName } from "../../lib/server/supabase/branches";
-import { isPostgrestError } from "../../lib/server/errors";
-import {
-  getRunForBranch,
-  incrementNumSnapshotsChanged,
-} from "../../lib/server/supabase/runs";
-import {
-  getSnapshotForBranch,
-  insertSnapshot,
-  updateSnapshot,
-} from "../../lib/server/supabase/snapshots";
-import { uploadSnapshot } from "../../lib/server/supabase/storage";
-import {
-  GithubRunId,
-  ProjectId,
-  Snapshot,
-  SnapshotStatus,
-} from "../../lib/types";
-import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./statusCodes";
-import {
-  GenericResponse,
-  sendErrorMissingParametersResponse,
-  sendErrorResponse,
-  sendErrorResponseFromPostgrestError,
-  sendResponse,
-} from "./utils";
+import { createHash } from "crypto";
+import { uploadSnapshot } from "../../lib/server/supabase/storage/Snapshots";
+import { getRunForGithubRun } from "../../lib/server/supabase/tables/Runs";
+import { insertSnapshot } from "../../lib/server/supabase/tables/Snapshots";
+import { GithubRunId, ProjectId, Snapshot } from "../../lib/types";
+import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
+import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
 export type Image = {
   content: string;
@@ -40,7 +20,6 @@ export type RequestParams = {
   runId: GithubRunId;
 };
 export type ResponseData = Snapshot;
-export type Response = GenericResponse<ResponseData>;
 
 // Note that this endpoint is used by the DevTools project's Playwright integration
 // packages/replay-next/uploadSnapshots
@@ -49,141 +28,58 @@ export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  const { branchName, projectId, runId } =
-    request.query as Partial<RequestParams>;
+  const {
+    branchName,
+    projectId,
+    runId: githubRunId,
+  } = request.query as Partial<RequestParams>;
   const { image } = request.body as Partial<RequestParams>;
-  if (!branchName || !image || !projectId || !runId) {
-    return sendErrorMissingParametersResponse(response, {
+  if (!branchName || !image || !projectId || !githubRunId) {
+    return sendApiMissingParametersResponse(response, {
       branchName,
       image,
       projectId,
-      runId,
+      runId: githubRunId,
     });
   }
 
   try {
-    console.log("Uploading snapshot");
-    const uploadResult = await uploadSnapshot(image.content, projectId);
-
-    // Duplicates will fail to upload, but that's okay.
-    const uploadStatus: SnapshotStatus = uploadResult.error
-      ? "Duplicate"
-      : "Uploaded";
-
-    console.log("Inserting snapshot");
-    const insertedSnapshot = await insertSnapshot(
-      branchName,
-      projectId,
-      image,
-      runId,
-      uploadStatus
-    );
-    if (insertedSnapshot.error) {
-      const message = `Insert Snapshot failed for project id "${projectId}" and Branch "${branchName}"`;
-      return typeof insertedSnapshot.error === "string"
-        ? sendErrorResponse(
-            response,
-            insertedSnapshot.error,
-            HTTP_STATUS_CODES.FAILED_DEPENDENCY,
-            DELTA_ERROR_CODE.DATABASE.INSERT_FAILED,
-            message
-          )
-        : sendErrorResponseFromPostgrestError(
-            response,
-            insertedSnapshot.error,
-            HTTP_STATUS_CODES.FAILED_DEPENDENCY,
-            DELTA_ERROR_CODE.DATABASE.INSERT_FAILED,
-            message
-          );
-    }
-
-    let snapshot: Snapshot | null = insertedSnapshot.data;
-    if (!snapshot) {
-      console.log("Getting previous snapshot");
-      const previousSnapshot = await getSnapshotForBranch(
-        projectId,
-        branchName,
-        image.file
-      );
-      if (previousSnapshot.error) {
-        const message = `Select previous Snapshot failed for project id "${projectId}" and Branch "${branchName}"`;
-        return isPostgrestError(previousSnapshot.error)
-          ? sendErrorResponseFromPostgrestError(
-              response,
-              previousSnapshot.error,
-              HTTP_STATUS_CODES.NOT_FOUND,
-              DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
-              message
-            )
-          : sendErrorResponse(
-              response,
-              previousSnapshot.error.message,
-              HTTP_STATUS_CODES.NOT_FOUND,
-              DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
-              message
-            );
-      }
-
-      snapshot = previousSnapshot.data ?? null;
-    }
-
-    if (snapshot === null) {
-      return sendErrorResponse(
-        response,
-        "Could not find snapshot",
-        HTTP_STATUS_CODES.NOT_FOUND,
-        DELTA_ERROR_CODE.UNKNOWN_ERROR
-      );
-    }
-
-    console.log("Diffing snapshots");
-    const primaryDiff = await diffWithPrimaryBranch(
-      projectId,
-      branchName,
-      image
+    console.log(
+      `Uploading Snapshot for Project ${projectId}:\n ${image.content}`
     );
 
-    if (primaryDiff.changed && primaryDiff.diffSnapshot?.path) {
-      console.log("Updating snapshot");
+    await uploadSnapshot(image.content, projectId);
 
-      const updatedSnapshot = await updateSnapshot(snapshot.id, {
-        primary_diff_path: primaryDiff.diffSnapshot?.path,
-        primary_num_pixels:
-          primaryDiff.numPixels != null ? primaryDiff.numPixels : 0,
-      });
-      if (updatedSnapshot.error) {
-        return sendErrorResponseFromPostgrestError(
-          response,
-          updatedSnapshot.error,
-          HTTP_STATUS_CODES.FAILED_DEPENDENCY,
-          DELTA_ERROR_CODE.DATABASE.UPDATE_FAILED,
-          `Could not update Snapshot id "${snapshot.id}"`
-        );
-      }
+    const run = await getRunForGithubRun(githubRunId);
 
-      const branch = await getBranchByName(branchName);
-      if (branch.error) {
-        return branch.error;
-      }
+    const sha = createHash("sha256").update(image.content).digest("hex");
+    const path = `${projectId}/${sha}.png`;
 
-      const run = await getRunForBranch(branch.data.id, runId);
-      if (run.error) {
-        return run.error;
-      }
+    console.log(
+      `Inserting Snapshot with file "${image.file}" and path "${path}"`
+    );
 
-      await incrementNumSnapshotsChanged(run.data.id);
+    const newSnapshot = await insertSnapshot({
+      delta_file: image.file,
+      delta_path: path,
+      github_run_id: githubRunId,
+      run_id: run.id,
+    });
 
-      return sendResponse<ResponseData>(response, updatedSnapshot.data);
-    }
+    // We used to eagerly compute this, but this too easily gets stale
+    // Now we compute it on demand (either in response to a GitHub event hook or Delta web app request)
 
-    return sendResponse<ResponseData>(response, snapshot);
+    return sendApiResponse(response, {
+      data: newSnapshot,
+      httpStatusCode: HTTP_STATUS_CODES.OK,
+    });
   } catch (error) {
-    console.error("uploadSnapshot caught error:", error);
-    return sendErrorResponse(
-      response,
-      error ?? "Error",
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
-      DELTA_ERROR_CODE.UNKNOWN_ERROR
-    );
+    console.error(error);
+
+    return sendApiResponse(response, {
+      data: error,
+      deltaErrorCode: DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED,
+      httpStatusCode: HTTP_STATUS_CODES.NOT_FOUND,
+    });
   }
 }

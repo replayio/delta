@@ -1,17 +1,17 @@
 import { createCache, createSingleEntryCache } from "suspense";
-import { Project, ProjectId, ProjectShort } from "../lib/types";
+import { Project, ProjectId, ProjectSlug } from "../lib/types";
 import { getProject, getPublicProjects } from "../utils/ApiClient";
 
 export const projectCache = createCache<
-  [projectId: ProjectId | null, projectShort: ProjectShort | null],
+  [projectId: ProjectId | null, projectSlug: ProjectSlug | null],
   Project
 >({
   debugLabel: "project",
-  getKey([projectId, projectShort]) {
-    return `${projectId}/${projectShort}`;
+  getKey([projectId, projectSlug]) {
+    return `${projectId}/${projectSlug}`;
   },
-  async load([projectId, projectShort]) {
-    return getProject({ projectId, projectShort });
+  async load([projectId, projectSlug]) {
+    return getProject({ projectId, projectSlug });
   },
 });
 

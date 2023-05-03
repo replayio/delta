@@ -3,7 +3,7 @@ import { Suspense, useState } from "react";
 import Icon from "../components/Icon";
 import { Loader } from "../components/Loader";
 import SnapshotImage from "../components/SnapshotImage";
-import { ProjectShort } from "../lib/types";
+import { ProjectSlug } from "../lib/types";
 import { frequentlyUpdatedSnapshotsCache } from "../suspense/SnapshotCache";
 import classNames from "../utils/classNames";
 import {
@@ -13,13 +13,13 @@ import {
 
 export default function Flaky() {
   const router = useRouter();
-  const { date: afterDate, projectShort } = router.query as {
+  const { date: afterDate, projectSlug } = router.query as {
     [key: string]: string;
   };
 
   // Note this route may render on the server, in which case all query params are undefined.
   // TODO Can we access these params on the server somehow so we can server-render the page?
-  if (!projectShort) {
+  if (!projectSlug) {
     console.error("No project id in URL");
     return null;
   }
@@ -28,7 +28,7 @@ export default function Flaky() {
     <Suspense fallback={<Loader />}>
       <FlakySuspends
         afterDate={afterDate ?? null}
-        projectShort={projectShort as ProjectShort}
+        projectSlug={projectSlug as ProjectSlug}
       />
     </Suspense>
   );
@@ -36,15 +36,12 @@ export default function Flaky() {
 
 function FlakySuspends({
   afterDate,
-  projectShort,
+  projectSlug,
 }: {
   afterDate: string;
-  projectShort: ProjectShort;
+  projectSlug: ProjectSlug;
 }) {
-  const metadata = frequentlyUpdatedSnapshotsCache.read(
-    projectShort,
-    afterDate
-  );
+  const metadata = frequentlyUpdatedSnapshotsCache.read(projectSlug, afterDate);
 
   return (
     <ul className="list-none p-1">
@@ -101,7 +98,6 @@ function SnapshotImages({ path }: { path: PathMetadata }) {
   return (
     <li className="flex flex-row gap-1 items-center">
       <SnapshotImage className="shrink min-w-0" path={path.path} />
-      <SnapshotImage className="shrink min-w-0" path={path.diffPath} />
     </li>
   );
 }

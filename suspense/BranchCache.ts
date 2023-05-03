@@ -1,11 +1,11 @@
 import { createCache } from "suspense";
-import { Branch, ProjectId } from "../lib/types";
-import { getBranchByName, getBranches } from "../utils/ApiClient";
+import { Branch, BranchId, ProjectId } from "../lib/types";
+import { getBranch, getBranches } from "../utils/ApiClient";
 
-export const branchCache = createCache<[branchName: string], Branch>({
+export const branchCache = createCache<[id: BranchId], Branch>({
   debugLabel: "branch",
-  async load([branchName]) {
-    return getBranchByName({ name: branchName });
+  async load([id]) {
+    return getBranch({ id });
   },
 });
 

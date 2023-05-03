@@ -29,7 +29,8 @@ export const DELTA_ERROR_CODE = {
   DATABASE: {
     INSERT_FAILED: createDeltaErrorCode(2000),
     SELECT_FAILED: createDeltaErrorCode(2001),
-    UPDATE_FAILED: createDeltaErrorCode(2002),
+    FUNCTION_FAILED: createDeltaErrorCode(2002),
+    UPDATE_FAILED: createDeltaErrorCode(2003),
   },
 
   STORAGE: {

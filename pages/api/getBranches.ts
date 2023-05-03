@@ -1,60 +1,44 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import createClient from "../../lib/initServerSupabase";
-import { retryOnError } from "../../lib/server/supabase/supabase";
+import { findProjectBranchesForPullRequestStatus } from "../../lib/server/supabase/functions/findProjectBranchesForPullRequestStatus";
 import { Branch, ProjectId } from "../../lib/types";
-import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./statusCodes";
-import {
-  GenericResponse,
-  sendErrorMissingParametersResponse,
-  sendErrorResponse,
-  sendErrorResponseFromPostgrestError,
-  sendResponse,
-} from "./utils";
+import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
+import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
 export type RequestParams = {
   projectId: ProjectId;
+  status?: "open" | "closed";
 };
 export type ResponseData = Branch[];
-export type Response = GenericResponse<ResponseData>;
-
-const supabase = createClient();
 
 export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  const { projectId } = request.query as RequestParams;
-  if (!projectId) {
-    return sendErrorMissingParametersResponse(response, { projectId });
+  const { projectId: projectIdString, status = "open" } =
+    request.query as RequestParams;
+  if (!projectIdString) {
+    return sendApiMissingParametersResponse(response, {
+      projectId: projectIdString,
+    });
   }
 
-  const { data, error } = await retryOnError(() =>
-    supabase
-      .from("Branches")
-      .select("*")
-      .eq("project_id", projectId)
-      .eq("status", "open")
-      .order("created_at", { ascending: false })
-      .limit(1000)
-  );
+  const projectId = parseInt(projectIdString) as unknown as ProjectId;
 
-  if (error) {
-    return sendErrorResponseFromPostgrestError(
-      response,
-      error,
-      HTTP_STATUS_CODES.NOT_FOUND,
-      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
-      `No Branches found for Project id "${projectId}"`
+  try {
+    const data = await findProjectBranchesForPullRequestStatus(
+      projectId,
+      status
     );
-  } else if (!data) {
-    return sendErrorResponse(
-      response,
-      `No Branches found for Project id "${projectId}"`,
-      HTTP_STATUS_CODES.NOT_FOUND,
-      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED
-    );
-  } else {
-    return sendResponse<ResponseData>(response, data);
+    return sendApiResponse<ResponseData>(response, {
+      httpStatusCode: HTTP_STATUS_CODES.OK,
+      data,
+    });
+  } catch (error) {
+    return sendApiResponse(response, {
+      data: error,
+      deltaErrorCode: DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED,
+      httpStatusCode: HTTP_STATUS_CODES.NOT_FOUND,
+    });
   }
 }

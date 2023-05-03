@@ -1,86 +1,64 @@
 import { useState } from "react";
 
-import { Branch, Run, Project } from "../lib/types";
+import { Branch, Project, Run } from "../lib/types";
+import { snapshotDiffForRunCache } from "../suspense/SnapshotCache";
 import { updateBranchStatus } from "../utils/ApiClient";
+import withSuspenseLoader from "./withSuspenseLoader";
 
-type ApprovalStatus = "approved" | "needs-approval" | "no-changes";
-
-export function ApproveButton({
-  currentBranch,
-  currentRun,
+export const ApproveButton = withSuspenseLoader(function ApproveButton({
+  branch,
   project,
+  run,
 }: {
-  currentBranch: Branch;
-  currentRun: Run;
+  branch: Branch;
   project: Project;
+  run: Run;
 }) {
   const [isPending, setIsPending] = useState(false);
-  const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus>(() =>
-    calculateApprovalStatus(currentRun)
+  const [hasApproval, setHasApproval] = useState<boolean>(
+    run.delta_has_user_approval
   );
 
-  const toggleBranchStatus = async (status) => {
-    setIsPending(true);
-
-    const response = await updateBranchStatus({
-      branchId: currentBranch.id,
-      projectId: project.id,
-      status,
-    });
-
-    setApprovalStatus(calculateApprovalStatus(response.run));
-
-    setIsPending(false);
-  };
-
-  if (isPending) {
+  if (run.github_status === "queued") {
     return (
       <div className="text-white bg-violet-300 py-1 px-3 rounded border-transparent">
         Updating
       </div>
     );
-  } else {
-    switch (approvalStatus) {
-      case "no-changes": {
-        return null;
-      }
-      case "approved": {
-        return (
-          <div className="flex items-center">
-            <button
-              onClick={() => toggleBranchStatus("failure")}
-              className="text-white bg-violet-500 py-1 px-3 rounded border-transparent hover:bg-violet-600"
-            >
-              Reject
-            </button>
-          </div>
-        );
-      }
-      case "needs-approval": {
-        return (
-          <div className="flex items-center">
-            <button
-              onClick={() => toggleBranchStatus("success")}
-              className="text-white bg-violet-500 py-1 px-3 rounded border-transparent hover:bg-violet-600"
-            >
-              Approve
-            </button>
-          </div>
-        );
-      }
-    }
   }
-}
 
-function calculateApprovalStatus(run: Run): ApprovalStatus {
-  switch (run.status) {
-    case "neutral":
-      return "no-changes";
-    case "success":
-      return run.num_snapshots_changed > 0 ? "approved" : "no-changes";
-    case "failure":
-      return "needs-approval";
-    default:
-      throw Error(`Unexpected status: "${run.status}"`);
+  const snapshotDiffs = snapshotDiffForRunCache.read(run.id);
+  const requiresApproval = snapshotDiffs.length > 0;
+  if (!requiresApproval) {
+    return null;
   }
-}
+
+  const onClick = async () => {
+    setIsPending(true);
+
+    const newHasApproval = !hasApproval;
+
+    setHasApproval(newHasApproval);
+
+    await updateBranchStatus({
+      approved: `${newHasApproval}`,
+      branchId: branch.id,
+      projectId: project.id,
+      runId: run.id,
+    });
+
+    setIsPending(false);
+  };
+
+  return (
+    <div className="flex items-center">
+      <button
+        disabled={isPending}
+        onClick={onClick}
+        className="text-white bg-violet-500 py-1 px-3 rounded border-transparent hover:bg-violet-600"
+      >
+        {hasApproval ? "Reject" : "Approve"}
+      </button>
+    </div>
+  );
+});

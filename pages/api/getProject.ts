@@ -1,58 +1,45 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import {
-  getProject,
-  getProjectForShort,
-} from "../../lib/server/supabase/projects";
-import { Project, ProjectId, ProjectShort } from "../../lib/types";
-import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./statusCodes";
-import {
-  GenericResponse,
-  sendErrorMissingParametersResponse,
-  sendErrorResponse,
-  sendErrorResponseFromPostgrestError,
-  sendResponse,
-} from "./utils";
+  getProjectForId,
+  getProjectForSlug,
+} from "../../lib/server/supabase/tables/Projects";
+import { Project, ProjectId, ProjectSlug } from "../../lib/types";
+import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
+import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
 export type RequestParams = {
-  projectId: ProjectId | null;
-  projectShort: ProjectShort | null;
+  projectId?: ProjectId | null;
+  projectSlug?: ProjectSlug | null;
 };
 export type ResponseData = Project;
-export type Response = GenericResponse<ResponseData>;
 
 export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  const { projectId, projectShort } = request.query as RequestParams;
-  if (!projectId && !projectShort) {
-    return sendErrorMissingParametersResponse(response, {
+  const { projectId, projectSlug } = request.query as RequestParams;
+  if (!projectId && !projectSlug) {
+    return sendApiMissingParametersResponse(response, {
       projectId,
-      projectShort,
+      projectSlug,
     });
   }
 
-  const { data, error } = await (projectId
-    ? getProject(projectId)
-    : getProjectForShort(projectShort!));
+  try {
+    const data = projectId
+      ? await getProjectForId(projectId)
+      : await getProjectForSlug(projectSlug!);
 
-  if (error) {
-    sendErrorResponseFromPostgrestError(
-      response,
-      error,
-      HTTP_STATUS_CODES.NOT_FOUND,
-      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
-      `No Project found for id "${projectId}" or short id "${projectShort}"`
-    );
-  } else if (!data) {
-    return sendErrorResponse(
-      response,
-      `No Project found for id "${projectId}" or short id "${projectShort}"`,
-      HTTP_STATUS_CODES.NOT_FOUND,
-      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED
-    );
-  } else {
-    return sendResponse<ResponseData>(response, data);
+    return sendApiResponse<ResponseData>(response, {
+      httpStatusCode: HTTP_STATUS_CODES.OK,
+      data,
+    });
+  } catch (error) {
+    return sendApiResponse(response, {
+      data: error,
+      deltaErrorCode: DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED,
+      httpStatusCode: HTTP_STATUS_CODES.NOT_FOUND,
+    });
   }
 }

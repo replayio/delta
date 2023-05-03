@@ -3,17 +3,13 @@ import type {
   ResponseData as DownloadSnapshotResponseData,
 } from "../pages/api/downloadSnapshot";
 import type {
-  RequestParams as GetBranchByNameRequestParams,
-  ResponseData as GetBranchByNameResponseData,
-} from "../pages/api/getBranchByName";
+  RequestParams as GetBranchRequestParams,
+  ResponseData as GetBranchResponseData,
+} from "../pages/api/getBranch";
 import type {
   RequestParams as GetBranchesRequestParams,
   ResponseData as GetBranchesResponseData,
 } from "../pages/api/getBranches";
-import type {
-  RequestParams as GetRunsRequestParams,
-  ResponseData as GetRunsResponseData,
-} from "../pages/api/getRuns";
 import type {
   RequestParams as GetMostFrequentlyUpdatedSnapshotsRequestParams,
   ResponseData as GetMostFrequentlyUpdatedSnapshotsResponseData,
@@ -27,13 +23,17 @@ import type {
   ResponseData as GetPublicProjectsResponseData,
 } from "../pages/api/getPublicProjects";
 import type {
+  RequestParams as GetRunsRequestParams,
+  ResponseData as GetRunsResponseData,
+} from "../pages/api/getRuns";
+import type {
   RequestParams as GetSnapshotRequestParams,
   ResponseData as GetSnapshotResponseData,
 } from "../pages/api/getSnapshot";
 import type {
-  RequestParams as GetSnapshotDiffRequestParams,
-  ResponseData as GetSnapshotDiffResponseData,
-} from "../pages/api/getSnapshotDiff";
+  RequestParams as GetSnapshotDiffsForRunRequestParams,
+  ResponseData as GetSnapshotDiffsForRunResponseData,
+} from "../pages/api/getSnapshotDiffsForRun";
 import type {
   RequestParams as GetSnapshotsForPrimaryBranchRequestParams,
   ResponseData as GetSnapshotsForPrimaryBranchResponseData,
@@ -42,6 +42,7 @@ import type {
   RequestParams as GetSnapshotsForRunRequestParams,
   ResponseData as GetSnapshotsForRunResponseData,
 } from "../pages/api/getSnapshotsForRun";
+import { ApiResponse } from "../pages/api/types";
 import type {
   RequestParams as UpdateBranchStatusRequestParams,
   ResponseData as UpdateBranchStatusResponseData,
@@ -50,7 +51,7 @@ import type {
   RequestParams as UploadSnapshotRequestParams,
   ResponseData as UploadSnapshotResponseData,
 } from "../pages/api/uploadSnapshot";
-import { GenericResponse, isErrorResponse } from "../pages/api/utils";
+import { isApiErrorResponse } from "../pages/api/utils";
 import { fetchJSON } from "./fetchJSON";
 
 // All requests made between the Client and Server should use the functions in this module to ensure proper TypeScript typing.
@@ -79,11 +80,11 @@ export async function getRuns(
   );
 }
 
-export async function getBranchByName(
-  params: GetBranchByNameRequestParams
-): Promise<GetBranchByNameResponseData> {
-  return fetchDataFromEndpoint<GetBranchByNameResponseData>(
-    `/api/getBranchByName?${paramsToUrlString(params)}`
+export async function getBranch(
+  params: GetBranchRequestParams
+): Promise<GetBranchResponseData> {
+  return fetchDataFromEndpoint<GetBranchResponseData>(
+    `/api/getBranch?${paramsToUrlString(params)}`
   );
 }
 
@@ -111,11 +112,11 @@ export async function getPublicProjects(
   );
 }
 
-export async function getSnapshotDiff(
-  params: GetSnapshotDiffRequestParams
-): Promise<GetSnapshotDiffResponseData> {
-  return fetchDataFromEndpoint<GetSnapshotDiffResponseData>(
-    `/api/getSnapshotDiff?${paramsToUrlString(params)}`
+export async function getSnapshotDiffsForRun(
+  params: GetSnapshotDiffsForRunRequestParams
+): Promise<GetSnapshotDiffsForRunResponseData> {
+  return fetchDataFromEndpoint<GetSnapshotDiffsForRunResponseData>(
+    `/api/getSnapshotDiffsForRun?${paramsToUrlString(params)}`
   );
 }
 
@@ -167,14 +168,14 @@ export async function uploadSnapshot(
   );
 }
 
-async function fetchDataFromEndpoint<ResponseData>(
+async function fetchDataFromEndpoint<Type>(
   url: string,
   init?: RequestInit
-): Promise<ResponseData> {
-  const response = await fetchJSON<GenericResponse<ResponseData>>(url, init);
+): Promise<Type> {
+  const response = await fetchJSON<ApiResponse<Type>>(url, init);
 
-  if (isErrorResponse(response)) {
-    throw response.error;
+  if (isApiErrorResponse(response)) {
+    throw response.data;
   }
 
   return response.data;

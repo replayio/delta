@@ -1,28 +1,31 @@
 import moment from "moment";
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense } from "react";
 import { isPromiseLike } from "suspense";
-import { Branch, Run, Project } from "../lib/types";
+import { Branch, Project, PullRequest, Run } from "../lib/types";
 import { mostRecentRunCache } from "../suspense/RunCache";
+import { snapshotDiffForRunCache } from "../suspense/SnapshotCache";
 import classNames from "../utils/classNames";
 import { ApproveButton } from "./ApproveButton";
 import Dropdown from "./Dropdown";
 import { Github } from "./SVGs";
 import { Toggle } from "./Toggle";
+import withSuspenseLoader from "./withSuspenseLoader";
 
 export function Header({
   branches,
   currentBranch,
   currentRun,
   project,
+  pullRequest,
   runs,
 }: {
   branches: Branch[];
-  currentBranch: Branch | null;
-  currentRun: Run | null;
+  currentBranch: Branch;
+  currentRun: Run;
   project: Project;
-  runs: Run[] | null;
+  pullRequest: PullRequest;
+  runs: Run[];
 }) {
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
@@ -53,9 +56,7 @@ export function Header({
             isSelected: branch.name === currentBranch?.name,
             key: branch.id,
             render: () => (
-              <Suspense fallback="Loading...">
-                <BranchDropDownItem branch={branch} project={project} />
-              </Suspense>
+              <BranchDropDownItem branch={branch} project={project} />
             ),
           }))}
           selected={currentBranch?.name ?? "–"}
@@ -87,7 +88,7 @@ export function Header({
 
         <a
           className="fill-violet-500 hover:fill-violet-600 "
-          href={`https://github.com/${project?.organization}/${project?.repository}/pull/${currentBranch?.pr_number}`}
+          href={`https://github.com/${project?.organization}/${project?.repository}/pull/${pullRequest?.github_pr_number}`}
           rel="noreferrer noopener"
           target="_blank"
         >
@@ -96,9 +97,9 @@ export function Header({
 
         {currentRun && currentBranch && (
           <ApproveButton
-            currentBranch={currentBranch}
-            currentRun={currentRun}
+            branch={currentBranch}
             project={project}
+            run={currentRun}
           />
         )}
       </div>
@@ -106,7 +107,7 @@ export function Header({
   );
 }
 
-const RunDropDownItem = function RunDropDownItem({
+const RunDropDownItem = withSuspenseLoader(function RunDropDownItem({
   currentBranchName,
   project,
   run,
@@ -115,41 +116,44 @@ const RunDropDownItem = function RunDropDownItem({
   project: Project;
   run: Run;
 }) {
+  const snapshotDiffs = snapshotDiffForRunCache.read(run.id);
+  const count = snapshotDiffs.length;
+
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
   //   console.groupCollapsed("<RunDropDownItem>");
   //   console.log("project:", project);
   //   console.log("currentBranchName:", currentBranchName);
   //   console.log("run:", run);
-  //   console.log("count:", count);
+  //   console.log("snapshotDiffs:", snapshotDiffs);
   //   console.groupEnd();
   // }
 
   return (
     <Link
       className="h-full w-full"
-      href={`/project/${project.short}/?branch=${currentBranchName}&run=${run.id}`}
+      href={`/project/${project.slug}/?branch=${currentBranchName}&run=${run.id}`}
     >
       <div className="flex justify-between w-full">
         <div
           className={classNames(
             "truncate pr-4",
-            run.num_snapshots_changed === 0 && "text-slate-400"
+            count === 0 && "text-slate-400"
           )}
         >
           {relativeTime(run.created_at)}
         </div>
-        {run.num_snapshots_changed > 0 && (
+        {count > 0 && (
           <div className="bg-violet-500 px-2 rounded text-white text-xs font-bold flex items-center">
-            {run.num_snapshots_changed}
+            {count}
           </div>
         )}
       </div>
     </Link>
   );
-};
+});
 
-function BranchDropDownItem({
+const BranchDropDownItem = withSuspenseLoader(function BranchDropDownItem({
   branch,
   project,
 }: {
@@ -177,37 +181,40 @@ function BranchDropDownItem({
     );
   }
 
+  const snapshotDiffs = snapshotDiffForRunCache.read(run.id);
+  const count = snapshotDiffs.length;
+
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
   //   console.groupCollapsed("<BranchDropDownItem>");
   //   console.log("run:", run);
-  //   console.log("count:", count);
+  //   console.log("snapshotDiffs:", snapshotDiffs);
   //   console.groupEnd();
   // }
 
   return (
     <Link
       className="h-full w-full"
-      href={`/project/${project.short}/?branch=${branch.name}`}
+      href={`/project/${project.slug}/?branch=${branch.name}`}
     >
       <div className="flex justify-between w-full">
         <div
           className={classNames(
             "truncate pr-4",
-            run.num_snapshots_changed === 0 && "text-slate-400"
+            count === 0 && "text-slate-400"
           )}
         >
           {branch.name}
         </div>
-        {run.num_snapshots_changed > 0 && (
+        {count > 0 && (
           <div className="bg-violet-500 px-2 rounded text-white text-xs font-bold flex items-center">
-            {run.num_snapshots_changed}
+            {count}
           </div>
         )}
       </div>
     </Link>
   );
-}
+});
 
 // Transform a date into a relative time from now, e.g. 2 days ago
 function relativeTime(date) {

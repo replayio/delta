@@ -1,19 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { downloadSnapshot } from "../../lib/server/supabase/storage";
-import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./statusCodes";
-import {
-  GenericResponse,
-  sendErrorMissingParametersResponse,
-  sendErrorResponse,
-  sendResponse,
-} from "./utils";
+import { downloadSnapshot } from "../../lib/server/supabase/storage/Snapshots";
+import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
+import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
 export type RequestParams = {
   path: string;
 };
 export type ResponseData = string;
-export type Response = GenericResponse<ResponseData>;
 
 export default async function handler(
   request: NextApiRequest,
@@ -21,26 +15,20 @@ export default async function handler(
 ) {
   const { path } = request.query as RequestParams;
   if (!path) {
-    return sendErrorMissingParametersResponse(response, { path });
+    return sendApiMissingParametersResponse(response, { path });
   }
 
-  const { data, error } = await downloadSnapshot(path);
-  if (error) {
-    return sendErrorResponse(
-      response,
-      error.message,
-      HTTP_STATUS_CODES.NOT_FOUND,
-      DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED,
-      `Download failed for Snapshot with path "${path}"`
-    );
-  } else if (!data) {
-    return sendErrorResponse(
-      response,
-      `Download failed for Snapshot with path "${path}"`,
-      HTTP_STATUS_CODES.NOT_FOUND,
-      DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED
-    );
-  } else {
-    return sendResponse<ResponseData>(response, data);
+  try {
+    const data = await downloadSnapshot(path);
+    return sendApiResponse<ResponseData>(response, {
+      httpStatusCode: HTTP_STATUS_CODES.OK,
+      data,
+    });
+  } catch (error) {
+    return sendApiResponse(response, {
+      data: error,
+      deltaErrorCode: DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED,
+      httpStatusCode: HTTP_STATUS_CODES.NOT_FOUND,
+    });
   }
 }

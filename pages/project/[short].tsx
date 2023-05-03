@@ -9,80 +9,92 @@ import { SnapshotRow } from "../../components/SnapshotRow";
 import useSnapshotPrefetchedData from "../../lib/hooks/useSnapshotPrefetchedData";
 import {
   Branch,
+  BranchId,
+  GithubRunId,
+  Project,
+  ProjectSlug,
+  PullRequest,
   Run,
   RunId,
-  Project,
-  ProjectShort,
-  GithubRunId,
 } from "../../lib/types";
 
 import withSuspenseLoader from "../../components/withSuspenseLoader";
+import { SnapshotDiff } from "../../lib/server/types";
 import { branchCache, branchesCache } from "../../suspense/BranchCache";
-import { runsCache } from "../../suspense/RunCache";
 import { projectCache } from "../../suspense/ProjectCache";
-import { SnapshotFile, snapshotFilesCache } from "../../suspense/SnapshotCache";
+import { pullRequestForRunCache } from "../../suspense/PullRequestsCache";
+import { runsCache } from "../../suspense/RunCache";
+import { snapshotDiffForRunCache } from "../../suspense/SnapshotCache";
 
 export default function Short() {
   const router = useRouter();
   const {
     run: runIdFromUrl,
-    branch: branchName,
-    fileName: currentFileName,
-    short: projectShort,
+    branch: branchIdString,
+    fileName: currentFile,
+    short: projectSlug,
   } = router.query as { [key: string]: string };
 
   // Note this route may render on the server, in which case all query params are undefined.
   // TODO Can we access these params on the server somehow so we can server-render the page?
-  if (!projectShort) {
+  if (!projectSlug) {
     console.error("No project id in URL");
     return null;
   }
 
+  const branchId = parseInt(branchIdString) as unknown as BranchId;
+
   return (
     <ShortSuspends
-      branchName={branchName ?? null}
-      currentFileName={currentFileName ?? null}
+      branchId={branchId ?? null}
+      currentFile={currentFile ?? null}
       runId={(runIdFromUrl as RunId) ?? null}
-      projectShort={projectShort as ProjectShort}
+      projectSlug={projectSlug as ProjectSlug}
     />
   );
 }
 
 const ShortSuspends = withSuspenseLoader(function ShortSuspends({
-  branchName,
-  currentFileName,
+  branchId,
+  currentFile,
   runId,
-  projectShort,
+  projectSlug,
 }: {
-  branchName: string | null;
-  currentFileName: string | null;
+  branchId: BranchId | null;
+  currentFile: string | null;
   runId: RunId | null;
-  projectShort: ProjectShort;
+  projectSlug: ProjectSlug;
 }) {
   // TODO If we passed branch id instead of name, we wouldn't need to fetch the branch here.
-  const project = projectCache.read(null, projectShort);
+  const project = projectCache.read(null, projectSlug);
   const branches = branchesCache.read(project.id);
 
-  if (!branchName) {
-    branchName = branches?.[0]?.name ?? null;
+  if (!branchId) {
+    branchId = branches?.[0]?.id ?? null;
   }
 
-  const currentBranch = branchName
-    ? branchCache.read(branchName as string)
-    : null;
-  const runs = currentBranch ? runsCache.read(currentBranch.id) : null;
+  if (!branchId) {
+    return null;
+  }
+
+  const currentBranch = branchCache.read(branchId);
+  const runs = runsCache.read(currentBranch.id);
+  if (runs.length === 0) {
+    return null;
+  }
 
   if (!runId) {
-    runId = runs?.[0]?.id ?? null;
+    runId = runs[0].id;
   }
 
-  const currentRun = runId
-    ? runs?.find((run) => run.id === runId) ?? null
-    : null;
+  const currentRun = runs.find((run) => run.id === runId);
+  if (!currentRun) {
+    return null;
+  }
 
-  const snapshotFiles = currentRun
-    ? snapshotFilesCache.read(project.id, currentRun.id)
-    : null;
+  const pullRequest = pullRequestForRunCache.read(runId);
+
+  const snapshotDiffs = snapshotDiffForRunCache.read(currentRun.id);
 
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
@@ -100,11 +112,12 @@ const ShortSuspends = withSuspenseLoader(function ShortSuspends({
     <ShortWithData
       branches={branches}
       currentBranch={currentBranch}
-      currentFileName={currentFileName}
+      currentFile={currentFile}
       currentRun={currentRun}
       project={project}
-      snapshotFiles={snapshotFiles}
+      pullRequest={pullRequest}
       runs={runs}
+      snapshotDiffs={snapshotDiffs}
     />
   );
 });
@@ -112,25 +125,27 @@ const ShortSuspends = withSuspenseLoader(function ShortSuspends({
 function ShortWithData({
   branches,
   currentBranch,
-  currentFileName,
+  currentFile,
   currentRun,
   project,
-  snapshotFiles,
+  pullRequest,
   runs,
+  snapshotDiffs,
 }: {
   branches: Branch[];
-  currentBranch: Branch | null;
-  currentFileName: string | null;
-  currentRun: Run | null;
+  currentBranch: Branch;
+  currentFile: string | null;
+  currentRun: Run;
   project: Project;
-  snapshotFiles: SnapshotFile[] | null;
-  runs: Run[] | null;
+  pullRequest: PullRequest;
+  runs: Run[];
+  snapshotDiffs: SnapshotDiff[];
 }) {
   const shownBranches = branches.filter(
     (branch) => branch.name !== project.primary_branch
   );
 
-  const isPending = currentRun?.status === null;
+  const isPending = currentRun?.github_status === "queued";
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -139,6 +154,7 @@ function ShortWithData({
         currentBranch={currentBranch}
         currentRun={currentRun}
         project={project}
+        pullRequest={pullRequest}
         runs={runs}
       />
 
@@ -146,13 +162,13 @@ function ShortWithData({
         <SubViewRunPending project={project} runId={currentRun.github_run_id} />
       ) : shownBranches.length == 0 ? (
         <SubViewNoOpenBranches />
-      ) : snapshotFiles === null || snapshotFiles.length == 0 ? (
+      ) : snapshotDiffs?.length == 0 ? (
         <SubViewNoChanges />
       ) : (
         <SubViewLoadedData
           currentRun={currentRun}
-          currentFileName={currentFileName}
-          snapshotFiles={snapshotFiles}
+          currentFile={currentFile}
+          snapshotDiffs={snapshotDiffs}
         />
       )}
     </div>
@@ -181,48 +197,32 @@ function SubViewRunPending({
 
 function SubViewLoadedData({
   currentRun,
-  currentFileName,
-  snapshotFiles,
+  currentFile,
+  snapshotDiffs,
 }: {
   currentRun: Run | null;
-  currentFileName: string | null;
-  snapshotFiles: SnapshotFile[];
+  currentFile: string | null;
+  snapshotDiffs: SnapshotDiff[];
 }) {
-  const filteredSnapshotFiles = useMemo(
-    () =>
-      snapshotFiles.filter(
-        (snapshotFile) =>
-          snapshotFile.variants.dark?.changed ||
-          snapshotFile.variants.light?.changed
-      ),
-    [snapshotFiles]
-  );
-
-  if (!currentFileName && filteredSnapshotFiles.length > 0) {
-    currentFileName = filteredSnapshotFiles[0].fileName;
+  if (!currentFile && snapshotDiffs.length > 0) {
+    currentFile = snapshotDiffs[0].file;
   }
 
-  const [currentSnapshotFile, snapshotFileIndex] = useMemo(() => {
-    let currentSnapshotFile: SnapshotFile | null = null;
-    let index = -1;
-    if (currentFileName != null) {
-      index = filteredSnapshotFiles.findIndex(
-        (snapshotFile) => snapshotFile.fileName === currentFileName
-      );
-      if (index >= 0) {
-        currentSnapshotFile = filteredSnapshotFiles[index];
-      }
-    }
-    return [currentSnapshotFile, index];
-  }, [filteredSnapshotFiles, currentFileName]);
+  const index = useMemo(
+    () =>
+      snapshotDiffs.findIndex(
+        (snapshotDiff) => snapshotDiff.file === currentFile
+      ),
+    [currentFile, snapshotDiffs]
+  );
 
-  useSnapshotPrefetchedData(filteredSnapshotFiles, snapshotFileIndex);
+  useSnapshotPrefetchedData(snapshotDiffs, index);
 
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
   //   console.groupCollapsed("<SubViewLoadedData>");
-  //   console.log("currentFileName:", currentFileName);
-  //   console.log("filteredSnapshotFiles:", filteredSnapshotFiles);
+  //   console.log("currentFile:", currentFile);
+  //   console.log("snapshotDiffs:", snapshotDiffs);
   //   console.groupEnd();
   // }
 
@@ -231,12 +231,12 @@ function SubViewLoadedData({
       <PanelGroup direction="horizontal">
         <Panel minSize={5} maxSize={25} defaultSize={15} order={1}>
           <div className="w-full h-full flex flex-col h-full overflow-y-auto overflow-x-hidden bg-slate-100 py-1">
-            {filteredSnapshotFiles.map((snapshotFile) => (
+            {snapshotDiffs.map((snapshotDiff) => (
               <SnapshotRow
-                currentRun={currentRun}
-                isSelected={snapshotFile.fileName === currentFileName}
-                key={snapshotFile.fileName}
-                snapshotFile={snapshotFile}
+                isSelected={snapshotDiff.file === currentFile}
+                key={snapshotDiff.file}
+                run={currentRun}
+                snapshotDiff={snapshotDiff}
               />
             ))}
           </div>
@@ -246,11 +246,8 @@ function SubViewLoadedData({
         </PanelResizeHandle>
         <Panel order={2}>
           <div className="w-full h-full flex flex-col flex-grow overflow-y-auto overflow-x-hidden items-center">
-            {currentSnapshotFile && (
-              <Snapshot
-                key={currentSnapshotFile.fileName}
-                snapshotFile={currentSnapshotFile}
-              />
+            {index >= 0 && (
+              <Snapshot key={index} snapshotDiff={snapshotDiffs[index]} />
             )}
           </div>
         </Panel>

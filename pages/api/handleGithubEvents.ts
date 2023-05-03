@@ -14,8 +14,6 @@ import { createCheck, updateCheck } from "../../lib/server/github/Checks";
 import { createComment, updateComment } from "../../lib/server/github/Comments";
 import { findPullRequestForProjectAndUserAndBranch } from "../../lib/server/github/PullRequests";
 import { getHTTPRequests, setupHook } from "../../lib/server/http-replay";
-import { findGithubEventPullRequest } from "../../lib/server/supabase/functions/findGithubEventPullRequest";
-import { snapshotsForGithubRun } from "../../lib/server/supabase/functions/snapshotsForGithubRun";
 import { insertHTTPEvent } from "../../lib/server/supabase/storage/HttpEvents";
 import {
   getBranchForProjectAndOrganizationAndBranchName,
@@ -25,6 +23,7 @@ import { insertGithubEvent } from "../../lib/server/supabase/tables/GithubEvents
 import { getProjectForOrganizationAndRepository } from "../../lib/server/supabase/tables/Projects";
 import {
   getOpenPullRequestForBranch,
+  getPullRequestForGitHubPrNumber,
   insertPullRequest,
   updatePullRequest,
 } from "../../lib/server/supabase/tables/PullRequests";
@@ -33,6 +32,7 @@ import {
   insertRun,
   updateRun,
 } from "../../lib/server/supabase/tables/Runs";
+import { getSnapshotsForGithubRun } from "../../lib/server/supabase/tables/Snapshots";
 import { GithubCheckId, GithubEventType, GithubRunId } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from "./types";
@@ -178,7 +178,7 @@ async function handlePullRequestClosedEvent(
   const organization = event.pull_request.head.repo.owner.login;
   const repository = event.pull_request.head.repo.name;
 
-  const pullRequest = await findGithubEventPullRequest(
+  const pullRequest = await getPullRequestForGitHubPrNumber(
     organization,
     repository,
     prNumber
@@ -228,7 +228,7 @@ async function handlePullRequestOpenedOrReopenedEvent(
     });
   }
 
-  const pullRequest = await findGithubEventPullRequest(
+  const pullRequest = await getPullRequestForGitHubPrNumber(
     organization,
     repository,
     prNumber
@@ -313,7 +313,7 @@ async function handleWorkflowJobCompletedEvent(
     throw Error(`Could not find open PullRequests branch "${name}"`);
   }
 
-  const newSnapshots = await snapshotsForGithubRun(githubRunId);
+  const newSnapshots = await getSnapshotsForGithubRun(githubRunId);
   const [comment, diff] = await createDiffComment({
     branchName,
     newSnapshots,

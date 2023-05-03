@@ -1,4 +1,4 @@
-import { Project, ProjectId, ProjectSlug } from "../../../types";
+import { Project, ProjectId, ProjectSlug, RunId } from "../../../types";
 import {
   assertQueryResponse,
   assertQuerySingleResponse,
@@ -32,6 +32,18 @@ export async function getProjectForOrganizationAndRepository(
         .eq("repository", repository)
         .single(),
     `Could not find Project for organization "${organization}" and repository "${repository}"`
+  );
+}
+
+export async function getProjectForRun(runId: RunId) {
+  return assertQuerySingleResponse<Project>(
+    () =>
+      supabase
+        .from("projects, branches(pull_requests(runs()))")
+        .select("*")
+        .eq("runs.id", runId)
+        .single(),
+    `Could not find Project for Run "${runId}"`
   );
 }
 

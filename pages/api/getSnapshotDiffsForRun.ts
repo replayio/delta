@@ -1,10 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import diffSnapshots from "../../lib/server/diffSnapshots";
-import { findProjectForRun } from "../../lib/server/supabase/functions/findProjectForRun";
-import { latestSnapshotsForPrimaryBranch } from "../../lib/server/supabase/functions/latestSnapshotsForPrimaryBranch";
-import { snapshotsForGithubRun } from "../../lib/server/supabase/functions/snapshotsForGithubRun";
-import { getRunForId } from "../../lib/server/supabase/tables/Runs";
+import { getPrimaryBranchForProject } from "../../lib/server/supabase/tables/Branches";
+import { getProjectForRun } from "../../lib/server/supabase/tables/Projects";
+import {
+  getMostRecentRunForBranch,
+  getRunForId,
+} from "../../lib/server/supabase/tables/Runs";
+import { getSnapshotsForGithubRun } from "../../lib/server/supabase/tables/Snapshots";
 import { SnapshotDiff } from "../../lib/server/types";
 import { RunId } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
@@ -28,10 +31,13 @@ export default async function handler(
 
   try {
     const run = await getRunForId(runId);
-    const project = await findProjectForRun(run.id);
+    const project = await getProjectForRun(run.id);
 
-    const oldSnapshots = await latestSnapshotsForPrimaryBranch(project.id);
-    const newSnapshots = await snapshotsForGithubRun(run.github_run_id);
+    const primaryBranch = await getPrimaryBranchForProject(project);
+    const primaryBranchRun = await getMostRecentRunForBranch(primaryBranch.id);
+
+    const oldSnapshots = await getSnapshotsForGithubRun(primaryBranchRun.id);
+    const newSnapshots = await getSnapshotsForGithubRun(run.github_run_id);
 
     const data = await diffSnapshots(oldSnapshots, newSnapshots);
 

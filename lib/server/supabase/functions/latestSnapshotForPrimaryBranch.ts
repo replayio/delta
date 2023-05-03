@@ -42,6 +42,7 @@ import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { ProjectId, Snapshot } from "../../../types";
 import { assertQuerySingleResponse, supabase } from "../supabase";
 
+// TODO Delete this in favor of getMostRecentSnapshotForBranchAndFile() once it's been confirmed to work.
 export async function latestSnapshotForPrimaryBranch(
   projectId: ProjectId,
   file: string

@@ -38,6 +38,7 @@
 import { ProjectId, Snapshot } from "../../../types";
 import { assertQueryResponse, supabase } from "../supabase";
 
+// TODO Delete this in favor of getMostRecentRunForBranch() and getSnapshotsForGithubRun() once it's been confirmed to work.
 export async function latestSnapshotsForPrimaryBranch(projectId: ProjectId) {
   return assertQueryResponse<Snapshot>(
     () =>

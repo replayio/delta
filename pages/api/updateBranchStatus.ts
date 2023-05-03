@@ -6,12 +6,20 @@ import diffSnapshots from "../../lib/server/diffSnapshots";
 import { updateCheck } from "../../lib/server/github/Checks";
 import { updateComment } from "../../lib/server/github/Comments";
 import { CheckRun, IssueComment } from "../../lib/server/github/types";
-import { latestSnapshotsForPrimaryBranch } from "../../lib/server/supabase/functions/latestSnapshotsForPrimaryBranch";
-import { getBranchForId } from "../../lib/server/supabase/tables/Branches";
+import {
+  getBranchForId,
+  getPrimaryBranchForProject,
+} from "../../lib/server/supabase/tables/Branches";
 import { getProjectForId } from "../../lib/server/supabase/tables/Projects";
 import { getOpenPullRequestForBranch } from "../../lib/server/supabase/tables/PullRequests";
-import { updateRun } from "../../lib/server/supabase/tables/Runs";
-import { getSnapshotsForRun } from "../../lib/server/supabase/tables/Snapshots";
+import {
+  getMostRecentRunForBranch,
+  updateRun,
+} from "../../lib/server/supabase/tables/Runs";
+import {
+  getSnapshotsForGithubRun,
+  getSnapshotsForRun,
+} from "../../lib/server/supabase/tables/Snapshots";
 import { SnapshotDiff } from "../../lib/server/types";
 import { BranchId, Project, ProjectId, RunId, Snapshot } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
@@ -121,7 +129,9 @@ export async function createDiffComment({
   newSnapshots: Snapshot[];
   project: Project;
 }): Promise<[comment: string, diff: SnapshotDiff[]]> {
-  const oldSnapshots = await latestSnapshotsForPrimaryBranch(project.id);
+  const primaryBranch = await getPrimaryBranchForProject(project);
+  const primaryBranchRun = await getMostRecentRunForBranch(primaryBranch.id);
+  const oldSnapshots = await getSnapshotsForGithubRun(primaryBranchRun.id);
 
   const diff = await diffSnapshots(oldSnapshots, newSnapshots);
   const numChanges = diff.length;

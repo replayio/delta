@@ -21,6 +21,7 @@
 import { Branch, ProjectId, PullRequestStatus } from "../../../types";
 import { assertQueryResponse, supabase } from "../supabase";
 
+// TODO Delete this in favor of getBranchesForProject() once it's been confirmed to work.
 export async function findProjectBranchesForPullRequestStatus(
   projectId: ProjectId,
   status: PullRequestStatus

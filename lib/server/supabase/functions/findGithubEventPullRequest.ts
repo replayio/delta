@@ -31,6 +31,7 @@ import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { PullRequest } from "../../../types";
 import { assertQuerySingleResponse, supabase } from "../supabase";
 
+// TODO Delete this in favor of getPullRequestForGitHubPrNumber() once it's been confirmed to work.
 export async function findGithubEventPullRequest(
   organization: string,
   repository: string,

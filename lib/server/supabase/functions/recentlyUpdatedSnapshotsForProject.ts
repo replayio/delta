@@ -25,6 +25,7 @@
 import { ProjectId, Snapshot } from "../../../types";
 import { assertQueryResponse, supabase } from "../supabase";
 
+// TODO Delete this in favor of getRecentlyUpdatedSnapshotsForProject() once it's been confirmed to work.
 export async function recentlyUpdatedSnapshotsForProject(
   projectId: ProjectId,
   afterDate: Date = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000),

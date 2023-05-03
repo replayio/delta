@@ -25,6 +25,24 @@ export async function getPullRequestForId(id: PullRequestId) {
   );
 }
 
+export async function getPullRequestForGitHubPrNumber(
+  projectOrganization: string,
+  projectRepository: string,
+  pullRequestNumber: number
+) {
+  return assertQuerySingleResponse<PullRequest>(
+    () =>
+      supabase
+        .from("pull_requests, branches(projects())")
+        .select("*")
+        .eq("github_pr_number", pullRequestNumber)
+        .eq("projects.organization", projectOrganization)
+        .eq("repository", projectRepository)
+        .single(),
+    `Could not find PullRequest for GitHub PR ${pullRequestNumber}`
+  );
+}
+
 export async function getPullRequestForRun(runId: RunId) {
   return assertQuerySingleResponse<PullRequest>(
     () =>

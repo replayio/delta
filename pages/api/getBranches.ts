@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { findProjectBranchesForPullRequestStatus } from "../../lib/server/supabase/functions/findProjectBranchesForPullRequestStatus";
+import { getBranchesForProject } from "../../lib/server/supabase/tables/Branches";
 import { Branch, ProjectId } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
@@ -26,10 +26,7 @@ export default async function handler(
   const projectId = parseInt(projectIdString) as unknown as ProjectId;
 
   try {
-    const data = await findProjectBranchesForPullRequestStatus(
-      projectId,
-      status
-    );
+    const data = await getBranchesForProject(projectId, status);
     return sendApiResponse<ResponseData>(response, {
       httpStatusCode: HTTP_STATUS_CODES.OK,
       data,

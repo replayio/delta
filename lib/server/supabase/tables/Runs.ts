@@ -11,6 +11,19 @@ import {
   supabase,
 } from "../supabase";
 
+export async function getMostRecentRunForBranch(branchId: BranchId) {
+  return assertQuerySingleResponse<Run>(
+    () =>
+      supabase
+        .from("runs, pull_requests(branches())")
+        .select("*")
+        .eq("branch.id", branchId)
+        .order("created_at", { ascending: false })
+        .single(),
+    `Could not find Run for Branch "${branchId}"`
+  );
+}
+
 export async function getRunForGithubRun(githubRunId: GithubRunId) {
   return assertQuerySingleResponse<Run>(
     () =>

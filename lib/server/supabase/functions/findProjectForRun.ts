@@ -32,6 +32,7 @@ import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { Project, RunId } from "../../../types";
 import { assertQuerySingleResponse, supabase } from "../supabase";
 
+// TODO Delete this in favor of getProjectForRun() once it's been confirmed to work.
 export async function findProjectForRun(runId: RunId) {
   return assertQuerySingleResponse<Project>(
     () =>

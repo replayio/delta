@@ -1,4 +1,11 @@
-import { BranchId, RunId, Snapshot, SnapshotId } from "../../../types";
+import {
+  BranchId,
+  GithubRunId,
+  ProjectId,
+  RunId,
+  Snapshot,
+  SnapshotId,
+} from "../../../types";
 import {
   assertQueryResponse,
   assertQuerySingleResponse,
@@ -32,6 +39,36 @@ export async function getMostRecentSnapshotForBranchAndFile(
   );
 
   return snapshot;
+}
+
+export async function getRecentlyUpdatedSnapshotsForProject(
+  projectId: ProjectId,
+  afterDate: Date,
+  limit: number = 1000
+) {
+  return await assertQueryResponse<Snapshot>(
+    () =>
+      supabase
+        .from("snapshots, runs(branches(projects()))")
+        .select("*")
+        .eq("projects.id", projectId)
+        .gte("snapshots.created_at", afterDate.toLocaleDateString())
+        .order("file")
+        .limit(limit),
+    `Could not find Snapshots for Project "${projectId}" after date "${afterDate.toLocaleDateString()}"`
+  );
+}
+
+export async function getSnapshotsForGithubRun(githubRunId: GithubRunId) {
+  return await assertQueryResponse<Snapshot>(
+    () =>
+      supabase
+        .from("snapshots, runs()")
+        .select("*")
+        .eq("runs.github_run_id", githubRunId)
+        .order("file"),
+    `Could not find Snapshots for GitHub run "${githubRunId}"`
+  );
 }
 
 export async function getSnapshotsForRun(runId: RunId) {

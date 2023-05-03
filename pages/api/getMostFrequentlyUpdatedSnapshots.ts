@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { recentlyUpdatedSnapshotsForProject } from "../../lib/server/supabase/functions/recentlyUpdatedSnapshotsForProject";
 import { getProjectForSlug } from "../../lib/server/supabase/tables/Projects";
+import { getRecentlyUpdatedSnapshotsForProject } from "../../lib/server/supabase/tables/Snapshots";
 import { ProjectId, ProjectSlug } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
@@ -48,9 +48,11 @@ export default async function handler(
 
   // Find all recent snapshots for this project.
   try {
-    const snapshots = await recentlyUpdatedSnapshotsForProject(
+    const snapshots = await getRecentlyUpdatedSnapshotsForProject(
       projectId,
-      afterDate ? new Date(afterDate) : undefined
+      afterDate
+        ? new Date(afterDate)
+        : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
     );
 
     const pathMetadataMap = new Map<string, PathMetadata>();

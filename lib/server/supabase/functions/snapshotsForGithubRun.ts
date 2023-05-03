@@ -7,7 +7,7 @@
 
   SELECT snapshots.*
   FROM snapshots
-    INNER JOIN "Runs" runs ON snapshots.run_id = runs.id
+    INNER JOIN runs ON snapshots.run_id = runs.id
   WHERE runs.github_run_id = github_run_id
   ORDER BY snapshots.path ASC;
 
@@ -17,6 +17,7 @@
 import { GithubRunId, Snapshot } from "../../../types";
 import { assertQueryResponse, supabase } from "../supabase";
 
+// TODO Delete this in favor of getSnapshotsForGithubRun() once it's been confirmed to work.
 export async function snapshotsForGithubRun(githubRunId: GithubRunId) {
   return assertQueryResponse<Snapshot>(
     () =>

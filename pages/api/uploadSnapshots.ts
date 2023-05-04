@@ -1,10 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import { createHash } from "crypto";
-import { findPullRequestForProjectAndUserAndBranch } from "../../lib/server/github/PullRequests";
 import { uploadSnapshot } from "../../lib/server/supabase/storage/Snapshots";
+import { getBranchForProjectAndOrganizationAndBranchName } from "../../lib/server/supabase/tables/Branches";
 import { getProjectForSlug } from "../../lib/server/supabase/tables/Projects";
-import { getPullRequestForGitHubPrNumber } from "../../lib/server/supabase/tables/PullRequests";
 import { insertRun } from "../../lib/server/supabase/tables/Runs";
 import { insertSnapshot } from "../../lib/server/supabase/tables/Snapshots";
 import { GithubRunId, ProjectSlug } from "../../lib/types";
@@ -38,7 +37,6 @@ export default async function handler(
     actor,
     branchName,
     owner,
-    prNumber: prNumberString,
     projectSlug,
     runId: githubRunId,
   } = request.query as Partial<RequestParams>;
@@ -65,28 +63,16 @@ export default async function handler(
 
   try {
     const project = await getProjectForSlug(projectSlug);
-
-    let prNumber = prNumberString ? parseInt(prNumberString) : undefined;
-    if (prNumber == null) {
-      const githubPullRequest = await findPullRequestForProjectAndUserAndBranch(
-        project,
-        owner,
-        branchName
-      );
-      if (githubPullRequest == null) {
-        throw Error(
-          `Could not find PR for Project "${projectSlug}", owner "${owner}", and branch "${branchName}"`
-        );
-      }
-
-      prNumber = githubPullRequest.number;
-    }
-
-    const pullRequest = await getPullRequestForGitHubPrNumber(
-      project.organization,
-      project.repository,
-      prNumber
+    const branch = await getBranchForProjectAndOrganizationAndBranchName(
+      project.id,
+      owner,
+      branchName
     );
+    if (branch == null) {
+      throw Error(
+        `No branches found for project ${project.id} and owner "${owner}" with name "${branchName}"`
+      );
+    }
 
     for (let index = 0; index < images.length; index++) {
       const { base64, file } = images[index];
@@ -99,11 +85,11 @@ export default async function handler(
         await uploadSnapshot(base64, project.id);
 
         const run = await insertRun({
+          branch_id: branch.id,
           delta_has_user_approval: false,
           github_actor: actor,
           github_run_id: githubRunId,
           github_status: "completed",
-          pull_request_id: pullRequest.id,
         });
 
         const sha = createHash("sha256").update(base64).digest("hex");

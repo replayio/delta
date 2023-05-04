@@ -20,7 +20,6 @@ import withSuspenseLoader from "../../../components/withSuspenseLoader";
 import { SnapshotDiff } from "../../../lib/server/types";
 import { branchCache, branchesCache } from "../../../suspense/BranchCache";
 import { projectCache } from "../../../suspense/ProjectCache";
-import { pullRequestForRunCache } from "../../../suspense/PullRequestsCache";
 import { runsCache } from "../../../suspense/RunCache";
 import { snapshotDiffForRunCache } from "../../../suspense/SnapshotCache";
 
@@ -88,8 +87,6 @@ const PageSuspends = withSuspenseLoader(function PageSuspends({
     return null;
   }
 
-  const pullRequest = pullRequestForRunCache.read(runId);
-
   const snapshotDiffs = snapshotDiffForRunCache.read(currentRun.id);
 
   // Debug logging
@@ -117,7 +114,6 @@ const PageSuspends = withSuspenseLoader(function PageSuspends({
         currentBranch={currentBranch}
         currentRun={currentRun}
         project={project}
-        pullRequest={pullRequest}
         runs={runs}
       />
 

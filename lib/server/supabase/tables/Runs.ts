@@ -1,18 +1,22 @@
-import { BranchId, PullRequestId, Run, RunId } from "../../../types";
+import { BranchId, Run, RunId } from "../../../types";
 import { supabase } from "../../initSupabase";
 import { assertQueryResponse, assertQuerySingleResponse } from "../supabase";
 
 export async function getMostRecentRunForBranch(branchId: BranchId) {
-  return assertQuerySingleResponse<Run>(
+  const branch = await assertQuerySingleResponse<{ runs: Run[] }>(
     () =>
       supabase
-        .from("runs")
-        .select("*, pull_requests(branches(id))")
-        .eq("pull_requests.branches.id", branchId)
-        .order("created_at", { ascending: false })
+        .from("branches")
+        .select("id, runs(*)")
+        .eq("id", branchId)
         .single(),
-    `Could not find Run for Branch "${branchId}"`
+    `Could not find Runs for Branch "${branchId}"`
   );
+  if (branch.runs.length === 0) {
+    throw Error(`Could not find Runs for Branch "${branchId}"`);
+  } else {
+    return branch.runs[branch.runs.length - 1];
+  }
 }
 
 export async function getRunForId(runId: RunId) {
@@ -26,28 +30,17 @@ export async function getRunsForBranch(
   branchId: BranchId,
   limit: number = 1000
 ) {
-  return assertQueryResponse<Run>(
+  const result = await assertQueryResponse<any>(
     () =>
       supabase
-        .from("runs")
-        .select("*, pull_requests(branches(id))")
-        .eq("pull_requests.branches.id", branchId)
+        .from("branches")
+        .select("id, runs(*)")
+        .eq("id", branchId)
         .order("created_at", { ascending: false })
         .limit(limit),
     `Could not find Runs for Branch "${branchId}"`
   );
-}
-
-export async function getRunsForPullRequest(pullRequestId: PullRequestId) {
-  return assertQueryResponse<Run>(
-    () =>
-      supabase
-        .from("runs")
-        .select("*")
-        .eq("pull_request_id", pullRequestId)
-        .order("created_at", { ascending: false }),
-    `Could not find Runs for PullRequest "${pullRequestId}"`
-  );
+  return result.length === 0 ? [] : (result[0].runs as Run[]);
 }
 
 export async function insertRun(data: Omit<Run, "created_at" | "id">) {

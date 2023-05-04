@@ -38,10 +38,10 @@ export async function getBranchesForProject(
   return assertQueryResponse<Branch>(() => {
     let query = supabase
       .from("branches")
-      .select("*, pull_requests(github_status)")
+      .select("*")
       .eq("project_id", projectId);
     if (status) {
-      query = query.eq("pull_requests.github_status", status);
+      query = query.eq("github_pr_status", status);
     }
     return query;
   }, `Could not find Branches for Project "${projectId}"${status ? ` and status "${status}"` : ""}`);

@@ -13,40 +13,32 @@ export type Project = {
 export type ProjectId = Project["id"];
 export type ProjectSlug = Project["slug"];
 
+export type PullRequestStatus = "closed" | "open";
 export type Branch = {
   created_at: string;
   id: Opaque<"number", Branch>;
   name: string;
   organization: string;
   project_id: ProjectId;
-};
-export type BranchId = Branch["id"];
-
-export type PullRequestStatus = "closed" | "open";
-export type PullRequest = {
-  branch_id: BranchId;
-  created_at: string;
-  id: Opaque<"number", PullRequest>;
 
   // Github API
-  github_check_id: Opaque<"number", PullRequest> | null;
-  github_comment_id: Opaque<"number", PullRequest> | null;
-  github_head_sha: string;
+  github_pr_check_id: Opaque<"number", Branch> | null;
+  github_pr_comment_id: Opaque<"number", Branch> | null;
   github_pr_number: number;
-  github_status: PullRequestStatus;
+  github_pr_status: PullRequestStatus;
 };
-export type PullRequestId = PullRequest["id"];
-export type GithubCheckId = PullRequest["github_check_id"];
-export type GithubCommentId = PullRequest["github_comment_id"];
+export type BranchId = Branch["id"];
+export type GithubCheckId = Branch["github_pr_check_id"];
+export type GithubCommentId = Branch["github_pr_comment_id"];
 
 export type RunStatus = "queued" | "completed";
 export type Run = {
   created_at: string;
   id: Opaque<"number", Run>;
-  pull_request_id: PullRequestId;
+  branch_id: BranchId;
 
   // Github API
-  github_actor: string;
+  github_actor: string | null;
   github_run_id: Opaque<"number", Run>;
   github_status: RunStatus;
 

@@ -1,4 +1,4 @@
-import { Project, ProjectId, ProjectSlug, RunId } from "../../../types";
+import { Branch, Project, ProjectId, ProjectSlug, RunId } from "../../../types";
 import { supabase } from "../../initSupabase";
 import { assertQueryResponse, assertQuerySingleResponse } from "../supabase";
 
@@ -33,15 +33,18 @@ export async function getProjectForOrganizationAndRepository(
 }
 
 export async function getProjectForRun(runId: RunId) {
-  return assertQuerySingleResponse<Project>(
+  const { branches, ...project } = await assertQuerySingleResponse<
+    Project & { branches: Branch[] }
+  >(
     () =>
       supabase
         .from("projects")
-        .select("*, branches(pull_requests(runs(id)))")
-        .eq("branches.pull_requests.runs.id", runId)
+        .select("*, branches(runs(id))")
+        .eq("branches.runs.id", runId)
         .single(),
     `Could not find Project for Run "${runId}"`
   );
+  return project;
 }
 
 export async function getProjectForSlug(projectSlug: ProjectSlug) {

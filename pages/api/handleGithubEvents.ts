@@ -13,14 +13,10 @@ import { insertHTTPEvent } from "../../lib/server/supabase/storage/HttpEvents";
 import {
   getBranchForProjectAndOrganizationAndBranchName,
   insertBranch,
+  updateBranch,
 } from "../../lib/server/supabase/tables/Branches";
 import { insertGithubEvent } from "../../lib/server/supabase/tables/GithubEvents";
 import { getProjectForOrganizationAndRepository } from "../../lib/server/supabase/tables/Projects";
-import {
-  getPullRequestForGitHubPrNumber,
-  insertPullRequest,
-  updatePullRequest,
-} from "../../lib/server/supabase/tables/PullRequests";
 import { GithubEventType } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from "./types";
@@ -179,22 +175,30 @@ async function handlePullRequestClosedEvent(
     return;
   }
 
-  const prNumber = event.number;
-  const organization = event.pull_request.head.repo.owner.login;
-  const repository = event.pull_request.head.repo.name;
-
-  const pullRequest = await getPullRequestForGitHubPrNumber(
-    organization,
-    repository,
-    prNumber
-  );
-
-  await updatePullRequest(pullRequest.id, {
-    github_status: "closed",
-  });
-
   const projectOrganization = event.organization.login;
   const projectRepository = event.repository.name;
+  const project = await getProjectForOrganizationAndRepository(
+    projectOrganization,
+    projectRepository
+  );
+
+  const organization = event.pull_request.head.repo.owner.login;
+  const branchName = event.pull_request.head.ref;
+  const branch = await getBranchForProjectAndOrganizationAndBranchName(
+    project.id,
+    organization,
+    branchName
+  );
+  if (branch == null) {
+    throw Error(
+      `No branches found for project ${project.id} and organization "${organization}" with name "${branchName}"`
+    );
+  }
+
+  await updateBranch(branch.id, {
+    github_pr_status: "closed",
+  });
+
   return logAndSendResponse(
     projectOrganization,
     projectRepository,
@@ -223,7 +227,6 @@ async function handlePullRequestOpenedOrReopenedEvent(
 
   const prNumber = event.number;
   const organization = event.pull_request.head.repo.owner.login;
-  const repository = event.pull_request.head.repo.name;
   const branchName = event.pull_request.head.ref;
   let branch = await getBranchForProjectAndOrganizationAndBranchName(
     project.id,
@@ -235,26 +238,14 @@ async function handlePullRequestOpenedOrReopenedEvent(
       name: branchName,
       organization,
       project_id: project.id,
-    });
-  }
-
-  const pullRequest = await getPullRequestForGitHubPrNumber(
-    organization,
-    repository,
-    prNumber
-  );
-  if (pullRequest) {
-    updatePullRequest(pullRequest.id, {
-      github_status: "open",
-    });
-  } else {
-    await insertPullRequest({
-      branch_id: branch.id,
-      github_check_id: null,
-      github_comment_id: null,
-      github_head_sha: event.pull_request.head.sha,
+      github_pr_check_id: null,
+      github_pr_comment_id: null,
       github_pr_number: prNumber,
-      github_status: "open",
+      github_pr_status: "open",
+    });
+  } else if (branch.github_pr_status === "closed") {
+    updateBranch(branch.id, {
+      github_pr_status: "open",
     });
   }
 

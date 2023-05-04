@@ -2,7 +2,7 @@ import moment from "moment";
 import Image from "next/image";
 import Link from "next/link";
 import { isPromiseLike } from "suspense";
-import { Branch, Project, PullRequest, Run } from "../lib/types";
+import { Branch, Project, Run } from "../lib/types";
 import { mostRecentRunCache } from "../suspense/RunCache";
 import { snapshotDiffForRunCache } from "../suspense/SnapshotCache";
 import classNames from "../utils/classNames";
@@ -17,14 +17,12 @@ export function Header({
   currentBranch,
   currentRun,
   project,
-  pullRequest,
   runs,
 }: {
   branches: Branch[];
   currentBranch: Branch;
   currentRun: Run;
   project: Project;
-  pullRequest: PullRequest;
   runs: Run[];
 }) {
   // Debug logging
@@ -88,7 +86,7 @@ export function Header({
 
         <a
           className="fill-violet-500 hover:fill-violet-600 "
-          href={`https://github.com/${project?.organization}/${project?.repository}/pull/${pullRequest?.github_pr_number}`}
+          href={`https://github.com/${project?.organization}/${project?.repository}/pull/${currentBranch.github_pr_number}`}
           rel="noreferrer noopener"
           target="_blank"
         >

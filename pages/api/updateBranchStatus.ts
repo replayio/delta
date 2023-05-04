@@ -11,7 +11,6 @@ import {
   getPrimaryBranchForProject,
 } from "../../lib/server/supabase/tables/Branches";
 import { getProjectForId } from "../../lib/server/supabase/tables/Projects";
-import { getOpenPullRequestForBranch } from "../../lib/server/supabase/tables/PullRequests";
 import {
   getMostRecentRunForBranch,
   updateRun,
@@ -62,12 +61,6 @@ export default async function handler(
   try {
     const branch = await getBranchForId(branchId);
     const project = await getProjectForId(projectId);
-    const pullRequest = await getOpenPullRequestForBranch(branchId);
-    if (!pullRequest) {
-      throw Error(
-        `No PullRequests found for Project "${project.slug}" and Branch "${branch.name}"`
-      );
-    }
 
     updateRun(runId, {
       delta_has_user_approval: approved,
@@ -76,7 +69,7 @@ export default async function handler(
     const check = await updateCheck(
       project.organization,
       project.repository,
-      pullRequest.github_check_id,
+      branch.github_pr_check_id,
       {
         conclusion: approved ? "success" : "failure",
         title: approved ? "Changes approved" : "Changes rejected",
@@ -85,7 +78,7 @@ export default async function handler(
     );
 
     let issueComment: IssueComment | null = null;
-    if (pullRequest.github_comment_id) {
+    if (branch.github_pr_comment_id) {
       const snapshots = await getSnapshotsForRun(runId);
 
       const [comment] = await createDiffComment({
@@ -97,7 +90,7 @@ export default async function handler(
       issueComment = await updateComment(
         project.organization,
         project.repository,
-        pullRequest.github_comment_id,
+        branch.github_pr_comment_id,
         {
           body: comment,
         }

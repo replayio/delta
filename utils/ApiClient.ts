@@ -23,14 +23,6 @@ import type {
   ResponseData as GetPublicProjectsResponseData,
 } from "../pages/api/getPublicProjects";
 import type {
-  RequestParams as GetPullRequestForIdRequestParams,
-  ResponseData as GetPullRequestForIdResponseData,
-} from "../pages/api/getPullRequestForId";
-import type {
-  RequestParams as GetPullRequestForRunRequestParams,
-  ResponseData as GetPullRequestForRunResponseData,
-} from "../pages/api/getPullRequestForRun";
-import type {
   RequestParams as GetRunsRequestParams,
   ResponseData as GetRunsResponseData,
 } from "../pages/api/getRuns";
@@ -93,22 +85,6 @@ export async function getProject(
 ): Promise<GetProjectResponseData> {
   return fetchDataFromEndpoint<GetProjectResponseData>(
     `/api/getProject?${paramsToUrlString(params)}`
-  );
-}
-
-export async function getPullRequestForRun(
-  params: GetPullRequestForRunRequestParams
-): Promise<GetPullRequestForRunResponseData> {
-  return fetchDataFromEndpoint<GetPullRequestForRunResponseData>(
-    `/api/getPullRequestForRun?${paramsToUrlString(params)}}`
-  );
-}
-
-export async function getPullRequestForId(
-  params: GetPullRequestForIdRequestParams
-): Promise<GetPullRequestForIdResponseData> {
-  return fetchDataFromEndpoint<GetPullRequestForIdResponseData>(
-    `/api/getPullRequestForId?${paramsToUrlString(params)}}`
   );
 }
 

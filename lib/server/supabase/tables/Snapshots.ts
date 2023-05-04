@@ -8,19 +8,13 @@ import {
 } from "../../../types";
 import { supabase } from "../../initSupabase";
 import { assertQueryResponse, assertQuerySingleResponse } from "../supabase";
-import { getOpenPullRequestForBranch } from "./PullRequests";
-import { getRunsForPullRequest } from "./Runs";
+import { getRunsForBranch } from "./Runs";
 
 export async function getMostRecentSnapshotForBranchAndFile(
   branchId: BranchId,
   file: string
 ): Promise<Snapshot> {
-  const pullRequest = await getOpenPullRequestForBranch(branchId);
-  if (!pullRequest) {
-    throw Error(`Could not find open PullRequest for Branch "${branchId}"`);
-  }
-
-  const runs = await getRunsForPullRequest(pullRequest.id);
+  const runs = await getRunsForBranch(branchId);
   const mostRecentRun = runs[runs.length - 1];
   const snapshot = await assertQuerySingleResponse<Snapshot>(
     () =>
@@ -47,8 +41,8 @@ export async function getRecentlyUpdatedSnapshotsForProject(
     () =>
       supabase
         .from("snapshots")
-        .select("*, runs(pull_requests(branches(projects(id))))")
-        .eq("runs.pull_requests.branches.projects.id", projectId)
+        .select("*, runs(branches(projects(id)))")
+        .eq("runs.branches.projects.id", projectId)
         .gte("created_at", afterDate.toLocaleDateString())
         .order("delta_file", { ascending: true })
         .limit(limit),

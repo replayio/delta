@@ -76,7 +76,7 @@ const ShortSuspends = withSuspenseLoader(function ShortSuspends({
     return null;
   }
 
-  const currentBranch = branchCache.read(branchId);
+  const currentBranch = branchCache.read(project.id, branchId);
   const runs = runsCache.read(currentBranch.id);
   if (runs.length === 0) {
     return null;

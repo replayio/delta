@@ -1,10 +1,4 @@
-import {
-  BranchId,
-  GithubRunId,
-  PullRequestId,
-  Run,
-  RunId,
-} from "../../../types";
+import { BranchId, PullRequestId, Run, RunId } from "../../../types";
 import { supabase } from "../../initSupabase";
 import { assertQueryResponse, assertQuerySingleResponse } from "../supabase";
 
@@ -12,9 +6,9 @@ export async function getMostRecentRunForBranch(branchId: BranchId) {
   return assertQuerySingleResponse<Run>(
     () =>
       supabase
-        .from("runs, pull_requests(branches())")
-        .select("*")
-        .eq("branch.id", branchId)
+        .from("runs")
+        .select("*, pull_requests(branches(id))")
+        .eq("pull_requests.branches.id", branchId)
         .order("created_at", { ascending: false })
         .single(),
     `Could not find Run for Branch "${branchId}"`
@@ -36,8 +30,8 @@ export async function getRunsForBranch(
     () =>
       supabase
         .from("runs")
-        .select("*, pull_requests(branch())")
-        .eq("branch.id", branchId)
+        .select("*, pull_requests(branches(id))")
+        .eq("pull_requests.branches.id", branchId)
         .order("created_at", { ascending: false })
         .limit(limit),
     `Could not find Runs for Branch "${branchId}"`

@@ -36,9 +36,9 @@ export async function getProjectForRun(runId: RunId) {
   return assertQuerySingleResponse<Project>(
     () =>
       supabase
-        .from("projects, branches(pull_requests(runs()))")
-        .select("*")
-        .eq("runs.id", runId)
+        .from("projects")
+        .select("*, branches(pull_requests(runs(id)))")
+        .eq("branches.pull_requests.runs.id", runId)
         .single(),
     `Could not find Project for Run "${runId}"`
   );

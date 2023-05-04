@@ -33,10 +33,10 @@ export async function getPullRequestForGitHubPrNumber(
   return assertQuerySingleResponse<PullRequest>(
     () =>
       supabase
-        .from("pull_requests, branches(projects())")
-        .select("*")
+        .from("pull_requests")
+        .select("*, branches(projects(organization))")
         .eq("github_pr_number", pullRequestNumber)
-        .eq("projects.organization", projectOrganization)
+        .eq("branches.projects.organization", projectOrganization)
         .eq("repository", projectRepository)
         .single(),
     `Could not find PullRequest for GitHub PR ${pullRequestNumber}`
@@ -47,8 +47,8 @@ export async function getPullRequestForRun(runId: RunId) {
   return assertQuerySingleResponse<PullRequest>(
     () =>
       supabase
-        .from("pull_requests, runs()")
-        .select("*")
+        .from("pull_requests")
+        .select("*, runs(id)")
         .eq("runs.id", runId)
         .single(),
     `Could not find PullRequest for Run "${runId}"`

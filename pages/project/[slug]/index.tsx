@@ -2,11 +2,11 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { Header } from "../../components/Header";
-import Icon from "../../components/Icon";
-import { Snapshot } from "../../components/Snapshot";
-import { SnapshotRow } from "../../components/SnapshotRow";
-import useSnapshotPrefetchedData from "../../lib/hooks/useSnapshotPrefetchedData";
+import { Header } from "../../../components/Header";
+import Icon from "../../../components/Icon";
+import { Snapshot } from "../../../components/Snapshot";
+import { SnapshotRow } from "../../../components/SnapshotRow";
+import useSnapshotPrefetchedData from "../../../lib/hooks/useSnapshotPrefetchedData";
 import {
   Branch,
   BranchId,
@@ -16,15 +16,15 @@ import {
   PullRequest,
   Run,
   RunId,
-} from "../../lib/types";
+} from "../../../lib/types";
 
-import withSuspenseLoader from "../../components/withSuspenseLoader";
-import { SnapshotDiff } from "../../lib/server/types";
-import { branchCache, branchesCache } from "../../suspense/BranchCache";
-import { projectCache } from "../../suspense/ProjectCache";
-import { pullRequestForRunCache } from "../../suspense/PullRequestsCache";
-import { runsCache } from "../../suspense/RunCache";
-import { snapshotDiffForRunCache } from "../../suspense/SnapshotCache";
+import withSuspenseLoader from "../../../components/withSuspenseLoader";
+import { SnapshotDiff } from "../../../lib/server/types";
+import { branchCache, branchesCache } from "../../../suspense/BranchCache";
+import { projectCache } from "../../../suspense/ProjectCache";
+import { pullRequestForRunCache } from "../../../suspense/PullRequestsCache";
+import { runsCache } from "../../../suspense/RunCache";
+import { snapshotDiffForRunCache } from "../../../suspense/SnapshotCache";
 
 export default function Short() {
   const router = useRouter();
@@ -38,7 +38,6 @@ export default function Short() {
   // Note this route may render on the server, in which case all query params are undefined.
   // TODO Can we access these params on the server somehow so we can server-render the page?
   if (!projectSlug) {
-    console.error("No project id in URL");
     return null;
   }
 

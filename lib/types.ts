@@ -79,6 +79,7 @@ export type GithubEventType =
   | "workflow_run";
 
 export type GithubEvent = {
+  action: string;
   created_at: string;
   id: Opaque<"number", GithubEvent>;
   payload: Object;

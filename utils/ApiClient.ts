@@ -59,10 +59,6 @@ import type {
   RequestParams as UpdateBranchStatusRequestParams,
   ResponseData as UpdateBranchStatusResponseData,
 } from "../pages/api/updateBranchStatus";
-import type {
-  RequestParams as UploadSnapshotRequestParams,
-  ResponseData as UploadSnapshotResponseData,
-} from "../pages/api/uploadSnapshot";
 import { isApiErrorResponse } from "../pages/api/utils";
 import { fetchJSON } from "./fetchJSON";
 
@@ -185,22 +181,6 @@ export async function updateBranchStatus(
 ): Promise<UpdateBranchStatusResponseData> {
   return fetchDataFromEndpoint<UpdateBranchStatusResponseData>(
     `/api/updateBranchStatus?${paramsToUrlString(params)}`
-  );
-}
-
-export async function uploadSnapshot(
-  params: UploadSnapshotRequestParams
-): Promise<UploadSnapshotResponseData> {
-  const { image, ...rest } = params;
-  return fetchDataFromEndpoint<UploadSnapshotResponseData>(
-    `/api/uploadSnapshot?${paramsToUrlString(rest)}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ image }),
-    }
   );
 }
 

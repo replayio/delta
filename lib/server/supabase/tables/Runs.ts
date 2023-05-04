@@ -21,18 +21,6 @@ export async function getMostRecentRunForBranch(branchId: BranchId) {
   );
 }
 
-export async function getRunForGithubRun(githubRunId: GithubRunId) {
-  return assertQuerySingleResponse<Run>(
-    () =>
-      supabase
-        .from("runs")
-        .select("*")
-        .eq("github_run_id", githubRunId)
-        .single(),
-    `Could not find Run for GithubRunId "${githubRunId}"`
-  );
-}
-
 export async function getRunForId(runId: RunId) {
   return assertQuerySingleResponse<Run>(
     () => supabase.from("runs").select("*").eq("id", runId).single(),

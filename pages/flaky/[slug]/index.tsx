@@ -41,7 +41,6 @@ function FlakySuspends({
   projectSlug: ProjectSlug;
 }) {
   const metadata = frequentlyUpdatedSnapshotsCache.read(projectSlug, afterDate);
-  console.log("metadata:", metadata);
 
   return (
     <ul className="list-none p-1">

@@ -1,18 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import type {
+  CheckRunEvent,
+  CheckSuiteEvent,
   PullRequestClosedEvent,
   PullRequestEvent,
   PullRequestOpenedEvent,
   PullRequestReopenedEvent,
-  WorkflowJobCompletedEvent,
-  WorkflowJobEvent,
-  WorkflowJobQueuedEvent,
 } from "@octokit/webhooks-types";
-import { getDeltaBranchUrl } from "../../lib/delta";
-import { createCheck, updateCheck } from "../../lib/server/github/Checks";
-import { createComment, updateComment } from "../../lib/server/github/Comments";
-import { findPullRequestForProjectAndUserAndBranch } from "../../lib/server/github/PullRequests";
 import { getHTTPRequests, setupHook } from "../../lib/server/http-replay";
 import { insertHTTPEvent } from "../../lib/server/supabase/storage/HttpEvents";
 import {
@@ -22,21 +17,13 @@ import {
 import { insertGithubEvent } from "../../lib/server/supabase/tables/GithubEvents";
 import { getProjectForOrganizationAndRepository } from "../../lib/server/supabase/tables/Projects";
 import {
-  getOpenPullRequestForBranch,
   getPullRequestForGitHubPrNumber,
   insertPullRequest,
   updatePullRequest,
 } from "../../lib/server/supabase/tables/PullRequests";
-import {
-  getRunForGithubRun,
-  insertRun,
-  updateRun,
-} from "../../lib/server/supabase/tables/Runs";
-import { getSnapshotsForGithubRun } from "../../lib/server/supabase/tables/Snapshots";
-import { GithubCheckId, GithubEventType, GithubRunId } from "../../lib/types";
+import { GithubEventType } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from "./types";
-import { createDiffComment } from "./updateBranchStatus";
 import { isApiErrorResponse, sendApiResponse } from "./utils";
 
 // Spy on HTTP client requests for debug logging in Supabase.
@@ -45,6 +32,7 @@ setupHook();
 type LogAndSendResponseFunction = (
   projectOrganization: string | undefined,
   projectRepository: string,
+  action: string,
   response: ApiResponse
 ) => Promise<void>;
 
@@ -57,6 +45,7 @@ export default async function handler(
   async function logAndSendResponse(
     projectOrganization: string | undefined,
     projectRepository: string,
+    action: string,
     apiResponse: ApiErrorResponse | ApiSuccessResponse
   ) {
     sendApiResponse(nextApiResponse, apiResponse);
@@ -71,6 +60,7 @@ export default async function handler(
     );
 
     const githubEvent = await insertGithubEvent({
+      action,
       payload: nextApiRequest.body,
       project_id: project.id,
       type: eventType,
@@ -106,46 +96,61 @@ export default async function handler(
 
   try {
     switch (eventType) {
-      case "pull_request":
+      case "check_run": {
+        // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#check_run
+        const event = nextApiRequest.body as CheckRunEvent;
+        if (event.check_run.app.name === "Replay Delta") {
+          // We don't need to do anything with this data except log it
+          return logAndSendResponse(
+            event.repository.owner.login,
+            event.repository.name,
+            event.action,
+            {
+              data: null,
+              httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
+            }
+          );
+        }
+        break;
+      }
+      case "check_suite": {
+        // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#check_suite
+        const event = nextApiRequest.body as CheckSuiteEvent;
+        if (event.check_suite.app.name === "Replay Delta") {
+          // We don't need to do anything with this data except log it
+          return logAndSendResponse(
+            event.repository.owner.login,
+            event.repository.name,
+            event.action,
+            {
+              data: null,
+              httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
+            }
+          );
+        }
+        break;
+      }
+      case "pull_request": {
         // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
-        const pullRequestEvent = nextApiRequest.body as PullRequestEvent;
-        switch (pullRequestEvent.action) {
+        const event = nextApiRequest.body as PullRequestEvent;
+        switch (event.action) {
           case "closed":
-            handlePullRequestClosedEvent(pullRequestEvent, logAndSendResponse);
+            handlePullRequestClosedEvent(event, logAndSendResponse);
             break;
           case "opened":
           case "reopened":
-            handlePullRequestOpenedOrReopenedEvent(
-              pullRequestEvent,
-              logAndSendResponse
-            );
+            handlePullRequestOpenedOrReopenedEvent(event, logAndSendResponse);
             break;
           default:
             // Don't care about the other PR actions
             break;
         }
         break;
-      case "workflow_job":
-        // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_job
-        const workflowJobEvent = nextApiRequest.body as WorkflowJobEvent;
-        switch (workflowJobEvent.action) {
-          case "completed":
-            handleWorkflowJobCompletedEvent(
-              workflowJobEvent,
-              logAndSendResponse
-            );
-            break;
-          case "queued":
-            handleWorkflowJobQueuedEvent(workflowJobEvent, logAndSendResponse);
-            break;
-          default:
-            // Don't care about the other PR actions
-            break;
-        }
-        break;
-      default:
+      }
+      default: {
         // Don't care about other event types
         break;
+      }
     }
   } catch (error) {
     console.error(error);
@@ -190,10 +195,15 @@ async function handlePullRequestClosedEvent(
 
   const projectOrganization = event.organization.login;
   const projectRepository = event.repository.name;
-  return logAndSendResponse(projectOrganization, projectRepository, {
-    data: null,
-    httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
-  });
+  return logAndSendResponse(
+    projectOrganization,
+    projectRepository,
+    event.action,
+    {
+      data: null,
+      httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
+    }
+  );
 }
 
 async function handlePullRequestOpenedOrReopenedEvent(
@@ -248,198 +258,13 @@ async function handlePullRequestOpenedOrReopenedEvent(
     });
   }
 
-  return logAndSendResponse(projectOrganization, projectRepository, {
-    data: null,
-    httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
-  });
-}
-
-async function handleWorkflowJobCompletedEvent(
-  event: WorkflowJobCompletedEvent,
-  logAndSendResponse: LogAndSendResponseFunction
-) {
-  if (!event.organization || !event.workflow_job.head_branch) {
-    return;
-  }
-
-  const projectOrganization = event.organization.login;
-  const projectRepository = event.repository.name;
-  const branchName = event.workflow_job.head_branch;
-  const project = await getProjectForOrganizationAndRepository(
+  return logAndSendResponse(
     projectOrganization,
-    projectRepository
+    projectRepository,
+    event.action,
+    {
+      data: null,
+      httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
+    }
   );
-
-  // WorkflowJob events don't include enough information to identify the branch
-  // We have to use the GitHub API to fill in the missing pieces
-  const pullRequestJSON = await findPullRequestForProjectAndUserAndBranch(
-    project,
-    event.sender.login,
-    branchName
-  );
-  const githubRunId = event.workflow_job.run_id as unknown as GithubRunId;
-  const run = await getRunForGithubRun(githubRunId);
-  if (run == null) {
-    throw Error(`No Run found for GitHub run "${githubRunId}"`);
-  }
-  await updateRun(run.id, {
-    github_status: "completed",
-  });
-
-  const organization = pullRequestJSON?.head.repo?.owner.login;
-  if (organization == null) {
-    return logAndSendResponse(projectOrganization, projectRepository, {
-      data: new Error(
-        `Could not find open pull request info for WorkflowJob ${event.workflow_job.id}`
-      ),
-      deltaErrorCode: DELTA_ERROR_CODE.API.REQUEST_FAILED,
-      httpStatusCode: HTTP_STATUS_CODES.FAILED_DEPENDENCY,
-    });
-  }
-
-  const branch = await getBranchForProjectAndOrganizationAndBranchName(
-    project.id,
-    organization,
-    branchName
-  );
-  if (branch == null) {
-    throw Error(
-      `Could not find Branch for Project "${project.id}" and name "${name}" in organization "${organization}"`
-    );
-  }
-
-  const pullRequest = await getOpenPullRequestForBranch(branch.id);
-  if (pullRequest == null) {
-    throw Error(`Could not find open PullRequests branch "${name}"`);
-  }
-
-  const newSnapshots = await getSnapshotsForGithubRun(githubRunId);
-  const [comment, diff] = await createDiffComment({
-    branchName,
-    newSnapshots,
-    project,
-  });
-  const numChanges = diff.length;
-
-  const conclusion = numChanges > 0 ? "failure" : "success";
-  const title = `${numChanges} snapshot changes from primary branch`;
-
-  if (pullRequest.github_check_id) {
-    await updateCheck(
-      projectOrganization,
-      projectRepository,
-      pullRequest.github_check_id,
-      {
-        head_sha: event.workflow_job.head_sha,
-        title,
-        summary: "",
-        conclusion,
-        status: "completed",
-        text: "",
-      }
-    );
-  }
-
-  if (pullRequest.github_comment_id == null) {
-    await createComment(
-      projectOrganization,
-      projectRepository,
-      pullRequest.github_pr_number,
-      {
-        body: comment,
-      }
-    );
-  } else {
-    await updateComment(
-      projectOrganization,
-      projectRepository,
-      pullRequest.github_comment_id,
-      {
-        body: comment,
-      }
-    );
-  }
-
-  return logAndSendResponse(projectOrganization, projectRepository, {
-    data: null,
-    httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
-  });
-}
-
-async function handleWorkflowJobQueuedEvent(
-  event: WorkflowJobQueuedEvent,
-  logAndSendResponse: LogAndSendResponseFunction
-) {
-  if (!event.organization || !event.workflow_job.head_branch) {
-    return;
-  }
-
-  const projectOrganization = event.organization.login;
-  const projectRepository = event.repository.name;
-  const branchName = event.workflow_job.head_branch;
-  const project = await getProjectForOrganizationAndRepository(
-    projectOrganization,
-    projectRepository
-  );
-
-  // WorkflowJob events don't include enough information to identify the branch
-  // We have to use the GitHub API to fill in the missing pieces
-  const pullRequestJSON = await findPullRequestForProjectAndUserAndBranch(
-    project,
-    event.sender.login,
-    branchName
-  );
-  const organization = pullRequestJSON?.head.repo?.owner.login;
-  const pullRequestNumber = pullRequestJSON?.number;
-  if (organization == null || pullRequestNumber == null) {
-    return logAndSendResponse(projectOrganization, projectRepository, {
-      data: new Error(
-        `Could not find open pull request info for WorkflowJob ${event.workflow_job.id}`
-      ),
-      deltaErrorCode: DELTA_ERROR_CODE.API.REQUEST_FAILED,
-      httpStatusCode: HTTP_STATUS_CODES.FAILED_DEPENDENCY,
-    });
-  }
-
-  // Branch should have been created when the PR was opened/reopened
-  const branch = (await getBranchForProjectAndOrganizationAndBranchName(
-    project.id,
-    organization,
-    branchName
-  ))!;
-
-  const headSha = event.workflow_job.head_sha;
-
-  let pullRequest = await getOpenPullRequestForBranch(branch.id);
-  if (pullRequest == null) {
-    pullRequest = await insertPullRequest({
-      branch_id: branch.id,
-      github_check_id: null,
-      github_comment_id: null,
-      github_head_sha: headSha,
-      github_pr_number: pullRequestNumber,
-      github_status: "open",
-    });
-  }
-
-  await insertRun({
-    delta_has_user_approval: false,
-    github_status: "queued",
-    github_actor: event.sender.login,
-    github_run_id: event.workflow_job.run_id as unknown as GithubRunId,
-    pull_request_id: pullRequest.id,
-  });
-
-  const check = await createCheck(projectOrganization, projectRepository, {
-    head_sha: headSha,
-    details_url: getDeltaBranchUrl(project, branchName),
-    title: "Tests are running",
-    status: "in_progress",
-    text: "",
-    summary: "",
-  });
-
-  await updatePullRequest(pullRequest.id, {
-    github_check_id: check.id as unknown as GithubCheckId,
-  });
 }

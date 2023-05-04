@@ -1,6 +1,7 @@
+import { supabase } from "../../initSupabase";
 import { GithubEventId, GithubEventType, ProjectId } from "../../../types";
 import { safeStringify } from "../../json";
-import { retryOnError, supabase } from "../supabase";
+import { retryOnError } from "../supabase";
 
 export async function insertHTTPEvent({
   data,

@@ -5,11 +5,8 @@ import {
   Run,
   RunId,
 } from "../../../types";
-import {
-  assertQueryResponse,
-  assertQuerySingleResponse,
-  supabase,
-} from "../supabase";
+import { supabase } from "../../initSupabase";
+import { assertQueryResponse, assertQuerySingleResponse } from "../supabase";
 
 export async function getMostRecentRunForBranch(branchId: BranchId) {
   return assertQuerySingleResponse<Run>(

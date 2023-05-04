@@ -1,8 +1,6 @@
-import createClient from "../../../initServerSupabase";
 import { GithubEvent } from "../../../types";
+import { supabase } from "../../initSupabase";
 import { assertQuerySingleResponse } from "../supabase";
-
-export const supabase = createClient();
 
 export async function insertGithubEvent(
   event: Omit<GithubEvent, "created_at" | "id">

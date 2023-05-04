@@ -32,7 +32,7 @@ export default function Short() {
     run: runIdFromUrl,
     branch: branchIdString,
     fileName: currentFile,
-    short: projectSlug,
+    slug: projectSlug,
   } = router.query as { [key: string]: string };
 
   // Note this route may render on the server, in which case all query params are undefined.

@@ -1,8 +1,8 @@
 import { BranchId, PullRequest, PullRequestId, RunId } from "../../../types";
+import { supabase } from "../../initSupabase";
 import {
   assertQuerySingleResponse,
   assertQuerySingleResponseOrNull,
-  supabase,
 } from "../supabase";
 
 export async function getOpenPullRequestForBranch(branchId: BranchId) {

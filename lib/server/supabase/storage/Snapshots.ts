@@ -1,11 +1,10 @@
 import { createHash } from "crypto";
-import createClient from "../../../initServerSupabase";
+import { supabase } from "../../../client/initSupabase";
 
 import type { FileObject } from "@supabase/storage-js";
 import { ProjectId } from "../../../types";
 import { assertStorage, assertStorageValue, maybeRetry } from "../supabase";
 
-const supabase = createClient();
 const Buffer = require("buffer").Buffer;
 
 export type StoredSnapshot = {

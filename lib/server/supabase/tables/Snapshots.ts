@@ -6,11 +6,8 @@ import {
   Snapshot,
   SnapshotId,
 } from "../../../types";
-import {
-  assertQueryResponse,
-  assertQuerySingleResponse,
-  supabase,
-} from "../supabase";
+import { supabase } from "../../initSupabase";
+import { assertQueryResponse, assertQuerySingleResponse } from "../supabase";
 import { getOpenPullRequestForBranch } from "./PullRequests";
 import { getRunsForPullRequest } from "./Runs";
 
@@ -49,11 +46,11 @@ export async function getRecentlyUpdatedSnapshotsForProject(
   return await assertQueryResponse<Snapshot>(
     () =>
       supabase
-        .from("snapshots, runs(branches(projects()))")
-        .select("*")
-        .eq("projects.id", projectId)
-        .gte("snapshots.created_at", afterDate.toLocaleDateString())
-        .order("file")
+        .from("snapshots")
+        .select("*, runs(pull_requests(branches(projects(id))))")
+        .eq("runs.pull_requests.branches.projects.id", projectId)
+        .gte("created_at", afterDate.toLocaleDateString())
+        .order("delta_file")
         .limit(limit),
     `Could not find Snapshots for Project "${projectId}" after date "${afterDate.toLocaleDateString()}"`
   );

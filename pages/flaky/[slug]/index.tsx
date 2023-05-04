@@ -1,26 +1,25 @@
 import { useRouter } from "next/router";
 import { Suspense, useState } from "react";
-import Icon from "../components/Icon";
-import { Loader } from "../components/Loader";
-import SnapshotImage from "../components/SnapshotImage";
-import { ProjectSlug } from "../lib/types";
-import { frequentlyUpdatedSnapshotsCache } from "../suspense/SnapshotCache";
-import classNames from "../utils/classNames";
+import Icon from "../../../components/Icon";
+import { Loader } from "../../../components/Loader";
+import SnapshotImage from "../../../components/SnapshotImage";
+import { ProjectSlug } from "../../../lib/types";
+import { frequentlyUpdatedSnapshotsCache } from "../../../suspense/SnapshotCache";
+import classNames from "../../../utils/classNames";
 import {
   PathMetadata,
   SnapshotMetadata,
-} from "./api/getMostFrequentlyUpdatedSnapshots";
+} from "../../api/getMostFrequentlyUpdatedSnapshots";
 
 export default function Flaky() {
   const router = useRouter();
-  const { date: afterDate, projectSlug } = router.query as {
+  const { date: afterDate, slug: projectSlug } = router.query as {
     [key: string]: string;
   };
 
   // Note this route may render on the server, in which case all query params are undefined.
   // TODO Can we access these params on the server somehow so we can server-render the page?
   if (!projectSlug) {
-    console.error("No project id in URL");
     return null;
   }
 
@@ -42,6 +41,7 @@ function FlakySuspends({
   projectSlug: ProjectSlug;
 }) {
   const metadata = frequentlyUpdatedSnapshotsCache.read(projectSlug, afterDate);
+  console.log("metadata:", metadata);
 
   return (
     <ul className="list-none p-1">

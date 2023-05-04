@@ -2,11 +2,7 @@ import {
   PostgrestResponse,
   PostgrestSingleResponse,
 } from "@supabase/supabase-js";
-import createClient from "../../initServerSupabase";
-import { DeltaErrorCode } from "../../../pages/api/constants";
 import { createErrorFromPostgrestError } from "../../../pages/api/utils";
-
-export const supabase = createClient();
 
 export type ResponseError = {
   data: null;

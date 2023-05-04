@@ -1,9 +1,6 @@
 import { Project, ProjectId, ProjectSlug, RunId } from "../../../types";
-import {
-  assertQueryResponse,
-  assertQuerySingleResponse,
-  supabase,
-} from "../supabase";
+import { supabase } from "../../initSupabase";
+import { assertQueryResponse, assertQuerySingleResponse } from "../supabase";
 
 export async function getPublicProjects() {
   return assertQueryResponse<Project>(

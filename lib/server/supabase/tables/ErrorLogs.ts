@@ -1,5 +1,8 @@
 import { ErrorLog } from "../../../types";
-import { assertQuerySingleResponse, supabase } from "../supabase";
+// import { supabase } from "../../initSupabase";
+import { assertQuerySingleResponse } from "../supabase";
+
+const supabase = {} as any;
 
 export async function insertErrorLog(
   errorLog: Omit<ErrorLog, "created_at" | "id">

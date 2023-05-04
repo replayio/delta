@@ -1,9 +1,9 @@
 import { Branch, BranchId, Project, ProjectId } from "../../../types";
+import { supabase } from "../../initSupabase";
 import {
   assertQueryResponse,
   assertQuerySingleResponse,
   assertQuerySingleResponseOrNull,
-  supabase,
 } from "../supabase";
 
 export async function getBranchForId(branchId: BranchId) {

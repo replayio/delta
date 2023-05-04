@@ -44,15 +44,18 @@ export async function getPullRequestForGitHubPrNumber(
 }
 
 export async function getPullRequestForRun(runId: RunId) {
-  return assertQuerySingleResponse<PullRequest>(
+  const result = await assertQuerySingleResponse<{
+    pull_requests: PullRequest;
+  }>(
     () =>
       supabase
-        .from("pull_requests")
-        .select("*, runs(id)")
-        .eq("runs.id", runId)
+        .from("runs")
+        .select("*, pull_requests(*)")
+        .eq("id", runId)
         .single(),
     `Could not find PullRequest for Run "${runId}"`
   );
+  return result.pull_requests;
 }
 
 export async function insertPullRequest(

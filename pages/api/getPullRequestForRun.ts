@@ -6,7 +6,7 @@ import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
 export type RequestParams = {
-  runId: RunId;
+  runId: string;
 };
 export type ResponseData = PullRequest;
 
@@ -22,7 +22,9 @@ export default async function handler(
   }
 
   try {
-    const data = await getPullRequestForRun(runId);
+    const data = await getPullRequestForRun(
+      parseInt(runId) as unknown as RunId
+    );
     return sendApiResponse<ResponseData>(response, {
       httpStatusCode: HTTP_STATUS_CODES.OK,
       data,

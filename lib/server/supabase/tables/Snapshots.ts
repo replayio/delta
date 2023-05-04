@@ -27,7 +27,7 @@ export async function getMostRecentSnapshotForBranchAndFile(
       supabase
         .from("snapshots")
         .select("*")
-        .eq("file", file)
+        .eq("delta_file", file)
         .eq("run_id", mostRecentRun.id)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -50,7 +50,7 @@ export async function getRecentlyUpdatedSnapshotsForProject(
         .select("*, runs(pull_requests(branches(projects(id))))")
         .eq("runs.pull_requests.branches.projects.id", projectId)
         .gte("created_at", afterDate.toLocaleDateString())
-        .order("delta_file")
+        .order("delta_file", { ascending: true })
         .limit(limit),
     `Could not find Snapshots for Project "${projectId}" after date "${afterDate.toLocaleDateString()}"`
   );
@@ -60,10 +60,10 @@ export async function getSnapshotsForGithubRun(githubRunId: GithubRunId) {
   return await assertQueryResponse<Snapshot>(
     () =>
       supabase
-        .from("snapshots, runs()")
+        .from("snapshots")
         .select("*")
-        .eq("runs.github_run_id", githubRunId)
-        .order("file"),
+        .eq("github_run_id", githubRunId)
+        .order("delta_file"),
     `Could not find Snapshots for GitHub run "${githubRunId}"`
   );
 }
@@ -71,7 +71,11 @@ export async function getSnapshotsForGithubRun(githubRunId: GithubRunId) {
 export async function getSnapshotsForRun(runId: RunId) {
   return await assertQueryResponse<Snapshot>(
     () =>
-      supabase.from("snapshots").select("*").eq("run_id", runId).order("file"),
+      supabase
+        .from("snapshots")
+        .select("*")
+        .eq("run_id", runId)
+        .order("delta_file", { ascending: true }),
     `Could not find Snapshot for Run "${runId}" `
   );
 }

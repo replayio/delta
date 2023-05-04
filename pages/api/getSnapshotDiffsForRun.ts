@@ -14,7 +14,7 @@ import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
 export type RequestParams = {
-  runId: RunId;
+  runId: string;
 };
 export type ResponseData = SnapshotDiff[];
 
@@ -30,7 +30,7 @@ export default async function handler(
   }
 
   try {
-    const run = await getRunForId(runId);
+    const run = await getRunForId(parseInt(runId) as unknown as RunId);
     const project = await getProjectForRun(run.id);
 
     const primaryBranch = await getPrimaryBranchForProject(project);

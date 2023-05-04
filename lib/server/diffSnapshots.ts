@@ -34,7 +34,9 @@ export default async function diffSnapshots(
   });
 
   const diffs: SnapshotDiff[] = [];
-  for (const file in map.keys()) {
+  const files = Array.from(map.keys());
+  for (let index = 0; index < files.length; index++) {
+    const file = files[index];
     const value = map.get(file)!;
     const diff = await diffSnapshot(value.old, value.new);
     if (diff !== null) {

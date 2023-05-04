@@ -8,12 +8,10 @@ import { Snapshot } from "../../../components/Snapshot";
 import { SnapshotRow } from "../../../components/SnapshotRow";
 import useSnapshotPrefetchedData from "../../../lib/hooks/useSnapshotPrefetchedData";
 import {
-  Branch,
   BranchId,
   GithubRunId,
   Project,
   ProjectSlug,
-  PullRequest,
   Run,
   RunId,
 } from "../../../lib/types";
@@ -26,7 +24,7 @@ import { pullRequestForRunCache } from "../../../suspense/PullRequestsCache";
 import { runsCache } from "../../../suspense/RunCache";
 import { snapshotDiffForRunCache } from "../../../suspense/SnapshotCache";
 
-export default function Short() {
+export default function Page() {
   const router = useRouter();
   const {
     run: runIdFromUrl,
@@ -44,7 +42,7 @@ export default function Short() {
   const branchId = parseInt(branchIdString) as unknown as BranchId;
 
   return (
-    <ShortSuspends
+    <PageSuspends
       branchId={branchId ?? null}
       currentFile={currentFile ?? null}
       runId={(runIdFromUrl as RunId) ?? null}
@@ -53,7 +51,7 @@ export default function Short() {
   );
 }
 
-const ShortSuspends = withSuspenseLoader(function ShortSuspends({
+const PageSuspends = withSuspenseLoader(function PageSuspends({
   branchId,
   currentFile,
   runId,
@@ -64,7 +62,6 @@ const ShortSuspends = withSuspenseLoader(function ShortSuspends({
   runId: RunId | null;
   projectSlug: ProjectSlug;
 }) {
-  // TODO If we passed branch id instead of name, we wouldn't need to fetch the branch here.
   const project = projectCache.read(null, projectSlug);
   const branches = branchesCache.read(project.id);
 
@@ -97,7 +94,7 @@ const ShortSuspends = withSuspenseLoader(function ShortSuspends({
 
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
-  //   console.groupCollapsed("<ShortSuspends>");
+  //   console.groupCollapsed("<PageSuspends>");
   //   console.log("project:", project);
   //   console.log("branches:", branches);
   //   console.log("current branch:", currentBranch);
@@ -107,39 +104,6 @@ const ShortSuspends = withSuspenseLoader(function ShortSuspends({
   //   console.groupEnd();
   // }
 
-  return (
-    <ShortWithData
-      branches={branches}
-      currentBranch={currentBranch}
-      currentFile={currentFile}
-      currentRun={currentRun}
-      project={project}
-      pullRequest={pullRequest}
-      runs={runs}
-      snapshotDiffs={snapshotDiffs}
-    />
-  );
-});
-
-function ShortWithData({
-  branches,
-  currentBranch,
-  currentFile,
-  currentRun,
-  project,
-  pullRequest,
-  runs,
-  snapshotDiffs,
-}: {
-  branches: Branch[];
-  currentBranch: Branch;
-  currentFile: string | null;
-  currentRun: Run;
-  project: Project;
-  pullRequest: PullRequest;
-  runs: Run[];
-  snapshotDiffs: SnapshotDiff[];
-}) {
   const shownBranches = branches.filter(
     (branch) => branch.name !== project.primary_branch
   );
@@ -172,7 +136,7 @@ function ShortWithData({
       )}
     </div>
   );
-}
+});
 
 function SubViewRunPending({
   project,

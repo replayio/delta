@@ -15,10 +15,7 @@ import {
   getMostRecentRunForBranch,
   updateRun,
 } from "../../lib/server/supabase/tables/Runs";
-import {
-  getSnapshotsForGithubRun,
-  getSnapshotsForRun,
-} from "../../lib/server/supabase/tables/Snapshots";
+import { getSnapshotsForRun } from "../../lib/server/supabase/tables/Snapshots";
 import { SnapshotDiff } from "../../lib/server/types";
 import { BranchId, Project, ProjectId, RunId, Snapshot } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
@@ -124,7 +121,7 @@ export async function createDiffComment({
 }): Promise<[comment: string, diff: SnapshotDiff[]]> {
   const primaryBranch = await getPrimaryBranchForProject(project);
   const primaryBranchRun = await getMostRecentRunForBranch(primaryBranch.id);
-  const oldSnapshots = await getSnapshotsForGithubRun(primaryBranchRun.id);
+  const oldSnapshots = await getSnapshotsForRun(primaryBranchRun.id);
 
   const diff = await diffSnapshots(oldSnapshots, newSnapshots);
   const numChanges = diff.length;

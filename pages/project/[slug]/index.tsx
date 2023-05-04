@@ -27,7 +27,7 @@ export default function Page() {
   const router = useRouter();
   const {
     run: runIdFromUrl,
-    branch: branchIdString,
+    branchId: branchIdString,
     fileName: currentFile,
     slug: projectSlug,
   } = router.query as { [key: string]: string };

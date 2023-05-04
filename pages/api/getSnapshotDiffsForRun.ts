@@ -7,7 +7,7 @@ import {
   getMostRecentRunForBranch,
   getRunForId,
 } from "../../lib/server/supabase/tables/Runs";
-import { getSnapshotsForGithubRun } from "../../lib/server/supabase/tables/Snapshots";
+import { getSnapshotsForRun } from "../../lib/server/supabase/tables/Snapshots";
 import { SnapshotDiff } from "../../lib/server/types";
 import { RunId } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
@@ -36,8 +36,8 @@ export default async function handler(
     const primaryBranch = await getPrimaryBranchForProject(project);
     const primaryBranchRun = await getMostRecentRunForBranch(primaryBranch.id);
 
-    const oldSnapshots = await getSnapshotsForGithubRun(primaryBranchRun.id);
-    const newSnapshots = await getSnapshotsForGithubRun(run.github_run_id);
+    const oldSnapshots = await getSnapshotsForRun(primaryBranchRun.id);
+    const newSnapshots = await getSnapshotsForRun(run.id);
 
     const data = await diffSnapshots(oldSnapshots, newSnapshots);
 

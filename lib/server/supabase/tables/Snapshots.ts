@@ -1,6 +1,5 @@
 import {
   BranchId,
-  GithubRunId,
   ProjectId,
   RunId,
   Snapshot,
@@ -47,18 +46,6 @@ export async function getRecentlyUpdatedSnapshotsForProject(
         .order("delta_file", { ascending: true })
         .limit(limit),
     `Could not find Snapshots for Project "${projectId}" after date "${afterDate.toLocaleDateString()}"`
-  );
-}
-
-export async function getSnapshotsForGithubRun(githubRunId: GithubRunId) {
-  return await assertQueryResponse<Snapshot>(
-    () =>
-      supabase
-        .from("snapshots")
-        .select("*")
-        .eq("github_run_id", githubRunId)
-        .order("delta_file"),
-    `Could not find Snapshots for GitHub run "${githubRunId}"`
   );
 }
 

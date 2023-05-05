@@ -40,15 +40,13 @@ export default async function handler(
   response: NextApiResponse<Response>
 ) {
   const {
-    actor,
     branchName,
     owner,
     projectSlug,
     runId: githubRunId,
   } = request.query as Partial<RequestParams>;
-  if (!actor || !branchName || !owner || !projectSlug || !githubRunId) {
+  if (!branchName || !owner || !projectSlug || !githubRunId) {
     return sendApiMissingParametersResponse(request, response, {
-      actor,
       branchName,
       owner,
       projectSlug,

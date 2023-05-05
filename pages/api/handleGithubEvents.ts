@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import type {
-  CheckSuiteEvent,
   PullRequestClosedEvent,
   PullRequestEvent,
   PullRequestOpenedEvent,
@@ -18,7 +17,7 @@ import {
 } from "../../lib/server/supabase/tables/Branches";
 import { insertGithubEvent } from "../../lib/server/supabase/tables/GithubEvents";
 import { getProjectForOrganizationAndRepository } from "../../lib/server/supabase/tables/Projects";
-import { GithubCheckId, GithubEventType } from "../../lib/types";
+import { Branch, GithubCheckId, GithubEventType } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { ApiErrorResponse, ApiSuccessResponse } from "./types";
 import { isApiErrorResponse, sendApiResponse } from "./utils";
@@ -90,16 +89,6 @@ export default async function handler(
 
   try {
     switch (eventType) {
-      case "check_suite": {
-        // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#check_suite
-        const event = nextApiRequest.body as CheckSuiteEvent;
-        if (event.check_suite.app.name === "Replay Delta") {
-          eventProcessed = true;
-          didRespond = await handleCheckSuite(event);
-          break;
-        }
-        break;
-      }
       case "pull_request": {
         // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
         const event = nextApiRequest.body as PullRequestEvent;
@@ -164,75 +153,6 @@ export default async function handler(
       data: null,
       httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
     });
-  }
-
-  async function handleCheckSuite(event: CheckSuiteEvent): Promise<boolean> {
-    if (!event.organization || !event.check_suite.head_branch) {
-      sendApiResponse(nextApiRequest, nextApiResponse, {
-        data: Error(`Missing required parameters event parameters`),
-        deltaErrorCode: DELTA_ERROR_CODE.MISSING_PARAMETERS,
-        httpStatusCode: HTTP_STATUS_CODES.BAD_REQUEST,
-      });
-
-      return true;
-    }
-
-    const projectOrganization = event.organization.login;
-    const projectRepository = event.repository.name;
-    const project = await getProjectForOrganizationAndRepository(
-      projectOrganization,
-      projectRepository
-    );
-
-    const organization = event.repository.organization;
-    const branchName = event.check_suite.head_branch;
-
-    const check = await createCheck(projectOrganization, projectRepository, {
-      // conclusion: "neutral",
-      details_url: getDeltaBranchUrl(project, branchName),
-      head_sha: event.check_suite.head_sha,
-      title: "In progress",
-      // summary: "",
-      // text: "",
-      status: "in_progress",
-    });
-
-    if (organization) {
-      const prNumber =
-        event.check_suite.pull_requests.length > 0
-          ? event.check_suite.pull_requests[0].number
-          : null;
-
-      let branch = await getBranchForProjectAndOrganizationAndBranchName(
-        project.id,
-        organization,
-        branchName
-      );
-      if (branch == null) {
-        branch = await insertBranch({
-          name: branchName,
-          organization,
-          project_id: project.id,
-          github_pr_check_id: check.id as unknown as GithubCheckId,
-          github_pr_comment_id: null,
-          github_pr_number: prNumber,
-          github_pr_status: "open",
-        });
-      } else if (branch.github_pr_status === "closed") {
-        updateBranch(branch.id, {
-          github_pr_check_id: check.id as unknown as GithubCheckId,
-          github_pr_number: prNumber,
-          github_pr_status: "open",
-        });
-      }
-    }
-
-    logAndSendResponse(projectOrganization, projectRepository, event.action, {
-      data: null,
-      httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
-    });
-
-    return true;
   }
 
   async function handlePullRequestClosedEvent(
@@ -304,24 +224,35 @@ export default async function handler(
     const organization = event.pull_request.head.repo.owner.login;
     const branchName = event.pull_request.head.ref;
 
+    const check = await createCheck(projectOrganization, projectRepository, {
+      details_url: getDeltaBranchUrl(project, branchName),
+      head_sha: branchName,
+      summary: "",
+      text: "",
+      title: "In progress",
+      status: "in_progress",
+    });
+
+    let branch: Branch;
     try {
-      const branch = await getBranchForProjectAndOrganizationAndBranchName(
+      branch = await getBranchForProjectAndOrganizationAndBranchName(
         project.id,
         organization,
         branchName
       );
       if (branch.github_pr_status === "closed") {
         updateBranch(branch.id, {
+          github_pr_check_id: check.id as unknown as GithubCheckId,
           github_pr_number: prNumber,
           github_pr_status: "open",
         });
       }
     } catch (error) {
-      await insertBranch({
+      branch = await insertBranch({
         name: branchName,
         organization,
         project_id: project.id,
-        github_pr_check_id: null,
+        github_pr_check_id: check.id as unknown as GithubCheckId,
         github_pr_comment_id: null,
         github_pr_number: prNumber,
         github_pr_status: "open",

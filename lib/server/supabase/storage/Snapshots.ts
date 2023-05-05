@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import { supabase } from "../../../client/initSupabase";
+import { supabase } from "../../initSupabase";
 
 import type { FileObject } from "@supabase/storage-js";
 import { ProjectId } from "../../../types";

@@ -47,7 +47,7 @@ function Page() {
   }
 
   if (!branchId) {
-    return null;
+    return <SubViewNoOpenBranches />;
   }
 
   const currentBranch = branchCache.read(project.id, branchId);

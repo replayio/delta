@@ -7,8 +7,6 @@ import type {
   PullRequestEvent,
   PullRequestOpenedEvent,
   PullRequestReopenedEvent,
-  WorkflowJobEvent,
-  WorkflowJobQueuedEvent,
 } from "@octokit/webhooks-types";
 import { getDeltaBranchUrl } from "../../lib/delta";
 import { createCheck } from "../../lib/server/github/Checks";
@@ -117,16 +115,7 @@ export default async function handler(
         // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#check_suite
         const event = nextApiRequest.body as CheckSuiteEvent;
         if (event.check_suite.app.name === "Replay Delta") {
-          // We don't need to do anything with this data except log it
-          return logAndSendResponse(
-            event.repository.owner.login,
-            event.repository.name,
-            event.action,
-            {
-              data: null,
-              httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
-            }
-          );
+          return handleCheckSuite(event, logAndSendResponse);
         }
         break;
       }
@@ -140,19 +129,6 @@ export default async function handler(
           case "opened":
           case "reopened":
             handlePullRequestOpenedOrReopenedEvent(event, logAndSendResponse);
-            break;
-          default:
-            // Don't care about the other action types
-            break;
-        }
-        break;
-      }
-      case "workflow_job": {
-        // https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_job
-        const event = nextApiRequest.body as WorkflowJobEvent;
-        switch (event.action) {
-          case "queued":
-            return handleWorkflowQueued(event, logAndSendResponse);
             break;
           default:
             // Don't care about the other action types
@@ -182,6 +158,72 @@ export default async function handler(
     data: null,
     httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
   });
+}
+
+async function handleCheckSuite(
+  event: CheckSuiteEvent,
+  logAndSendResponse: LogAndSendResponseFunction
+) {
+  if (!event.organization || !event.check_suite.head_branch) {
+    return;
+  }
+
+  const projectOrganization = event.organization.login;
+  const projectRepository = event.repository.name;
+  const project = await getProjectForOrganizationAndRepository(
+    projectOrganization,
+    projectRepository
+  );
+
+  const organization = event.repository.organization;
+  const branchName = event.check_suite.head_branch;
+  if (organization) {
+    let branch = await getBranchForProjectAndOrganizationAndBranchName(
+      project.id,
+      organization,
+      branchName
+    );
+    if (branch == null) {
+      const prNumber =
+        event.check_suite.pull_requests.length > 0
+          ? event.check_suite.pull_requests[0].number
+          : null;
+
+      branch = await insertBranch({
+        name: branchName,
+        organization,
+        project_id: project.id,
+        github_pr_check_id: null,
+        github_pr_comment_id: null,
+        github_pr_number: prNumber,
+        github_pr_status: "open",
+      });
+    } else if (branch.github_pr_status === "closed") {
+      updateBranch(branch.id, {
+        github_pr_status: "open",
+      });
+    }
+  }
+
+  createCheck(projectOrganization, projectRepository, {
+    conclusion: null,
+    details_url: getDeltaBranchUrl(project, branchName),
+    head_sha: event.check_suite.head_sha,
+    title: "In progress",
+    summary: "",
+    text: "",
+    status: "in_progress",
+  });
+
+  return logAndSendResponse(
+    projectOrganization,
+    projectRepository,
+    event.action,
+    {
+      data: null,
+      httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
+    }
+  );
 }
 
 async function handlePullRequestClosedEvent(
@@ -265,42 +307,6 @@ async function handlePullRequestOpenedOrReopenedEvent(
       github_pr_status: "open",
     });
   }
-
-  return logAndSendResponse(
-    projectOrganization,
-    projectRepository,
-    event.action,
-    {
-      data: null,
-      httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
-    }
-  );
-}
-
-async function handleWorkflowQueued(
-  event: WorkflowJobQueuedEvent,
-  logAndSendResponse: LogAndSendResponseFunction
-) {
-  if (!event.organization || !event.workflow_job.head_branch) {
-    return;
-  }
-
-  const projectOrganization = event.organization.login;
-  const projectRepository = event.repository.name;
-  const project = await getProjectForOrganizationAndRepository(
-    projectOrganization,
-    projectRepository
-  );
-
-  createCheck(projectOrganization, projectRepository, {
-    conclusion: null,
-    details_url: getDeltaBranchUrl(project, event.workflow_job.head_branch),
-    head_sha: event.workflow_job.head_sha,
-    title: "In progress",
-    summary: "",
-    text: "",
-    status: "in_progress",
-  });
 
   return logAndSendResponse(
     projectOrganization,

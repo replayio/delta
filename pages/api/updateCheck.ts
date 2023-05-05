@@ -76,7 +76,9 @@ export default async function handler(
     const primaryBranch = await getPrimaryBranchForProject(project);
     const primaryBranchRun = await getMostRecentRunForBranch(primaryBranch.id);
 
-    const oldSnapshots = await getSnapshotsForRun(primaryBranchRun.id);
+    const oldSnapshots = primaryBranchRun
+      ? await getSnapshotsForRun(primaryBranchRun.id)
+      : [];
     const newSnapshots = await getSnapshotsForRun(run.id);
 
     const data = await diffSnapshots(oldSnapshots, newSnapshots);

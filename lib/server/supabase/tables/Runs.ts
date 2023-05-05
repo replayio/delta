@@ -12,10 +12,10 @@ export async function getMostRecentRunForBranch(branchId: BranchId) {
         .single(),
     `Could not find Runs for Branch "${branchId}"`
   );
-  if (branch.runs.length === 0) {
-    throw Error(`Could not find Runs for Branch "${branchId}"`);
-  } else {
+  if (branch.runs.length > 0) {
     return branch.runs[branch.runs.length - 1];
+  } else {
+    return null;
   }
 }
 

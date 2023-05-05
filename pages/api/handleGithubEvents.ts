@@ -92,30 +92,16 @@ export default async function handler(
     });
   }
 
+  let didRespond = false;
+
   try {
     switch (eventType) {
-      case "check_run": {
-        // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#check_run
-        const event = nextApiRequest.body as CheckRunEvent;
-        if (event.check_run.app.name === "Replay Delta") {
-          // We don't need to do anything with this data except log it
-          return logAndSendResponse(
-            event.repository.owner.login,
-            event.repository.name,
-            event.action,
-            {
-              data: null,
-              httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
-            }
-          );
-        }
-        break;
-      }
       case "check_suite": {
         // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#check_suite
         const event = nextApiRequest.body as CheckSuiteEvent;
         if (event.check_suite.app.name === "Replay Delta") {
-          return handleCheckSuite(event, logAndSendResponse);
+          didRespond = await handleCheckSuite(event, logAndSendResponse);
+          break;
         }
         break;
       }
@@ -124,13 +110,18 @@ export default async function handler(
         const event = nextApiRequest.body as PullRequestEvent;
         switch (event.action) {
           case "closed":
-            return handlePullRequestClosedEvent(event, logAndSendResponse);
-          case "opened":
-          case "reopened":
-            return handlePullRequestOpenedOrReopenedEvent(
+            didRespond = await handlePullRequestClosedEvent(
               event,
               logAndSendResponse
             );
+            break;
+          case "opened":
+          case "reopened":
+            didRespond = await handlePullRequestOpenedOrReopenedEvent(
+              event,
+              logAndSendResponse
+            );
+            break;
           default:
             // Don't care about the other action types
             break;
@@ -154,28 +145,30 @@ export default async function handler(
     });
   }
 
-  // Temporarily log all GitHub events
-  // TODO Remove this
-  await insertGithubEvent({
-    action: nextApiRequest.body.action,
-    payload: nextApiRequest.body,
-    project_id: 0 as unknown as ProjectId,
-    type: eventType,
-  });
+  if (!didRespond) {
+    // Log all GitHub events for debugging purposes.
+    // TODO Remove this eventually.
+    await insertGithubEvent({
+      action: nextApiRequest.body.action,
+      payload: nextApiRequest.body,
+      project_id: 0 as unknown as ProjectId,
+      type: eventType,
+    });
 
-  // No-op response
-  return sendApiResponse(nextApiRequest, nextApiResponse, {
-    data: null,
-    httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
-  });
+    // No-op response
+    return sendApiResponse(nextApiRequest, nextApiResponse, {
+      data: null,
+      httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
+    });
+  }
 }
 
 async function handleCheckSuite(
   event: CheckSuiteEvent,
   logAndSendResponse: LogAndSendResponseFunction
-) {
+): Promise<boolean> {
   if (!event.organization || !event.check_suite.head_branch) {
-    return;
+    return false;
   }
 
   const projectOrganization = event.organization.login;
@@ -226,23 +219,20 @@ async function handleCheckSuite(
     status: "in_progress",
   });
 
-  return logAndSendResponse(
-    projectOrganization,
-    projectRepository,
-    event.action,
-    {
-      data: null,
-      httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
-    }
-  );
+  logAndSendResponse(projectOrganization, projectRepository, event.action, {
+    data: null,
+    httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
+  });
+
+  return true;
 }
 
 async function handlePullRequestClosedEvent(
   event: PullRequestClosedEvent,
   logAndSendResponse: LogAndSendResponseFunction
-) {
+): Promise<boolean> {
   if (!event.organization || !event.pull_request.head.repo) {
-    return;
+    return false;
   }
 
   const projectOrganization = event.organization.login;
@@ -269,23 +259,20 @@ async function handlePullRequestClosedEvent(
     github_pr_status: "closed",
   });
 
-  return logAndSendResponse(
-    projectOrganization,
-    projectRepository,
-    event.action,
-    {
-      data: null,
-      httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
-    }
-  );
+  logAndSendResponse(projectOrganization, projectRepository, event.action, {
+    data: null,
+    httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
+  });
+
+  return true;
 }
 
 async function handlePullRequestOpenedOrReopenedEvent(
   event: PullRequestOpenedEvent | PullRequestReopenedEvent,
   logAndSendResponse: LogAndSendResponseFunction
-) {
+): Promise<boolean> {
   if (!event.organization || !event.pull_request.head.repo) {
-    return;
+    return false;
   }
 
   const projectOrganization = event.organization.login;
@@ -320,13 +307,10 @@ async function handlePullRequestOpenedOrReopenedEvent(
     });
   }
 
-  return logAndSendResponse(
-    projectOrganization,
-    projectRepository,
-    event.action,
-    {
-      data: null,
-      httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
-    }
-  );
+  logAndSendResponse(projectOrganization, projectRepository, event.action, {
+    data: null,
+    httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
+  });
+
+  return true;
 }

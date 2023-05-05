@@ -121,7 +121,9 @@ export async function createDiffComment({
 }): Promise<[comment: string, diff: SnapshotDiff[]]> {
   const primaryBranch = await getPrimaryBranchForProject(project);
   const primaryBranchRun = await getMostRecentRunForBranch(primaryBranch.id);
-  const oldSnapshots = await getSnapshotsForRun(primaryBranchRun.id);
+  const oldSnapshots = primaryBranchRun
+    ? await getSnapshotsForRun(primaryBranchRun.id)
+    : [];
 
   const diff = await diffSnapshots(oldSnapshots, newSnapshots);
   const numChanges = diff.length;

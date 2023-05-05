@@ -24,7 +24,7 @@ export type Branch = {
   // Github API
   github_pr_check_id: Opaque<"number", Branch> | null;
   github_pr_comment_id: Opaque<"number", Branch> | null;
-  github_pr_number: number;
+  github_pr_number: number | null;
   github_pr_status: PullRequestStatus;
 };
 export type BranchId = Branch["id"];

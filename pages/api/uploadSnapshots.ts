@@ -2,11 +2,14 @@ import type { NextApiRequest, NextApiResponse } from "next";
 
 import { createHash } from "crypto";
 import { uploadSnapshot } from "../../lib/server/supabase/storage/Snapshots";
-import { getBranchForProjectAndOrganizationAndBranchName } from "../../lib/server/supabase/tables/Branches";
+import {
+  getBranchForProjectAndOrganizationAndBranchName,
+  insertBranch,
+} from "../../lib/server/supabase/tables/Branches";
 import { getProjectForSlug } from "../../lib/server/supabase/tables/Projects";
 import { insertRun } from "../../lib/server/supabase/tables/Runs";
 import { insertSnapshot } from "../../lib/server/supabase/tables/Snapshots";
-import { GithubRunId, ProjectSlug } from "../../lib/types";
+import { Branch, GithubRunId, ProjectSlug } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
@@ -63,15 +66,28 @@ export default async function handler(
 
   try {
     const project = await getProjectForSlug(projectSlug);
-    const branch = await getBranchForProjectAndOrganizationAndBranchName(
-      project.id,
-      owner,
-      branchName
-    );
-    if (branch == null) {
-      throw Error(
-        `No branches found for project ${project.id} and owner "${owner}" with name "${branchName}"`
+
+    let branch: Branch | null = null;
+    try {
+      branch = await getBranchForProjectAndOrganizationAndBranchName(
+        project.id,
+        owner,
+        branchName
       );
+    } catch (error) {}
+
+    // It's possible the "pull_request" event didn't get triggered,
+    // in which case we should initialize the Branch now.
+    if (branch == null) {
+      branch = await insertBranch({
+        name: branchName,
+        organization: owner,
+        project_id: project.id,
+        github_pr_check_id: null,
+        github_pr_comment_id: null,
+        github_pr_number: null,
+        github_pr_status: "open",
+      });
     }
 
     for (let index = 0; index < images.length; index++) {

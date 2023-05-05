@@ -178,17 +178,17 @@ async function handleCheckSuite(
   const organization = event.repository.organization;
   const branchName = event.check_suite.head_branch;
   if (organization) {
+    const prNumber =
+      event.check_suite.pull_requests.length > 0
+        ? event.check_suite.pull_requests[0].number
+        : null;
+
     let branch = await getBranchForProjectAndOrganizationAndBranchName(
       project.id,
       organization,
       branchName
     );
     if (branch == null) {
-      const prNumber =
-        event.check_suite.pull_requests.length > 0
-          ? event.check_suite.pull_requests[0].number
-          : null;
-
       branch = await insertBranch({
         name: branchName,
         organization,
@@ -200,6 +200,7 @@ async function handleCheckSuite(
       });
     } else if (branch.github_pr_status === "closed") {
       updateBranch(branch.id, {
+        github_pr_number: prNumber,
         github_pr_status: "open",
       });
     }
@@ -304,6 +305,7 @@ async function handlePullRequestOpenedOrReopenedEvent(
     });
   } else if (branch.github_pr_status === "closed") {
     updateBranch(branch.id, {
+      github_pr_number: prNumber,
       github_pr_status: "open",
     });
   }

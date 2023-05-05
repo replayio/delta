@@ -79,7 +79,10 @@ export default async function handler(
 
     console.log(`Uploading Snapshot for Project ${projectSlug}:\n ${base64}`);
 
-    await uploadSnapshot(base64, project.id);
+    const sha = createHash("sha256").update(base64).digest("hex");
+    const path = `${projectSlug}/${sha}.png`;
+
+    await uploadSnapshot(path, base64);
 
     let run: Run;
     try {
@@ -93,9 +96,6 @@ export default async function handler(
         github_status: "pending",
       });
     }
-
-    const sha = createHash("sha256").update(base64).digest("hex");
-    const path = `${projectSlug}/${sha}.png`;
 
     console.log(`Inserting Snapshot with file "${file}" and path "${path}"`);
 

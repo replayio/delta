@@ -7,7 +7,7 @@ export default function Error({
 }) {
   return (
     <pre className="px-2 py-1 bg-red-100 text-red-600">
-      {error.message || error}
+      {error?.message ?? error ?? "Unknown error"}
     </pre>
   );
 }

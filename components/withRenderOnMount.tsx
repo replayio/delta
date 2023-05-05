@@ -1,5 +1,4 @@
-import { ComponentType, Suspense } from "react";
-import useDidMount from "../lib/hooks/useDidMount";
+import { ComponentType, Suspense, useEffect, useState } from "react";
 import { Loader } from "./Loader";
 
 export default function withRenderOnMount<Props extends Object>(
@@ -9,7 +8,10 @@ export default function withRenderOnMount<Props extends Object>(
     // HACK updateDehydratedSuspenseComponent() throws when rendered on the server
     // We could use getServerSideProps() and change our data loading strategy to not use Suspense
     // but for now we will just not render on the server.
-    const didMount = useDidMount();
+    const [didMount, setDidMount] = useState(false);
+    useEffect(() => {
+      setTimeout(() => setDidMount(true), 100);
+    }, []);
     if (!didMount) {
       return null;
     }

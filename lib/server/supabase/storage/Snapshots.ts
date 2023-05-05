@@ -57,11 +57,10 @@ export async function removeCorruptedSnapshots(projectId: ProjectId) {
 }
 
 export async function uploadSnapshot(
-  content: string | Buffer,
-  projectId: ProjectId
+  path: string,
+  content: string | Buffer
 ): Promise<StoredSnapshot> {
   const sha = createHash("sha256").update(content).digest("hex");
-  const path = `${projectId}/${sha}.png`;
 
   if (typeof content === "string") {
     content = Buffer.from(content, "base64");

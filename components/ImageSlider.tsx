@@ -1,7 +1,8 @@
 import { ChangeEvent, Dispatch, SetStateAction } from "react";
 import { snapshotCache } from "../suspense/SnapshotCache";
+import withSuspenseLoader from "./withSuspenseLoader";
 
-export function ImageSlider({
+export default withSuspenseLoader(function ImageSlider({
   onChange,
   pathData,
   value,
@@ -30,4 +31,4 @@ export function ImageSlider({
       />
     </>
   );
-}
+});

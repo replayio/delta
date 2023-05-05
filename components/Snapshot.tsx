@@ -13,7 +13,7 @@ import {
   isSnapshotDiffRemoved,
 } from "../lib/server/types";
 import { base64ImageCache } from "../suspense/ImageCache";
-import { ImageSlider } from "./ImageSlider";
+import ImageSlider from "./ImageSlider";
 import { Loader } from "./Loader";
 import SnapshotImage from "./SnapshotImage";
 import { SnapshotImageSlider } from "./SnapshotSliderImage";

@@ -127,7 +127,7 @@ const RunDropDownItem = withSuspenseLoader(function RunDropDownItem({
   return (
     <Link
       className="h-full w-full"
-      href={`/project/${project.slug}/?branch=${currentBranchName}&run=${run.id}`}
+      href={`/project/${project.slug}/?branchId=${currentBranchName}&runId=${run.id}`}
     >
       <div className="flex justify-between w-full">
         <div className="truncate pr-4">{relativeTime(run.created_at)}</div>

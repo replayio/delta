@@ -23,6 +23,7 @@
     "@octokit/webhooks-types": "^6.11.0",
     "@supabase/supabase-js": "^1.28.0",
     "@supabase/ui": "^0.36.5",
+    "@types/gm": "^1.25.1",
     "@types/node-fetch": "latest",
     "chalk": "^5.2.0",
     "dotenv": "^16.0.3",

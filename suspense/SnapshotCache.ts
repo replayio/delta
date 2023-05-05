@@ -8,14 +8,9 @@ import {
   getMostFrequentlyUpdatedSnapshots,
   getSnapshotDiffsForRun,
 } from "../utils/ApiClient";
+import { Base64Image, base64ImageCache } from "./ImageCache";
 
 export type SnapshotTheme = "dark" | "light";
-
-export type Base64Image = {
-  base64String: string;
-  height: number;
-  width: number;
-};
 
 // Fetch list of snapshots for a branch
 export const frequentlyUpdatedSnapshotsCache = createCache<
@@ -53,7 +48,7 @@ export const snapshotCache = createCache<[path: string], Base64Image>({
   debugLabel: "snapshot",
   async load([path]) {
     const base64String = await downloadSnapshot({ path });
-    return await createSnapshotImage(base64String);
+    return await base64ImageCache.readAsync(base64String);
   },
 });
 
@@ -70,24 +65,3 @@ export const snapshotDiffForRunCache = createCache<
     return await getSnapshotDiffsForRun({ runId });
   },
 });
-
-async function createSnapshotImage(base64String: string): Promise<Base64Image> {
-  return new Promise<Base64Image>((resolve, reject) => {
-    try {
-      const image = new Image();
-      image.addEventListener("error", (event) => {
-        reject(event.error);
-      });
-      image.addEventListener("load", () => {
-        resolve({
-          base64String,
-          height: image.naturalHeight,
-          width: image.naturalWidth,
-        });
-      });
-      image.src = `data:image/png;base64,${base64String}`;
-    } catch (error) {
-      reject(error);
-    }
-  });
-}

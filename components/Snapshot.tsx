@@ -6,12 +6,14 @@ import { comparisonModeAtom } from "../lib/client/state";
 import { imageDiffCache, snapshotCache } from "../suspense/SnapshotCache";
 import Icon from "./Icon";
 
+import Image from "next/image";
 import {
   SnapshotDiff,
   SnapshotDiffChanged,
   isSnapshotDiffAdded,
   isSnapshotDiffRemoved,
 } from "../lib/server/types";
+import { base64ImageCache } from "../suspense/ImageCache";
 import { ImageSlider } from "./ImageSlider";
 import { Loader } from "./Loader";
 import SnapshotImage from "./SnapshotImage";
@@ -85,12 +87,14 @@ function SnapshotVariant({
       </ErrorBoundary>
     );
   } else {
+    const { newPath, oldPath } = snapshotDiff;
     return (
       <div className="flex flex-col overflow-y-auto overflow-x-auto items-center p-2 bg-slate-100 rounded">
         <Offscreen mode={mode == "slider" ? "visible" : "hidden"}>
           <SubViewSlider
+            newPath={newPath}
+            oldPath={oldPath}
             sliderPercentage={sliderPercentage}
-            snapshotDiff={snapshotDiff}
           />
         </Offscreen>
         <Offscreen mode={mode == "compare" ? "visible" : "hidden"}>
@@ -157,7 +161,7 @@ function NoDiffData({ snapshotDiff }: { snapshotDiff: SnapshotDiffChanged }) {
   return (
     <div
       className="flex flex-col bg-red-100 text-red-700 rounded items-center justify-center gap-1"
-      style={{ minHeight: height, width }}
+      style={{ minHeight: height, minWidth: width }}
     >
       <div className="text-center w-full whitespace-pre overflow-hidden text-ellipsis shrink-0">
         No diff data found.
@@ -173,10 +177,16 @@ function SubViewDiff({ snapshotDiff }: { snapshotDiff: SnapshotDiffChanged }) {
     snapshotDiff.newPath
   );
   if (base64String) {
+    const image = base64ImageCache.read(base64String);
     return (
       <ErrorBoundary FallbackComponent={Fallback}>
         <Suspense fallback={<Loader />}>
-          <SnapshotImage path={base64String} />
+          <img
+            alt="Diff"
+            src={`data:image/png;base64,${base64String}`}
+            width={image.width}
+            height={image.height}
+          />
         </Suspense>
       </ErrorBoundary>
     );
@@ -186,21 +196,22 @@ function SubViewDiff({ snapshotDiff }: { snapshotDiff: SnapshotDiffChanged }) {
 }
 
 function SubViewSlider({
+  newPath,
+  oldPath,
   sliderPercentage,
-  snapshotDiff,
 }: {
+  newPath: string;
+  oldPath: string;
   sliderPercentage: number;
-  snapshotDiff: SnapshotDiffChanged;
 }) {
-  const { newPath, oldPath } = snapshotDiff;
   return (
     <ErrorBoundary FallbackComponent={Fallback}>
       <Suspense fallback={<Loader />}>
-        {/*<SnapshotImageSlider
-          pathBranchData={pathBranchData!}
-          oldPath={oldPath!}
+        <SnapshotImageSlider
+          newPath={newPath}
+          oldPath={oldPath}
           percentage={sliderPercentage}
-  />*/}
+        />
       </Suspense>
     </ErrorBoundary>
   );

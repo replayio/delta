@@ -26,9 +26,9 @@ import { snapshotDiffForRunCache } from "../../../suspense/SnapshotCache";
 export default function Page() {
   const router = useRouter();
   const {
-    run: runIdFromUrl,
-    branchId: branchIdString,
+    branchId: branchIdFromUrl,
     fileName: currentFile,
+    runId: runIdFromUrl,
     slug: projectSlug,
   } = router.query as { [key: string]: string };
 
@@ -38,13 +38,14 @@ export default function Page() {
     return null;
   }
 
-  const branchId = parseInt(branchIdString) as unknown as BranchId;
+  const branchId = parseInt(branchIdFromUrl) as unknown as BranchId;
+  const runId = parseInt(runIdFromUrl) as unknown as RunId;
 
   return (
     <PageSuspends
       branchId={branchId ?? null}
       currentFile={currentFile ?? null}
-      runId={(runIdFromUrl as RunId) ?? null}
+      runId={runId}
       projectSlug={projectSlug as ProjectSlug}
     />
   );
@@ -125,8 +126,10 @@ const PageSuspends = withSuspenseLoader(function PageSuspends({
         <SubViewNoChanges />
       ) : (
         <SubViewLoadedData
-          currentRun={currentRun}
+          branchId={branchId}
           currentFile={currentFile}
+          currentRun={currentRun}
+          projectSlug={projectSlug}
           snapshotDiffs={snapshotDiffs}
         />
       )}
@@ -155,12 +158,16 @@ function SubViewRunPending({
 }
 
 function SubViewLoadedData({
-  currentRun,
+  branchId,
   currentFile,
+  currentRun,
+  projectSlug,
   snapshotDiffs,
 }: {
-  currentRun: Run | null;
+  branchId: BranchId | null;
   currentFile: string | null;
+  currentRun: Run | null;
+  projectSlug: ProjectSlug;
   snapshotDiffs: SnapshotDiff[];
 }) {
   if (!currentFile && snapshotDiffs.length > 0) {
@@ -192,9 +199,11 @@ function SubViewLoadedData({
           <div className="w-full h-full flex flex-col h-full overflow-y-auto overflow-x-hidden bg-slate-100 py-1">
             {snapshotDiffs.map((snapshotDiff) => (
               <SnapshotRow
+                branchId={branchId}
                 isSelected={snapshotDiff.file === currentFile}
                 key={snapshotDiff.file}
-                run={currentRun}
+                projectSlug={projectSlug}
+                runId={currentRun?.id ?? null}
                 snapshotDiff={snapshotDiff}
               />
             ))}

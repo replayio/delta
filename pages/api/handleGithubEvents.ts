@@ -18,7 +18,7 @@ import {
 } from "../../lib/server/supabase/tables/Branches";
 import { insertGithubEvent } from "../../lib/server/supabase/tables/GithubEvents";
 import { getProjectForOrganizationAndRepository } from "../../lib/server/supabase/tables/Projects";
-import { GithubEventType } from "../../lib/types";
+import { GithubCheckId, GithubEventType } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { ApiErrorResponse, ApiSuccessResponse } from "./types";
 import { isApiErrorResponse, sendApiResponse } from "./utils";
@@ -186,6 +186,17 @@ export default async function handler(
 
     const organization = event.repository.organization;
     const branchName = event.check_suite.head_branch;
+
+    const check = await createCheck(projectOrganization, projectRepository, {
+      conclusion: null,
+      details_url: getDeltaBranchUrl(project, branchName),
+      head_sha: event.check_suite.head_sha,
+      title: "In progress",
+      summary: "",
+      text: "",
+      status: "in_progress",
+    });
+
     if (organization) {
       const prNumber =
         event.check_suite.pull_requests.length > 0
@@ -202,28 +213,19 @@ export default async function handler(
           name: branchName,
           organization,
           project_id: project.id,
-          github_pr_check_id: null,
+          github_pr_check_id: check.id as unknown as GithubCheckId,
           github_pr_comment_id: null,
           github_pr_number: prNumber,
           github_pr_status: "open",
         });
       } else if (branch.github_pr_status === "closed") {
         updateBranch(branch.id, {
+          github_pr_check_id: check.id as unknown as GithubCheckId,
           github_pr_number: prNumber,
           github_pr_status: "open",
         });
       }
     }
-
-    createCheck(projectOrganization, projectRepository, {
-      conclusion: null,
-      details_url: getDeltaBranchUrl(project, branchName),
-      head_sha: event.check_suite.head_sha,
-      title: "In progress",
-      summary: "",
-      text: "",
-      status: "in_progress",
-    });
 
     logAndSendResponse(projectOrganization, projectRepository, event.action, {
       data: null,

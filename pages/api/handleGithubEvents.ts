@@ -20,18 +20,11 @@ import { insertGithubEvent } from "../../lib/server/supabase/tables/GithubEvents
 import { getProjectForOrganizationAndRepository } from "../../lib/server/supabase/tables/Projects";
 import { GithubEventType } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
-import { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from "./types";
+import { ApiErrorResponse, ApiSuccessResponse } from "./types";
 import { isApiErrorResponse, sendApiResponse } from "./utils";
 
 // Spy on HTTP client requests for debug logging in Supabase.
 setupHook();
-
-type LogAndSendResponseFunction = (
-  projectOrganization: string | undefined,
-  projectRepository: string,
-  action: string,
-  response: ApiResponse
-) => Promise<void>;
 
 export default async function handler(
   nextApiRequest: NextApiRequest,
@@ -102,7 +95,7 @@ export default async function handler(
         const event = nextApiRequest.body as CheckSuiteEvent;
         if (event.check_suite.app.name === "Replay Delta") {
           eventProcessed = true;
-          didRespond = await handleCheckSuite(event, logAndSendResponse);
+          didRespond = await handleCheckSuite(event);
           break;
         }
         break;
@@ -113,18 +106,12 @@ export default async function handler(
         switch (event.action) {
           case "closed":
             eventProcessed = true;
-            didRespond = await handlePullRequestClosedEvent(
-              event,
-              logAndSendResponse
-            );
+            didRespond = await handlePullRequestClosedEvent(event);
             break;
           case "opened":
           case "reopened":
             eventProcessed = true;
-            didRespond = await handlePullRequestOpenedOrReopenedEvent(
-              event,
-              logAndSendResponse
-            );
+            didRespond = await handlePullRequestOpenedOrReopenedEvent(event);
             break;
           default:
             // Don't care about the other action types
@@ -178,38 +165,157 @@ export default async function handler(
       httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
     });
   }
-}
 
-async function handleCheckSuite(
-  event: CheckSuiteEvent,
-  logAndSendResponse: LogAndSendResponseFunction
-): Promise<boolean> {
-  if (!event.organization || !event.check_suite.head_branch) {
-    return false;
+  async function handleCheckSuite(event: CheckSuiteEvent): Promise<boolean> {
+    if (!event.organization || !event.check_suite.head_branch) {
+      sendApiResponse(nextApiRequest, nextApiResponse, {
+        data: Error(`Missing required parameters event parameters`),
+        deltaErrorCode: DELTA_ERROR_CODE.MISSING_PARAMETERS,
+        httpStatusCode: HTTP_STATUS_CODES.BAD_REQUEST,
+      });
+
+      return true;
+    }
+
+    const projectOrganization = event.organization.login;
+    const projectRepository = event.repository.name;
+    const project = await getProjectForOrganizationAndRepository(
+      projectOrganization,
+      projectRepository
+    );
+
+    const organization = event.repository.organization;
+    const branchName = event.check_suite.head_branch;
+    if (organization) {
+      const prNumber =
+        event.check_suite.pull_requests.length > 0
+          ? event.check_suite.pull_requests[0].number
+          : null;
+
+      let branch = await getBranchForProjectAndOrganizationAndBranchName(
+        project.id,
+        organization,
+        branchName
+      );
+      if (branch == null) {
+        branch = await insertBranch({
+          name: branchName,
+          organization,
+          project_id: project.id,
+          github_pr_check_id: null,
+          github_pr_comment_id: null,
+          github_pr_number: prNumber,
+          github_pr_status: "open",
+        });
+      } else if (branch.github_pr_status === "closed") {
+        updateBranch(branch.id, {
+          github_pr_number: prNumber,
+          github_pr_status: "open",
+        });
+      }
+    }
+
+    createCheck(projectOrganization, projectRepository, {
+      conclusion: null,
+      details_url: getDeltaBranchUrl(project, branchName),
+      head_sha: event.check_suite.head_sha,
+      title: "In progress",
+      summary: "",
+      text: "",
+      status: "in_progress",
+    });
+
+    logAndSendResponse(projectOrganization, projectRepository, event.action, {
+      data: null,
+      httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
+    });
+
+    return true;
   }
 
-  const projectOrganization = event.organization.login;
-  const projectRepository = event.repository.name;
-  const project = await getProjectForOrganizationAndRepository(
-    projectOrganization,
-    projectRepository
-  );
+  async function handlePullRequestClosedEvent(
+    event: PullRequestClosedEvent
+  ): Promise<boolean> {
+    if (!event.organization || !event.pull_request.head.repo) {
+      sendApiResponse(nextApiRequest, nextApiResponse, {
+        data: Error(`Missing required parameters event parameters`),
+        deltaErrorCode: DELTA_ERROR_CODE.MISSING_PARAMETERS,
+        httpStatusCode: HTTP_STATUS_CODES.BAD_REQUEST,
+      });
 
-  const organization = event.repository.organization;
-  const branchName = event.check_suite.head_branch;
-  if (organization) {
-    const prNumber =
-      event.check_suite.pull_requests.length > 0
-        ? event.check_suite.pull_requests[0].number
-        : null;
+      return true;
+    }
 
-    let branch = await getBranchForProjectAndOrganizationAndBranchName(
+    const projectOrganization = event.organization.login;
+    const projectRepository = event.repository.name;
+    const project = await getProjectForOrganizationAndRepository(
+      projectOrganization,
+      projectRepository
+    );
+
+    const organization = event.pull_request.head.repo.owner.login;
+    const branchName = event.pull_request.head.ref;
+    const branch = await getBranchForProjectAndOrganizationAndBranchName(
       project.id,
       organization,
       branchName
     );
     if (branch == null) {
-      branch = await insertBranch({
+      throw Error(
+        `No branches found for project ${project.id} and organization "${organization}" with name "${branchName}"`
+      );
+    }
+
+    await updateBranch(branch.id, {
+      github_pr_status: "closed",
+    });
+
+    logAndSendResponse(projectOrganization, projectRepository, event.action, {
+      data: null,
+      httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
+    });
+
+    return true;
+  }
+
+  async function handlePullRequestOpenedOrReopenedEvent(
+    event: PullRequestOpenedEvent | PullRequestReopenedEvent
+  ): Promise<boolean> {
+    if (!event.organization || !event.pull_request.head.repo) {
+      sendApiResponse(nextApiRequest, nextApiResponse, {
+        data: Error(`Missing required parameters event parameters`),
+        deltaErrorCode: DELTA_ERROR_CODE.MISSING_PARAMETERS,
+        httpStatusCode: HTTP_STATUS_CODES.BAD_REQUEST,
+      });
+
+      return true;
+    }
+
+    const projectOrganization = event.organization.login;
+    const projectRepository = event.repository.name;
+    const project = await getProjectForOrganizationAndRepository(
+      projectOrganization,
+      projectRepository
+    );
+
+    const prNumber = event.number;
+    const organization = event.pull_request.head.repo.owner.login;
+    const branchName = event.pull_request.head.ref;
+
+    try {
+      const branch = await getBranchForProjectAndOrganizationAndBranchName(
+        project.id,
+        organization,
+        branchName
+      );
+      if (branch.github_pr_status === "closed") {
+        updateBranch(branch.id, {
+          github_pr_number: prNumber,
+          github_pr_status: "open",
+        });
+      }
+    } catch (error) {
+      await insertBranch({
         name: branchName,
         organization,
         project_id: project.id,
@@ -218,119 +324,13 @@ async function handleCheckSuite(
         github_pr_number: prNumber,
         github_pr_status: "open",
       });
-    } else if (branch.github_pr_status === "closed") {
-      updateBranch(branch.id, {
-        github_pr_number: prNumber,
-        github_pr_status: "open",
-      });
     }
-  }
 
-  createCheck(projectOrganization, projectRepository, {
-    conclusion: null,
-    details_url: getDeltaBranchUrl(project, branchName),
-    head_sha: event.check_suite.head_sha,
-    title: "In progress",
-    summary: "",
-    text: "",
-    status: "in_progress",
-  });
-
-  logAndSendResponse(projectOrganization, projectRepository, event.action, {
-    data: null,
-    httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
-  });
-
-  return true;
-}
-
-async function handlePullRequestClosedEvent(
-  event: PullRequestClosedEvent,
-  logAndSendResponse: LogAndSendResponseFunction
-): Promise<boolean> {
-  if (!event.organization || !event.pull_request.head.repo) {
-    return false;
-  }
-
-  const projectOrganization = event.organization.login;
-  const projectRepository = event.repository.name;
-  const project = await getProjectForOrganizationAndRepository(
-    projectOrganization,
-    projectRepository
-  );
-
-  const organization = event.pull_request.head.repo.owner.login;
-  const branchName = event.pull_request.head.ref;
-  const branch = await getBranchForProjectAndOrganizationAndBranchName(
-    project.id,
-    organization,
-    branchName
-  );
-  if (branch == null) {
-    throw Error(
-      `No branches found for project ${project.id} and organization "${organization}" with name "${branchName}"`
-    );
-  }
-
-  await updateBranch(branch.id, {
-    github_pr_status: "closed",
-  });
-
-  logAndSendResponse(projectOrganization, projectRepository, event.action, {
-    data: null,
-    httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
-  });
-
-  return true;
-}
-
-async function handlePullRequestOpenedOrReopenedEvent(
-  event: PullRequestOpenedEvent | PullRequestReopenedEvent,
-  logAndSendResponse: LogAndSendResponseFunction
-): Promise<boolean> {
-  if (!event.organization || !event.pull_request.head.repo) {
-    return false;
-  }
-
-  const projectOrganization = event.organization.login;
-  const projectRepository = event.repository.name;
-  const project = await getProjectForOrganizationAndRepository(
-    projectOrganization,
-    projectRepository
-  );
-
-  const prNumber = event.number;
-  const organization = event.pull_request.head.repo.owner.login;
-  const branchName = event.pull_request.head.ref;
-
-  try {
-    const branch = await getBranchForProjectAndOrganizationAndBranchName(
-      project.id,
-      organization,
-      branchName
-    );
-    if (branch.github_pr_status === "closed") {
-      updateBranch(branch.id, {
-        github_pr_number: prNumber,
-        github_pr_status: "open",
-      });
-    }
-  } catch (error) {
-    await insertBranch({
-      name: branchName,
-      organization,
-      project_id: project.id,
-      github_pr_check_id: null,
-      github_pr_comment_id: null,
-      github_pr_number: prNumber,
-      github_pr_status: "open",
+    logAndSendResponse(projectOrganization, projectRepository, event.action, {
+      data: null,
+      httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
     });
+
+    return true;
   }
-
-  logAndSendResponse(projectOrganization, projectRepository, event.action, {
-    data: null,
-    httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
-  });
-
-  return true;
 }

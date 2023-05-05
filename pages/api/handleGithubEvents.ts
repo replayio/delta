@@ -124,12 +124,13 @@ export default async function handler(
         const event = nextApiRequest.body as PullRequestEvent;
         switch (event.action) {
           case "closed":
-            handlePullRequestClosedEvent(event, logAndSendResponse);
-            break;
+            return handlePullRequestClosedEvent(event, logAndSendResponse);
           case "opened":
           case "reopened":
-            handlePullRequestOpenedOrReopenedEvent(event, logAndSendResponse);
-            break;
+            return handlePullRequestOpenedOrReopenedEvent(
+              event,
+              logAndSendResponse
+            );
           default:
             // Don't care about the other action types
             break;
@@ -152,6 +153,15 @@ export default async function handler(
       httpStatusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
     });
   }
+
+  // Temporarily log all GitHub events
+  // TODO Remove this
+  await insertGithubEvent({
+    action: nextApiRequest.body.action,
+    payload: nextApiRequest.body,
+    project_id: 0,
+    type: eventType,
+  });
 
   // No-op response
   return sendApiResponse(nextApiRequest, nextApiResponse, {

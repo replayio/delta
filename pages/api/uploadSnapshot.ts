@@ -81,7 +81,10 @@ export default async function handler(
 
     await uploadSnapshot(base64, project.id);
 
-    let run = await getRunsForGithubRunId(githubRunId);
+    let run;
+    try {
+      run = await getRunsForGithubRunId(githubRunId);
+    } catch (error) {}
     if (run == null) {
       run = await insertRun({
         branch_id: branch.id,

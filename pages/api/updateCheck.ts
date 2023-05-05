@@ -10,6 +10,7 @@ import { getProjectForSlug } from "../../lib/server/supabase/tables/Projects";
 import {
   getMostRecentRunForBranch,
   getRunsForGithubRunId,
+  updateRun,
 } from "../../lib/server/supabase/tables/Runs";
 import { getSnapshotsForRun } from "../../lib/server/supabase/tables/Snapshots";
 import { GithubRunId, ProjectSlug } from "../../lib/types";
@@ -68,6 +69,9 @@ export default async function handler(
     }
 
     const run = await getRunsForGithubRunId(githubRunId);
+    updateRun(run.id, {
+      github_status: "completed",
+    });
 
     const primaryBranch = await getPrimaryBranchForProject(project);
     const primaryBranchRun = await getMostRecentRunForBranch(primaryBranch.id);

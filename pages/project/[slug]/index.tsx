@@ -83,7 +83,7 @@ function Page() {
     (branch) => branch.name !== project.primary_branch
   );
 
-  const isPending = currentRun?.github_status === "queued";
+  const isPending = currentRun?.github_status != "completed";
 
   return (
     <div className="h-full flex flex-col overflow-hidden">

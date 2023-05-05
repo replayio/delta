@@ -9,7 +9,7 @@ import {
   insertRun,
 } from "../../lib/server/supabase/tables/Runs";
 import { insertSnapshot } from "../../lib/server/supabase/tables/Snapshots";
-import { GithubRunId, ProjectSlug } from "../../lib/types";
+import { GithubRunId, ProjectSlug, Run } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
@@ -81,17 +81,16 @@ export default async function handler(
 
     await uploadSnapshot(base64, project.id);
 
-    let run;
+    let run: Run;
     try {
       run = await getRunsForGithubRunId(githubRunId);
-    } catch (error) {}
-    if (run == null) {
+    } catch (error) {
       run = await insertRun({
         branch_id: branch.id,
         delta_has_user_approval: false,
         github_actor: actor,
         github_run_id: githubRunId,
-        github_status: "completed",
+        github_status: "pending",
       });
     }
 

@@ -19,7 +19,7 @@ export const ApproveButton = withSuspenseLoader(function ApproveButton({
     run.delta_has_user_approval
   );
 
-  if (run.github_status === "queued") {
+  if (run.github_status === "pending") {
     return (
       <div className="text-white bg-violet-300 py-1 px-3 rounded border-transparent">
         Updating

@@ -19,7 +19,7 @@ import {
 } from "../../lib/server/supabase/tables/Branches";
 import { insertGithubEvent } from "../../lib/server/supabase/tables/GithubEvents";
 import { getProjectForOrganizationAndRepository } from "../../lib/server/supabase/tables/Projects";
-import { GithubEventType } from "../../lib/types";
+import { GithubEventType, ProjectId } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from "./types";
 import { isApiErrorResponse, sendApiResponse } from "./utils";
@@ -159,7 +159,7 @@ export default async function handler(
   await insertGithubEvent({
     action: nextApiRequest.body.action,
     payload: nextApiRequest.body,
-    project_id: 0,
+    project_id: 0 as unknown as ProjectId,
     type: eventType,
   });
 

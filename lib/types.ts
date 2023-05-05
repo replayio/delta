@@ -31,7 +31,7 @@ export type BranchId = Branch["id"];
 export type GithubCheckId = Branch["github_pr_check_id"];
 export type GithubCommentId = Branch["github_pr_comment_id"];
 
-export type RunStatus = "queued" | "completed";
+export type RunStatus = "pending" | "completed";
 export type Run = {
   created_at: string;
   id: Opaque<"number", Run>;

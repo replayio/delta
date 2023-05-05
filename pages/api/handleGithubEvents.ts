@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import type {
-  CheckRunEvent,
   CheckSuiteEvent,
   PullRequestClosedEvent,
   PullRequestEvent,
@@ -19,7 +18,7 @@ import {
 } from "../../lib/server/supabase/tables/Branches";
 import { insertGithubEvent } from "../../lib/server/supabase/tables/GithubEvents";
 import { getProjectForOrganizationAndRepository } from "../../lib/server/supabase/tables/Projects";
-import { GithubEventType, ProjectId } from "../../lib/types";
+import { GithubEventType } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from "./types";
 import { isApiErrorResponse, sendApiResponse } from "./utils";
@@ -146,12 +145,24 @@ export default async function handler(
   }
 
   if (!didRespond) {
+    const event = nextApiRequest.body;
+    const projectOrganization = event.organization?.login;
+    const projectRepository = event.repository?.name;
+
+    let project;
+    if (projectOrganization && projectRepository) {
+      project = await getProjectForOrganizationAndRepository(
+        projectOrganization,
+        projectRepository
+      );
+    }
+
     // Log all GitHub events for debugging purposes.
     // TODO Remove this eventually.
     await insertGithubEvent({
       action: nextApiRequest.body.action,
       payload: nextApiRequest.body,
-      project_id: null,
+      project_id: project?.id ?? null,
       type: eventType,
     });
 

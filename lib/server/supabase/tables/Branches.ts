@@ -1,10 +1,6 @@
 import { Branch, BranchId, Project, ProjectId } from "../../../types";
 import { supabase } from "../../initSupabase";
-import {
-  assertQueryResponse,
-  assertQuerySingleResponse,
-  assertQuerySingleResponseOrNull,
-} from "../supabase";
+import { assertQueryResponse, assertQuerySingleResponse } from "../supabase";
 
 export async function getBranchForId(branchId: BranchId) {
   return assertQuerySingleResponse<Branch>(
@@ -18,7 +14,7 @@ export async function getBranchForProjectAndOrganizationAndBranchName(
   organization: string,
   name: string
 ) {
-  return assertQuerySingleResponseOrNull<Branch>(
+  return assertQuerySingleResponse<Branch>(
     () =>
       supabase
         .from("branches")

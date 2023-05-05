@@ -302,23 +302,26 @@ async function handlePullRequestOpenedOrReopenedEvent(
   const prNumber = event.number;
   const organization = event.pull_request.head.repo.owner.login;
   const branchName = event.pull_request.head.ref;
-  let branch = await getBranchForProjectAndOrganizationAndBranchName(
-    project.id,
-    organization,
-    branchName
-  );
-  if (branch == null) {
-    branch = await insertBranch({
+
+  try {
+    const branch = await getBranchForProjectAndOrganizationAndBranchName(
+      project.id,
+      organization,
+      branchName
+    );
+    if (branch.github_pr_status === "closed") {
+      updateBranch(branch.id, {
+        github_pr_number: prNumber,
+        github_pr_status: "open",
+      });
+    }
+  } catch (error) {
+    await insertBranch({
       name: branchName,
       organization,
       project_id: project.id,
       github_pr_check_id: null,
       github_pr_comment_id: null,
-      github_pr_number: prNumber,
-      github_pr_status: "open",
-    });
-  } else if (branch.github_pr_status === "closed") {
-    updateBranch(branch.id, {
       github_pr_number: prNumber,
       github_pr_status: "open",
     });

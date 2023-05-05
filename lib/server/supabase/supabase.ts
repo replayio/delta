@@ -59,24 +59,6 @@ export async function assertQuerySingleResponse<Type>(
   return result.data;
 }
 
-// Returns a single record of type <Type> (or null if none found);
-// throws if there is a Postgrest error
-export async function assertQuerySingleResponseOrNull<Type>(
-  runQuery: () => PromiseLike<PostgrestSingleResponse<Type>>,
-  failureMessage: string
-): Promise<Type | null> {
-  const result = await retryOnError(runQuery);
-  if (result.error) {
-    const error = result.error
-      ? createErrorFromPostgrestError(result.error, failureMessage)
-      : new Error(failureMessage);
-
-    throw error;
-  }
-
-  return result.data;
-}
-
 // Runs query and throws if it fails
 export async function assertStorage(
   runQuery: () => PromiseLike<{

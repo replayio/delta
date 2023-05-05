@@ -1,25 +1,21 @@
 import Link from "next/link";
-import { useRouter } from "next/router";
-import { Run } from "../lib/types";
-import { SnapshotFile } from "../suspense/SnapshotCache";
+import { SnapshotDiff } from "../lib/server/types";
+import { BranchId, ProjectSlug, RunId } from "../lib/types";
 
 export function SnapshotRow({
-  currentRun,
+  branchId,
   isSelected,
-  snapshotFile,
+  projectSlug,
+  runId,
+  snapshotDiff,
 }: {
-  currentRun: Run | null;
+  branchId: BranchId | null;
   isSelected: boolean;
-  snapshotFile: SnapshotFile;
+  projectSlug: ProjectSlug;
+  runId: RunId | null;
+  snapshotDiff: SnapshotDiff;
 }) {
-  const router = useRouter();
-  const { short: shortProjectId, branch: branchName = "" } = router.query;
-
-  const displayName = snapshotFile.fileName
-    .replace(/-/g, " ")
-    .replace(".png", "");
-
-  const runId = currentRun?.id || "";
+  const displayName = snapshotDiff.file.replace(/-/g, " ").replace(".png", "");
 
   return (
     <Link
@@ -27,7 +23,7 @@ export function SnapshotRow({
         isSelected ? "bg-violet-200" : "hover:bg-violet-100"
       }`}
       href={encodeURI(
-        `/project/${shortProjectId}?run=${runId}&branch=${branchName}&fileName=${snapshotFile.fileName}&`
+        `/project/${projectSlug}?branchId=${branchId}&runId=${runId}&fileName=${snapshotDiff.file}&`
       )}
     >
       {displayName}

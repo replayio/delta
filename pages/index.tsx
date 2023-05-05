@@ -1,44 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense, useLayoutEffect } from "react";
-import { Loader } from "../components/Loader";
-import useDidMount from "../lib/hooks/useDidMount";
-import { Project } from "../lib/types";
+import { useLayoutEffect } from "react";
+import withRenderOnMount from "../components/withRenderOnMount";
+import withSuspenseLoader from "../components/withSuspenseLoader";
 import { projectsCache } from "../suspense/ProjectCache";
 
-export default function Home() {
-  // TODO This is a hack because updateDehydratedSuspenseComponent() is throwing on the server.
-  // Maybe proper Server components is the right way to go here?
-  const didMount = useDidMount();
-  if (!didMount) {
-    return null;
-  }
+export default withRenderOnMount(withSuspenseLoader(Home));
 
-  return (
-    <Suspense fallback={<Loader />}>
-      <HomeSuspends />
-    </Suspense>
-  );
-}
-
-function HomeSuspends() {
+function Home() {
   const projects = projectsCache.read();
 
-  // Debug logging
-  // if (process.env.NODE_ENV === "development") {
-  //   console.groupCollapsed("<HomeSuspends>");
-  //   console.log("projects:", projects);
-  //   console.groupEnd();
-  // }
-
-  return <HomeWithData projects={projects} />;
-}
-
-function HomeWithData({ projects }: { projects: Project[] }) {
   useLayoutEffect(() => {
     if (projects.length === 1) {
       const project = projects[0];
-      window.location.href = `/project/${project.short}`;
+      window.location.href = `/project/${project.slug}`;
     }
   }, [projects]);
 
@@ -56,7 +31,7 @@ function HomeWithData({ projects }: { projects: Project[] }) {
       </div>
       <div className="flex flex-col items-center">
         {projects.map((project) => (
-          <Link href={`/project/${project.short}`} key={project.id}>
+          <Link href={`/project/${project.slug}`} key={project.id}>
             {project.name}
           </Link>
         ))}

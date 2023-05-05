@@ -1,11 +1,21 @@
 import { createCache } from "suspense";
-import { Branch, ProjectId } from "../lib/types";
-import { getBranchByName, getBranches } from "../utils/ApiClient";
+import { Branch, BranchId, ProjectId } from "../lib/types";
+import { getBranches } from "../utils/ApiClient";
 
-export const branchCache = createCache<[branchName: string], Branch>({
+export const branchCache = createCache<
+  [projectId: ProjectId, id: BranchId],
+  Branch
+>({
   debugLabel: "branch",
-  async load([branchName]) {
-    return getBranchByName({ name: branchName });
+  async load([projectId, id]) {
+    const branch = branchesCache
+      .read(projectId)
+      .find((branch) => branch.id === id);
+    if (branch) {
+      return branch;
+    }
+
+    throw Error(`Could not find branch with id "${id}"`);
   },
 });
 

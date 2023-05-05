@@ -1,15 +1,16 @@
 import moment from "moment";
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense } from "react";
-import { isPromiseLike } from "suspense";
-import { Branch, Run, Project } from "../lib/types";
+import { useImperativeCacheValue } from "suspense";
+import { Branch, Project, Run, RunId } from "../lib/types";
 import { mostRecentRunCache } from "../suspense/RunCache";
-import classNames from "../utils/classNames";
+import { snapshotDiffForRunCache } from "../suspense/SnapshotCache";
 import { ApproveButton } from "./ApproveButton";
 import Dropdown from "./Dropdown";
 import { Github } from "./SVGs";
 import { Toggle } from "./Toggle";
+import withSuspenseLoader from "./withSuspenseLoader";
+import { Loader } from "./Loader";
 
 export function Header({
   branches,
@@ -19,10 +20,10 @@ export function Header({
   runs,
 }: {
   branches: Branch[];
-  currentBranch: Branch | null;
-  currentRun: Run | null;
+  currentBranch: Branch;
+  currentRun: Run;
   project: Project;
-  runs: Run[] | null;
+  runs: Run[];
 }) {
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
@@ -53,9 +54,7 @@ export function Header({
             isSelected: branch.name === currentBranch?.name,
             key: branch.id,
             render: () => (
-              <Suspense fallback="Loading...">
-                <BranchDropDownItem branch={branch} project={project} />
-              </Suspense>
+              <BranchDropDownItem branch={branch} project={project} />
             ),
           }))}
           selected={currentBranch?.name ?? "–"}
@@ -87,7 +86,7 @@ export function Header({
 
         <a
           className="fill-violet-500 hover:fill-violet-600 "
-          href={`https://github.com/${project?.organization}/${project?.repository}/pull/${currentBranch?.pr_number}`}
+          href={`https://github.com/${project?.organization}/${project?.repository}`}
           rel="noreferrer noopener"
           target="_blank"
         >
@@ -96,9 +95,9 @@ export function Header({
 
         {currentRun && currentBranch && (
           <ApproveButton
-            currentBranch={currentBranch}
-            currentRun={currentRun}
+            branch={currentBranch}
             project={project}
+            run={currentRun}
           />
         )}
       </div>
@@ -106,7 +105,7 @@ export function Header({
   );
 }
 
-const RunDropDownItem = function RunDropDownItem({
+const RunDropDownItem = withSuspenseLoader(function RunDropDownItem({
   currentBranchName,
   project,
   run,
@@ -121,33 +120,22 @@ const RunDropDownItem = function RunDropDownItem({
   //   console.log("project:", project);
   //   console.log("currentBranchName:", currentBranchName);
   //   console.log("run:", run);
-  //   console.log("count:", count);
+  //   console.log("snapshotDiffs:", snapshotDiffs);
   //   console.groupEnd();
   // }
 
   return (
     <Link
       className="h-full w-full"
-      href={`/project/${project.short}/?branch=${currentBranchName}&run=${run.id}`}
+      href={`/project/${project.slug}/?branchId=${currentBranchName}&runId=${run.id}`}
     >
       <div className="flex justify-between w-full">
-        <div
-          className={classNames(
-            "truncate pr-4",
-            run.num_snapshots_changed === 0 && "text-slate-400"
-          )}
-        >
-          {relativeTime(run.created_at)}
-        </div>
-        {run.num_snapshots_changed > 0 && (
-          <div className="bg-violet-500 px-2 rounded text-white text-xs font-bold flex items-center">
-            {run.num_snapshots_changed}
-          </div>
-        )}
+        <div className="truncate pr-4">{relativeTime(run.created_at)}</div>
+        <RunCount runId={run.id} />
       </div>
     </Link>
   );
-};
+});
 
 function BranchDropDownItem({
   branch,
@@ -156,58 +144,53 @@ function BranchDropDownItem({
   branch: Branch;
   project: Project;
 }) {
-  let run: Run | null = null;
-  try {
-    run = mostRecentRunCache.read(branch.id);
-  } catch (errorOrThennable) {
-    if (isPromiseLike(errorOrThennable)) {
-      throw errorOrThennable;
-    } else {
-      // Ignore branches with no Workflow runs.
-    }
-  }
-
-  if (run == null) {
-    return (
-      <div className="h-full w-full cursor-default">
-        <div className="flex justify-between w-full">
-          <div className="truncate pr-4 text-slate-400">{branch.name}</div>
-        </div>
-      </div>
-    );
-  }
+  const { value: run } = useImperativeCacheValue(mostRecentRunCache, branch.id);
 
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
   //   console.groupCollapsed("<BranchDropDownItem>");
   //   console.log("run:", run);
-  //   console.log("count:", count);
+  //   console.log("snapshotDiffs:", snapshotDiffs);
   //   console.groupEnd();
   // }
 
   return (
     <Link
       className="h-full w-full"
-      href={`/project/${project.short}/?branch=${branch.name}`}
+      href={`/project/${project.slug}/?branchId=${branch.id}`}
     >
       <div className="flex justify-between w-full">
-        <div
-          className={classNames(
-            "truncate pr-4",
-            run.num_snapshots_changed === 0 && "text-slate-400"
-          )}
-        >
-          {branch.name}
-        </div>
-        {run.num_snapshots_changed > 0 && (
-          <div className="bg-violet-500 px-2 rounded text-white text-xs font-bold flex items-center">
-            {run.num_snapshots_changed}
-          </div>
-        )}
+        <div className="truncate pr-4">{branch.name}</div>
+        {run && <RunCount runId={run.id} />}
       </div>
     </Link>
   );
 }
+
+const RunCount = withSuspenseLoader(function RunCount({
+  runId,
+}: {
+  runId: RunId;
+}) {
+  const { value: snapshotDiffs } = useImperativeCacheValue(
+    snapshotDiffForRunCache,
+    runId
+  );
+  if (snapshotDiffs == null) {
+    return <Loader />;
+  }
+
+  const count = snapshotDiffs.length;
+  if (count === 0) {
+    return null;
+  }
+
+  return (
+    <div className="bg-violet-500 px-2 rounded text-white text-xs font-bold flex items-center">
+      {count}
+    </div>
+  );
+});
 
 // Transform a date into a relative time from now, e.g. 2 days ago
 function relativeTime(date) {

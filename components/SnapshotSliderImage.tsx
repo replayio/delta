@@ -2,15 +2,15 @@ import { snapshotCache } from "../suspense/SnapshotCache";
 import SnapshotImage from "./SnapshotImage";
 
 export function SnapshotImageSlider({
-  pathBranchData,
-  pathMainData,
+  newPath,
+  oldPath,
   percentage,
 }: {
-  pathBranchData: string;
-  pathMainData: string;
+  newPath: string;
+  oldPath: string;
   percentage: number;
 }) {
-  const { height = 0, width = 0 } = snapshotCache.read(pathBranchData);
+  const { height = 0, width = 0 } = snapshotCache.read(newPath);
 
   return (
     <>
@@ -21,7 +21,7 @@ export function SnapshotImageSlider({
           right: "-10000px",
         }}
       >
-        <SnapshotImage path={pathBranchData} />
+        <SnapshotImage path={newPath} />
       </div>
 
       <div
@@ -48,7 +48,7 @@ export function SnapshotImageSlider({
                   minWidth: `${width}px`,
                 }}
               >
-                <SnapshotImage path={pathBranchData} />
+                <SnapshotImage path={newPath} />
               </div>
             </div>
           </div>
@@ -70,7 +70,7 @@ export function SnapshotImageSlider({
                   minWidth: `${width}px`,
                 }}
               >
-                <SnapshotImage path={pathMainData} />
+                <SnapshotImage path={oldPath} />
               </div>
             </div>
           </div>

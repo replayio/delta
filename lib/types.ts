@@ -1,126 +1,91 @@
 import Opaque from "ts-opaque";
-import { DeltaErrorCode, HttpStatusCode } from "../pages/api/statusCodes";
 
 export type Project = {
   created_at: string;
-
-  // Database ids and keys
-  id: Opaque<"string", Project>;
-  short: Opaque<"string", Project>;
-
-  // Cached attributes
+  id: Opaque<"number", Project>;
   name: string;
   organization: string;
   public: boolean;
   primary_branch: string;
   repository: string;
+  slug: Opaque<"string", Project>;
 };
 export type ProjectId = Project["id"];
-export type ProjectShort = Project["short"];
+export type ProjectSlug = Project["slug"];
 
-export type BranchStatus = "closed" | "open";
+export type PullRequestStatus = "closed" | "open";
 export type Branch = {
   created_at: string;
-
-  // Database ids and keys
-  id: Opaque<"string", Branch>;
-  project_id: ProjectId;
-
-  // GitHub API ids
-  check_id: Opaque<"string", Branch>;
-  comment_id: Opaque<"string", Branch>;
-
-  // Cached attributes
-  head_sha: string;
+  id: Opaque<"number", Branch>;
   name: string;
   organization: string;
-  pr_number: number;
+  project_id: ProjectId;
 
-  // Update in response to Workflow jobs
-  status: BranchStatus | null;
+  // Github API
+  github_pr_check_id: Opaque<"number", Branch> | null;
+  github_pr_comment_id: Opaque<"number", Branch> | null;
+  github_pr_number: number;
+  github_pr_status: PullRequestStatus;
 };
 export type BranchId = Branch["id"];
-export type CheckId = Branch["check_id"];
-export type CommentId = Branch["comment_id"];
+export type GithubCheckId = Branch["github_pr_check_id"];
+export type GithubCommentId = Branch["github_pr_comment_id"];
 
-export type RunStatus = "success" | "failure" | "neutral";
+export type RunStatus = "queued" | "completed";
 export type Run = {
   created_at: string;
-
-  // Database ids and keys
-  id: Opaque<"string", Run>;
+  id: Opaque<"number", Run>;
   branch_id: BranchId;
 
-  // GitHub API ids
+  // Github API
+  github_actor: string | null;
   github_run_id: Opaque<"number", Run>;
+  github_status: RunStatus;
 
-  // Cached attributes
-  actor: string;
-
-  // Updated by RPCs in response to snapshot images being uploaded
-  num_snapshots: number;
-  num_snapshots_changed: number;
-
-  // Set based on the initial results of running the Workflow
-  // Updated based on user actions
-  status: RunStatus | null;
+  // Workflow API
+  delta_has_user_approval: boolean;
 };
 export type RunId = Run["id"];
 export type GithubRunId = Run["github_run_id"];
 
-export type SnapshotStatus = "Duplicate" | "Uploaded";
 export type Snapshot = {
   created_at: string;
-
-  // Database ids and keys
-  id: Opaque<"string", Snapshot>;
+  id: Opaque<"number", Snapshot>;
   run_id: RunId;
 
-  // GitHub API ids
-  github_job_id: Opaque<"number", Run>;
+  // GitHub API
+  github_run_id: Opaque<"number", Run>;
 
-  // Cached attributes
-  // Snapshot file name (as declared in test);
-  // Used to associates snapshots between branches
-  file: string;
-  // Storage path;
-  // Used to load image data (base64 string)
-  path: string;
-  // Storage path;
-  // Used to load diff image data (base64 string)
-  primary_diff_path?: string;
-  // How much this Snapshot differs from the primary branch snapshot
-  primary_num_pixels: number;
-  // Snapshot (base64) data was uploaded to storage
-  // (or if not if a this string has already been uploaded)
-  status: SnapshotStatus | null;
+  // Workflow API
+  delta_file: string;
+  delta_path: string;
 };
 export type SnapshotId = Snapshot["id"];
-export type GithubJobId = Snapshot["github_job_id"];
+
+export type GithubEventType =
+  | "check_run"
+  | "check_suite"
+  | "issues"
+  | "pull_request"
+  | "workflow_job"
+  | "workflow_run";
 
 export type GithubEvent = {
   action: string;
-  branch_name?: string;
-  check: Object;
-  comment: Object;
   created_at: string;
-  event_type: string;
-  head_sha: string;
   id: Opaque<"number", GithubEvent>;
   payload: Object;
-  pr_number?: string;
-
-  github_job_id?: GithubJobId;
-  github_run_id?: GithubRunId;
+  project_id: ProjectId;
+  type: GithubEventType;
 };
 export type GithubEventId = GithubEvent["id"];
 
-export type Error = {
+export type ErrorLog = {
   created_at: string;
   delta_error_code: number;
-  error_message: string;
   http_status_code: number;
-  id: Opaque<"number", Error>;
-  parsed_error_stack: Object;
+  id: Opaque<"number", ErrorLog>;
+  message: string;
+  parsed_stack: Object;
 };
-export type ErrorId = Error["id"];
+export type ErrorLogId = ErrorLog["id"];

@@ -1,41 +1,38 @@
 import { useEffect } from "react";
+import { imageDiffCache, snapshotCache } from "../../suspense/SnapshotCache";
 import {
-  snapshotCache,
-  SnapshotFile,
-  SnapshotVariant,
-} from "../../suspense/SnapshotCache";
+  SnapshotDiff,
+  isSnapshotDiffAdded,
+  isSnapshotDiffRemoved,
+} from "../server/types";
 
 // Naive implementation for pre-fetching snapshot data.
 // This hook pre-fetches the previous and next snapshot, based on the current index.
 // Suspense cache pre-fetching is fire-and-forget, so it's okay if the view loads before prefetch has completed.
 export default function useSnapshotPrefetchedData(
-  snapshotFiles: SnapshotFile[],
+  snapshotDiffs: SnapshotDiff[],
   currentIndex: number
 ): void {
   useEffect(() => {
     for (let index = currentIndex - 1; index <= currentIndex + 1; index++) {
-      if (index >= 0 && index < snapshotFiles.length) {
-        const snapshotFile = snapshotFiles[index];
-        prefetchSnapshotFile(snapshotFile);
+      if (index >= 0 && index < snapshotDiffs.length) {
+        const snapshotDiff = snapshotDiffs[index];
+        prefetchSnapshotFile(snapshotDiff);
       }
     }
-  }, [snapshotFiles, currentIndex]);
+  }, [snapshotDiffs, currentIndex]);
 }
 
-function prefetchSnapshotFile(snapshotFile: SnapshotFile) {
-  const { dark, light } = snapshotFile.variants;
-  if (dark) {
-    prefetchSnapshotVariant(dark);
+function prefetchSnapshotFile(snapshotDiff: SnapshotDiff) {
+  if (isSnapshotDiffAdded(snapshotDiff)) {
+    prefetchSnapshot(snapshotDiff.newPath);
+  } else if (isSnapshotDiffRemoved(snapshotDiff)) {
+    prefetchSnapshot(snapshotDiff.oldPath);
+  } else {
+    prefetchSnapshot(snapshotDiff.newPath);
+    prefetchSnapshot(snapshotDiff.oldPath);
+    imageDiffCache.prefetch(snapshotDiff.oldPath, snapshotDiff.newPath);
   }
-  if (light) {
-    prefetchSnapshotVariant(light);
-  }
-}
-
-function prefetchSnapshotVariant(snapshotVariant: SnapshotVariant) {
-  prefetchSnapshot(snapshotVariant.pathBranchData);
-  prefetchSnapshot(snapshotVariant.pathDiffData);
-  prefetchSnapshot(snapshotVariant.pathMainData);
 }
 
 function prefetchSnapshot(path: string | null) {

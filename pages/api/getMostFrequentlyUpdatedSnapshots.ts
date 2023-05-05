@@ -1,21 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getMostRecentlyChangedSnapshotsForProject } from "../../lib/server/supabase/snapshots";
 
-import { getProjectForShort } from "../../lib/server/supabase/projects";
-import { ProjectId, ProjectShort } from "../../lib/types";
-import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./statusCodes";
-import {
-  GenericResponse,
-  sendErrorMissingParametersResponse,
-  sendErrorResponse,
-  sendErrorResponseFromPostgrestError,
-  sendResponse,
-} from "./utils";
+import { getProjectForSlug } from "../../lib/server/supabase/tables/Projects";
+import { getRecentlyUpdatedSnapshotsForProject } from "../../lib/server/supabase/tables/Snapshots";
+import { ProjectId, ProjectSlug } from "../../lib/types";
+import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
+import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
 export type PathMetadata = {
   count: number;
-  diffPath: string;
-  numPixelsChanged: number;
   path: string;
 };
 
@@ -26,12 +18,11 @@ export type SnapshotMetadata = {
 };
 
 export type RequestParams = {
-  afterDate: string;
+  afterDate?: string;
   projectId?: ProjectId;
-  projectShort?: ProjectShort;
+  projectSlug?: ProjectSlug;
 };
 export type ResponseData = SnapshotMetadata[];
-export type Response = GenericResponse<ResponseData>;
 
 // Projects have Branches have Actions have Snapshots.
 // We ultimately want all recently updated Actions,
@@ -41,86 +32,49 @@ export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  let { afterDate, projectId, projectShort } = request.query as RequestParams;
-  console.log("request.query:", request.query);
-  if (!projectId && !projectShort) {
-    return sendErrorMissingParametersResponse(response, {
+  let { afterDate, projectId, projectSlug } = request.query as RequestParams;
+  if (!projectId && !projectSlug) {
+    return sendApiMissingParametersResponse(response, {
       projectId,
-      projectShort,
+      projectSlug,
     });
   }
 
   // Convert short Project ID to id if necessary.
   if (!projectId) {
-    const { data: projectData, error: projectError } = await getProjectForShort(
-      projectShort as ProjectShort
-    );
-    if (projectError) {
-      return sendErrorResponseFromPostgrestError(
-        response,
-        projectError,
-        HTTP_STATUS_CODES.NOT_FOUND,
-        DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
-        `No Project found for short id "${projectShort}"`
-      );
-    } else if (!projectData) {
-      return sendErrorResponse(
-        response,
-        `No Project found for short id "${projectShort}"`,
-        HTTP_STATUS_CODES.NOT_FOUND,
-        DELTA_ERROR_CODE.DATABASE.SELECT_FAILED
-      );
-    } else {
-      projectId = projectData.id;
-    }
+    const project = await getProjectForSlug(projectSlug!);
+    projectId = project.id;
   }
 
   // Find all recent snapshots for this project.
-  const { data: snapshotsData, error: snapshotsError } =
-    await getMostRecentlyChangedSnapshotsForProject(
+  try {
+    const snapshots = await getRecentlyUpdatedSnapshotsForProject(
       projectId,
-      afterDate ? new Date(afterDate) : undefined
+      afterDate
+        ? new Date(afterDate)
+        : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
     );
-  if (snapshotsError) {
-    return sendErrorResponseFromPostgrestError(
-      response,
-      snapshotsError,
-      HTTP_STATUS_CODES.NOT_FOUND,
-      DELTA_ERROR_CODE.DATABASE.SELECT_FAILED,
-      `Recent Snapshot data could not be found for Project id "${projectId}" after date "${
-        afterDate ?? "N/A"
-      }"`
-    );
-  } else if (!snapshotsData) {
-    return sendErrorResponse(
-      response,
-      `No matching snapshots found`,
-      HTTP_STATUS_CODES.NOT_FOUND,
-      DELTA_ERROR_CODE.UNKNOWN_ERROR
-    );
-  } else {
+
     const pathMetadataMap = new Map<string, PathMetadata>();
     const snapshotFileToMetadataMap = new Map<string, SnapshotMetadata>();
-    snapshotsData.forEach((snapshot) => {
+    snapshots.forEach((snapshot) => {
       const metadata: SnapshotMetadata = snapshotFileToMetadataMap.get(
-        snapshot.file
+        snapshot.delta_file
       ) ?? {
         count: 0,
-        file: snapshot.file,
+        file: snapshot.delta_file,
         paths: [],
       };
 
-      const key = `${snapshot.file}:${snapshot.path}}`;
+      const key = `${snapshot.delta_file}:${snapshot.delta_path}}`;
       const pathMetadata = pathMetadataMap.get(key) ?? {
         count: 0,
-        diffPath: snapshot.primary_diff_path!,
-        numPixelsChanged: snapshot.primary_num_pixels,
-        path: snapshot.path,
+        path: snapshot.delta_path,
       };
       pathMetadata.count++;
       pathMetadataMap.set(key, pathMetadata);
 
-      snapshotFileToMetadataMap.set(snapshot.file, {
+      snapshotFileToMetadataMap.set(snapshot.delta_file, {
         ...metadata,
         count: metadata.count + 1,
         paths:
@@ -130,11 +84,19 @@ export default async function handler(
       });
     });
 
-    return sendResponse<ResponseData>(
-      response,
-      Array.from(snapshotFileToMetadataMap.values()).sort(
-        (a, b) => b.count - a.count
-      )
+    const data = Array.from(snapshotFileToMetadataMap.values()).sort(
+      (a, b) => b.count - a.count
     );
+
+    return sendApiResponse<ResponseData>(response, {
+      httpStatusCode: HTTP_STATUS_CODES.OK,
+      data,
+    });
+  } catch (error) {
+    return sendApiResponse(response, {
+      data: error,
+      deltaErrorCode: DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED,
+      httpStatusCode: HTTP_STATUS_CODES.NOT_FOUND,
+    });
   }
 }

@@ -2,7 +2,7 @@
 
 ## Resources
 
-- **Local Development** `yarn; yarn dev`
+- **Local Development** `yarn; yarn dev` (note that generating diff images also requires Brew installing `graphicsmagick` and `imagemagick`)
 - **Frontend** Next.js
 - **APIs** Next.js [APIs](https://github.com/replayio/visuals/tree/main/pages/api)
 - **Database** Supabase [Table Editor](https://app.supabase.com/project/cqerexxkkntrurcacozk/editor)

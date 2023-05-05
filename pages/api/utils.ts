@@ -59,12 +59,21 @@ export async function sendApiResponse<Type = unknown>(
 
   if (isApiErrorResponse(apiResponse)) {
     try {
+      // Normalize stack format between browsers
+      const parsedStack = ErrorStackParser.parse(apiResponse.data);
+      const stack = parsedStack
+        .map(
+          (stack) =>
+            `${stack.fileName}:${stack.lineNumber}:${stack.columnNumber}`
+        )
+        .join("\n");
+
       // Fire and forget
       await insertErrorLog({
         delta_error_code: apiResponse.deltaErrorCode.code,
         http_status_code: apiResponse.httpStatusCode.code,
         message: apiResponse.data.message,
-        parsed_stack: ErrorStackParser.parse(apiResponse.data),
+        stack,
       });
     } catch (error) {
       console.error(error);

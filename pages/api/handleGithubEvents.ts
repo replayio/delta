@@ -188,12 +188,12 @@ export default async function handler(
     const branchName = event.check_suite.head_branch;
 
     const check = await createCheck(projectOrganization, projectRepository, {
-      conclusion: null,
+      // conclusion: "neutral",
       details_url: getDeltaBranchUrl(project, branchName),
       head_sha: event.check_suite.head_sha,
       title: "In progress",
-      summary: "",
-      text: "",
+      // summary: "",
+      // text: "",
       status: "in_progress",
     });
 

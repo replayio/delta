@@ -151,7 +151,7 @@ export default async function handler(
     await insertGithubEvent({
       action: nextApiRequest.body.action,
       payload: nextApiRequest.body,
-      project_id: 0 as unknown as ProjectId,
+      project_id: null,
       type: eventType,
     });
 

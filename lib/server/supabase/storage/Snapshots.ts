@@ -12,11 +12,6 @@ export type StoredSnapshot = {
   sha: string;
 };
 
-type UploadResult = {
-  data: StoredSnapshot | null;
-  error: string | null;
-};
-
 export async function downloadSnapshot(path: string): Promise<string> {
   const data = await assertStorageValue<Blob>(
     () => supabase.storage.from("snapshots").download(path),
@@ -72,17 +67,21 @@ export async function uploadSnapshot(
     content = Buffer.from(content, "base64");
   }
 
-  const result = await maybeRetry(
+  const { data, error } = await maybeRetry(
     () =>
       supabase.storage.from("snapshots").upload(path, content, {
         contentType: "image/png",
       }),
-    (result) =>
-      !!result.error && result.error.message !== "The resource already exists"
+    ({ data, error }) => {
+      // Retry if there's been an error,
+      // but not if the error was because the resource already exists.
+      // https://postgrest.org/en/latest/errors.html#http-status-codes
+      return !!error && !error.message.includes("The resource already exists");
+    }
   );
 
-  if (result.error) {
-    throw result.error;
+  if (error && !error.message.includes("The resource already exists")) {
+    throw error;
   }
 
   return { path, sha };

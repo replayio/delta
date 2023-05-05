@@ -39,7 +39,7 @@ function Page() {
   const projectSlug = slugFromUrl as unknown as ProjectSlug;
   let runId = parseInt(runIdFromUrl) as unknown as RunId;
 
-  const project = projectCache.read(null, projectSlug);
+  const project = projectCache.read(projectSlug);
   const branches = branchesCache.read(project.id);
 
   if (!branchId) {

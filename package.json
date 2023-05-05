@@ -27,7 +27,6 @@
     "@types/node-fetch": "latest",
     "chalk": "^5.2.0",
     "dotenv": "^16.0.3",
-    "error-stack-parser": "^2.1.4",
     "gm": "^1.25.0",
     "imagemagick-convert": "^1.0.3",
     "jotai": "^1.12.1",

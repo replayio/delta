@@ -90,6 +90,17 @@ export type ErrorLog = {
   request_headers: Object | null;
   request_method: string | null;
   request_url: string | null;
-  stack: string;
+  stack: string | null;
 };
 export type ErrorLogId = ErrorLog["id"];
+
+export function isProjectId(
+  value: ProjectId | ProjectSlug
+): value is ProjectId {
+  return value != null && typeof value === "number";
+}
+export function isProjectSlug(
+  value: ProjectId | ProjectSlug
+): value is ProjectSlug {
+  return value != null && typeof value === "string";
+}

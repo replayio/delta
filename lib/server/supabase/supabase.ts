@@ -114,12 +114,12 @@ export async function assertStorageValue<Type>(
   return result.data;
 }
 
-export async function maybeRetry<T>(
-  runQuery: () => PromiseLike<T>,
-  shouldRetry: (t: T) => boolean
-): Promise<T> {
+export async function maybeRetry<Type>(
+  runQuery: () => PromiseLike<Type>,
+  shouldRetry: (result: Type) => boolean
+): Promise<Type> {
   const callerStackTrace = Error().stack;
-  let result: T;
+  let result: Type;
   try {
     result = await runQuery();
     if (!shouldRetry(result)) {
@@ -142,9 +142,9 @@ export async function maybeRetry<T>(
   }
 }
 
-export async function retryOnError<T extends { error: any }>(
-  runQuery: () => PromiseLike<T>
-): Promise<T> {
+export async function retryOnError<Type extends { error: any }>(
+  runQuery: () => PromiseLike<Type>
+): Promise<Type> {
   return maybeRetry(
     runQuery,
     (result) =>

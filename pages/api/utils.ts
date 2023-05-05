@@ -1,5 +1,4 @@
 import { PostgrestError } from "@supabase/supabase-js";
-import ErrorStackParser from "error-stack-parser";
 import { NextApiRequest, NextApiResponse } from "next";
 import { insertErrorLog } from "../../lib/server/supabase/tables/ErrorLogs";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
@@ -61,15 +60,6 @@ export async function sendApiResponse<Type = unknown>(
 
   if (isApiErrorResponse(apiResponse)) {
     try {
-      // Normalize stack format between browsers
-      const parsedStack = ErrorStackParser.parse(apiResponse.data);
-      const stack = parsedStack
-        .map(
-          (stack) =>
-            `${stack.fileName}:${stack.lineNumber}:${stack.columnNumber}`
-        )
-        .join("\n");
-
       // Fire and forget
       await insertErrorLog({
         delta_error_code: apiResponse.deltaErrorCode.code,
@@ -79,7 +69,7 @@ export async function sendApiResponse<Type = unknown>(
         request_headers: nextApiRequest.rawHeaders || null,
         request_method: nextApiRequest.method || null,
         request_url: nextApiRequest.url || null,
-        stack,
+        stack: apiResponse.data.stack ?? null,
       });
     } catch (error) {
       console.error(error);

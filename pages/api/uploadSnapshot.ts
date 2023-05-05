@@ -4,7 +4,10 @@ import { createHash } from "crypto";
 import { uploadSnapshot } from "../../lib/server/supabase/storage/Snapshots";
 import { getBranchForProjectAndOrganizationAndBranchName } from "../../lib/server/supabase/tables/Branches";
 import { getProjectForSlug } from "../../lib/server/supabase/tables/Projects";
-import { insertRun } from "../../lib/server/supabase/tables/Runs";
+import {
+  getRunsForGithubRunId,
+  insertRun,
+} from "../../lib/server/supabase/tables/Runs";
 import { insertSnapshot } from "../../lib/server/supabase/tables/Snapshots";
 import { GithubRunId, ProjectSlug } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
@@ -18,7 +21,7 @@ export type Image = {
 export type RequestParams = {
   actor: string;
   branchName: string;
-  images: Image[];
+  image: Image;
   owner: string;
   prNumber: string | undefined;
   projectSlug: ProjectSlug;
@@ -40,11 +43,11 @@ export default async function handler(
     projectSlug,
     runId: githubRunId,
   } = request.query as Partial<RequestParams>;
-  const { images } = request.body as Partial<RequestParams>;
+  const { image } = request.body as Partial<RequestParams>;
   if (
     !actor ||
     !branchName ||
-    !images ||
+    !image ||
     !owner ||
     !projectSlug ||
     !githubRunId
@@ -52,14 +55,12 @@ export default async function handler(
     return sendApiMissingParametersResponse(request, response, {
       actor,
       branchName,
-      images,
+      image,
       owner,
       projectSlug,
       runId: githubRunId,
     });
   }
-
-  let caught: Error | null = null;
 
   try {
     const project = await getProjectForSlug(projectSlug);
@@ -74,63 +75,46 @@ export default async function handler(
       );
     }
 
-    for (let index = 0; index < images.length; index++) {
-      const { base64, file } = images[index];
+    const { base64, file } = image;
 
-      try {
-        console.log(
-          `Uploading Snapshot for Project ${projectSlug}:\n ${base64}`
-        );
+    console.log(`Uploading Snapshot for Project ${projectSlug}:\n ${base64}`);
 
-        await uploadSnapshot(base64, project.id);
+    await uploadSnapshot(base64, project.id);
 
-        const run = await insertRun({
-          branch_id: branch.id,
-          delta_has_user_approval: false,
-          github_actor: actor,
-          github_run_id: githubRunId,
-          github_status: "completed",
-        });
-
-        const sha = createHash("sha256").update(base64).digest("hex");
-        const path = `${projectSlug}/${sha}.png`;
-
-        console.log(
-          `Inserting Snapshot with file "${file}" and path "${path}"`
-        );
-
-        await insertSnapshot({
-          delta_file: file,
-          delta_path: path,
-          github_run_id: githubRunId,
-          run_id: run.id,
-        });
-      } catch (error) {
-        console.error(error);
-
-        if (caught === null) {
-          caught = error;
-        }
-      }
+    let run = await getRunsForGithubRunId(githubRunId);
+    if (run == null) {
+      run = await insertRun({
+        branch_id: branch.id,
+        delta_has_user_approval: false,
+        github_actor: actor,
+        github_run_id: githubRunId,
+        github_status: "completed",
+      });
     }
-  } catch (error) {
-    console.error(error);
 
-    if (caught === null) {
-      caught = error;
-    }
-  }
+    const sha = createHash("sha256").update(base64).digest("hex");
+    const path = `${projectSlug}/${sha}.png`;
 
-  if (caught) {
-    return sendApiResponse(request, response, {
-      data: caught,
-      deltaErrorCode: DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED,
-      httpStatusCode: HTTP_STATUS_CODES.NOT_FOUND,
+    console.log(`Inserting Snapshot with file "${file}" and path "${path}"`);
+
+    await insertSnapshot({
+      delta_file: file,
+      delta_path: path,
+      github_run_id: githubRunId,
+      run_id: run.id,
     });
-  } else {
+
     return sendApiResponse(request, response, {
       data: null,
       httpStatusCode: HTTP_STATUS_CODES.OK,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return sendApiResponse(request, response, {
+      data: error,
+      deltaErrorCode: DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED,
+      httpStatusCode: HTTP_STATUS_CODES.NOT_FOUND,
     });
   }
 }

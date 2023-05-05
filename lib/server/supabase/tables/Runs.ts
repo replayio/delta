@@ -1,4 +1,4 @@
-import { BranchId, Run, RunId } from "../../../types";
+import { BranchId, GithubRunId, Run, RunId } from "../../../types";
 import { supabase } from "../../initSupabase";
 import { assertQueryResponse, assertQuerySingleResponse } from "../supabase";
 
@@ -41,6 +41,18 @@ export async function getRunsForBranch(
     `Could not find Runs for Branch "${branchId}"`
   );
   return result.length === 0 ? [] : (result[0].runs as Run[]);
+}
+
+export async function getRunsForGithubRunId(githubRunId: GithubRunId) {
+  return assertQuerySingleResponse<Run>(
+    () =>
+      supabase
+        .from("runs")
+        .select("*")
+        .eq("github_run_id", githubRunId)
+        .single(),
+    `Could not find Run "${githubRunId}"`
+  );
 }
 
 export async function insertRun(data: Omit<Run, "created_at" | "id">) {

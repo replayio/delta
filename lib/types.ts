@@ -73,6 +73,7 @@ export type GithubEventType =
 export type GithubEvent = {
   action: string;
   created_at: string;
+  handled: boolean;
   id: Opaque<"number", GithubEvent>;
   payload: Object;
   project_id: ProjectId | null;

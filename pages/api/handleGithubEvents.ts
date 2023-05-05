@@ -39,6 +39,9 @@ export default async function handler(
 ) {
   const eventType = nextApiRequest.headers["x-github-event"] as GithubEventType;
 
+  let didRespond = false;
+  let eventProcessed = false;
+
   async function logAndSendResponse(
     projectOrganization: string | undefined,
     projectRepository: string,
@@ -58,6 +61,7 @@ export default async function handler(
 
     const githubEvent = await insertGithubEvent({
       action,
+      handled: eventProcessed,
       payload: nextApiRequest.body,
       project_id: project.id,
       type: eventType,
@@ -91,14 +95,13 @@ export default async function handler(
     });
   }
 
-  let didRespond = false;
-
   try {
     switch (eventType) {
       case "check_suite": {
         // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#check_suite
         const event = nextApiRequest.body as CheckSuiteEvent;
         if (event.check_suite.app.name === "Replay Delta") {
+          eventProcessed = true;
           didRespond = await handleCheckSuite(event, logAndSendResponse);
           break;
         }
@@ -109,6 +112,7 @@ export default async function handler(
         const event = nextApiRequest.body as PullRequestEvent;
         switch (event.action) {
           case "closed":
+            eventProcessed = true;
             didRespond = await handlePullRequestClosedEvent(
               event,
               logAndSendResponse
@@ -116,6 +120,7 @@ export default async function handler(
             break;
           case "opened":
           case "reopened":
+            eventProcessed = true;
             didRespond = await handlePullRequestOpenedOrReopenedEvent(
               event,
               logAndSendResponse
@@ -161,6 +166,7 @@ export default async function handler(
     // TODO Remove this eventually.
     await insertGithubEvent({
       action: nextApiRequest.body.action,
+      handled: false,
       payload: nextApiRequest.body,
       project_id: project?.id ?? null,
       type: eventType,

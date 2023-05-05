@@ -86,6 +86,10 @@ export type ErrorLog = {
   http_status_code: number;
   id: Opaque<"number", ErrorLog>;
   message: string;
+  request_body: Object | null;
+  request_headers: Object | null;
+  request_method: string | null;
+  request_url: string | null;
   stack: string;
 };
 export type ErrorLogId = ErrorLog["id"];

@@ -20,7 +20,7 @@ export default async function handler(
 ) {
   const { projectId, projectSlug } = request.query as RequestParams;
   if (!projectId && !projectSlug) {
-    return sendApiMissingParametersResponse(response, {
+    return sendApiMissingParametersResponse(request, response, {
       projectId,
       projectSlug,
     });
@@ -31,12 +31,12 @@ export default async function handler(
       ? await getProjectForId(projectId)
       : await getProjectForSlug(projectSlug!);
 
-    return sendApiResponse<ResponseData>(response, {
+    return sendApiResponse<ResponseData>(request, response, {
       httpStatusCode: HTTP_STATUS_CODES.OK,
       data,
     });
   } catch (error) {
-    return sendApiResponse(response, {
+    return sendApiResponse(request, response, {
       data: error,
       deltaErrorCode: DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED,
       httpStatusCode: HTTP_STATUS_CODES.NOT_FOUND,

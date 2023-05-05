@@ -1,6 +1,6 @@
 import { PostgrestError } from "@supabase/supabase-js";
 import ErrorStackParser from "error-stack-parser";
-import { NextApiResponse } from "next";
+import { NextApiRequest, NextApiResponse } from "next";
 import { insertErrorLog } from "../../lib/server/supabase/tables/ErrorLogs";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from "./types";
@@ -30,6 +30,7 @@ export function isApiSuccessResponse(
 }
 
 export async function sendApiMissingParametersResponse(
+  nextApiRequest: NextApiRequest,
   nextApiResponse: NextApiResponse,
   parametersObject: Object
 ) {
@@ -40,7 +41,7 @@ export async function sendApiMissingParametersResponse(
     }
   }
 
-  sendApiResponse(nextApiResponse, {
+  sendApiResponse(nextApiRequest, nextApiResponse, {
     data: new Error(
       `Missing required parameters: ${missingParameters.join(", ")}`
     ),
@@ -50,6 +51,7 @@ export async function sendApiMissingParametersResponse(
 }
 
 export async function sendApiResponse<Type = unknown>(
+  nextApiRequest: NextApiRequest,
   nextApiResponse: NextApiResponse,
   apiResponse: ApiResponse<Type>
 ): Promise<void> {
@@ -73,6 +75,10 @@ export async function sendApiResponse<Type = unknown>(
         delta_error_code: apiResponse.deltaErrorCode.code,
         http_status_code: apiResponse.httpStatusCode.code,
         message: apiResponse.data.message,
+        request_body: nextApiRequest.body || null,
+        request_headers: nextApiRequest.rawHeaders || null,
+        request_method: nextApiRequest.method || null,
+        request_url: nextApiRequest.url || null,
         stack,
       });
     } catch (error) {

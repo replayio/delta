@@ -49,7 +49,7 @@ export default async function handler(
     !projectSlug ||
     !githubRunId
   ) {
-    return sendApiMissingParametersResponse(response, {
+    return sendApiMissingParametersResponse(request, response, {
       actor,
       branchName,
       images,
@@ -122,13 +122,13 @@ export default async function handler(
   }
 
   if (caught) {
-    return sendApiResponse(response, {
+    return sendApiResponse(request, response, {
       data: caught,
       deltaErrorCode: DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED,
       httpStatusCode: HTTP_STATUS_CODES.NOT_FOUND,
     });
   } else {
-    return sendApiResponse(response, {
+    return sendApiResponse(request, response, {
       data: null,
       httpStatusCode: HTTP_STATUS_CODES.OK,
     });

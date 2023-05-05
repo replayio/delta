@@ -46,7 +46,7 @@ export default async function handler(
     action: string,
     apiResponse: ApiErrorResponse | ApiSuccessResponse
   ) {
-    sendApiResponse(nextApiResponse, apiResponse);
+    sendApiResponse(nextApiRequest, nextApiResponse, apiResponse);
 
     if (!projectOrganization) {
       return;
@@ -144,7 +144,7 @@ export default async function handler(
   } catch (error) {
     console.error(error);
 
-    return sendApiResponse(nextApiResponse, {
+    return sendApiResponse(nextApiRequest, nextApiResponse, {
       data: {
         message: "Internal server error",
       },
@@ -154,7 +154,7 @@ export default async function handler(
   }
 
   // No-op response
-  return sendApiResponse(nextApiResponse, {
+  return sendApiResponse(nextApiRequest, nextApiResponse, {
     data: null,
     httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
   });

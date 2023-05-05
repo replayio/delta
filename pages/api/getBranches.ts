@@ -18,7 +18,7 @@ export default async function handler(
   const { projectId: projectIdString, status = "open" } =
     request.query as RequestParams;
   if (!projectIdString) {
-    return sendApiMissingParametersResponse(response, {
+    return sendApiMissingParametersResponse(request, response, {
       projectId: projectIdString,
     });
   }
@@ -27,12 +27,12 @@ export default async function handler(
 
   try {
     const data = await getBranchesForProject(projectId, status);
-    return sendApiResponse<ResponseData>(response, {
+    return sendApiResponse<ResponseData>(request, response, {
       httpStatusCode: HTTP_STATUS_CODES.OK,
       data,
     });
   } catch (error) {
-    return sendApiResponse(response, {
+    return sendApiResponse(request, response, {
       data: error,
       deltaErrorCode: DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED,
       httpStatusCode: HTTP_STATUS_CODES.NOT_FOUND,

@@ -45,7 +45,7 @@ export default async function handler(
     runId,
   } = request.query as RequestParams;
   if (!approvedString || !branchId || !projectId || !runId) {
-    return sendApiMissingParametersResponse(response, {
+    return sendApiMissingParametersResponse(request, response, {
       approved: approvedString,
       branchId,
       projectId,
@@ -94,7 +94,7 @@ export default async function handler(
       );
     }
 
-    return sendApiResponse<ResponseData>(response, {
+    return sendApiResponse<ResponseData>(request, response, {
       data: {
         check,
         comment: issueComment,
@@ -102,7 +102,7 @@ export default async function handler(
       httpStatusCode: HTTP_STATUS_CODES.OK,
     });
   } catch (error) {
-    return sendApiResponse(response, {
+    return sendApiResponse(request, response, {
       data: error,
       deltaErrorCode: DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED,
       httpStatusCode: HTTP_STATUS_CODES.NOT_FOUND,

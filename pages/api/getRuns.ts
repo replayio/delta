@@ -17,7 +17,7 @@ export default async function handler(
 ) {
   const { branchId, limit } = request.query as RequestParams;
   if (!branchId) {
-    return sendApiMissingParametersResponse(response, { branchId });
+    return sendApiMissingParametersResponse(request, response, { branchId });
   }
 
   try {
@@ -26,12 +26,12 @@ export default async function handler(
       limit ? parseInt(limit) : undefined
     );
 
-    return sendApiResponse<ResponseData>(response, {
+    return sendApiResponse<ResponseData>(request, response, {
       data: runs,
       httpStatusCode: HTTP_STATUS_CODES.OK,
     });
   } catch (error) {
-    return sendApiResponse(response, {
+    return sendApiResponse(request, response, {
       data: error,
       deltaErrorCode: DELTA_ERROR_CODE.STORAGE.DOWNLOAD_FAILED,
       httpStatusCode: HTTP_STATUS_CODES.NOT_FOUND,

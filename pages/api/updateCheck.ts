@@ -74,24 +74,28 @@ export default async function handler(
     });
 
     const primaryBranch = await getPrimaryBranchForProject(project);
-    const primaryBranchRun = await getMostRecentRunForBranch(primaryBranch.id);
+    if (branch.id !== primaryBranch.id) {
+      const primaryBranchRun = await getMostRecentRunForBranch(
+        primaryBranch.id
+      );
 
-    const oldSnapshots = primaryBranchRun
-      ? await getSnapshotsForRun(primaryBranchRun.id)
-      : [];
-    const newSnapshots = await getSnapshotsForRun(run.id);
+      const oldSnapshots = primaryBranchRun
+        ? await getSnapshotsForRun(primaryBranchRun.id)
+        : [];
+      const newSnapshots = await getSnapshotsForRun(run.id);
 
-    const data = await diffSnapshots(oldSnapshots, newSnapshots);
+      const data = await diffSnapshots(oldSnapshots, newSnapshots);
 
-    updateCheck(
-      project.organization,
-      project.repository,
-      branch.github_pr_check_id,
-      {
-        conclusion: data.length > 0 ? "failure" : "success",
-        status: "completed",
-      }
-    );
+      updateCheck(
+        project.organization,
+        project.repository,
+        branch.github_pr_check_id,
+        {
+          conclusion: data.length > 0 ? "failure" : "success",
+          status: "completed",
+        }
+      );
+    }
 
     return sendApiResponse(request, response, {
       data: null,

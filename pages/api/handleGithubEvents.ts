@@ -7,7 +7,11 @@ import type {
   PullRequestEvent,
   PullRequestOpenedEvent,
   PullRequestReopenedEvent,
+  WorkflowJobEvent,
+  WorkflowJobQueuedEvent,
 } from "@octokit/webhooks-types";
+import { getDeltaBranchUrl } from "../../lib/delta";
+import { createCheck } from "../../lib/server/github/Checks";
 import { getHTTPRequests, setupHook } from "../../lib/server/http-replay";
 import { insertHTTPEvent } from "../../lib/server/supabase/storage/HttpEvents";
 import {
@@ -138,7 +142,20 @@ export default async function handler(
             handlePullRequestOpenedOrReopenedEvent(event, logAndSendResponse);
             break;
           default:
-            // Don't care about the other PR actions
+            // Don't care about the other action types
+            break;
+        }
+        break;
+      }
+      case "workflow_job": {
+        // https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_job
+        const event = nextApiRequest.body as WorkflowJobEvent;
+        switch (event.action) {
+          case "queued":
+            return handleWorkflowQueued(event, logAndSendResponse);
+            break;
+          default:
+            // Don't care about the other action types
             break;
         }
         break;
@@ -248,6 +265,42 @@ async function handlePullRequestOpenedOrReopenedEvent(
       github_pr_status: "open",
     });
   }
+
+  return logAndSendResponse(
+    projectOrganization,
+    projectRepository,
+    event.action,
+    {
+      data: null,
+      httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
+    }
+  );
+}
+
+async function handleWorkflowQueued(
+  event: WorkflowJobQueuedEvent,
+  logAndSendResponse: LogAndSendResponseFunction
+) {
+  if (!event.organization || !event.workflow_job.head_branch) {
+    return;
+  }
+
+  const projectOrganization = event.organization.login;
+  const projectRepository = event.repository.name;
+  const project = await getProjectForOrganizationAndRepository(
+    projectOrganization,
+    projectRepository
+  );
+
+  createCheck(projectOrganization, projectRepository, {
+    conclusion: null,
+    details_url: getDeltaBranchUrl(project, event.workflow_job.head_branch),
+    head_sha: event.workflow_job.head_sha,
+    title: "In progress",
+    summary: "",
+    text: "",
+    status: "in_progress",
+  });
 
   return logAndSendResponse(
     projectOrganization,

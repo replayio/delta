@@ -6,7 +6,6 @@ import { comparisonModeAtom } from "../lib/client/state";
 import { imageDiffCache, snapshotCache } from "../suspense/SnapshotCache";
 import Icon from "./Icon";
 
-import Image from "next/image";
 import {
   SnapshotDiff,
   SnapshotDiffChanged,
@@ -18,6 +17,8 @@ import { ImageSlider } from "./ImageSlider";
 import { Loader } from "./Loader";
 import SnapshotImage from "./SnapshotImage";
 import { SnapshotImageSlider } from "./SnapshotSliderImage";
+
+const HTMLImage = "img";
 
 export function Snapshot({ snapshotDiff }: { snapshotDiff: SnapshotDiff }) {
   const [mode] = useAtom(comparisonModeAtom);
@@ -181,7 +182,7 @@ function SubViewDiff({ snapshotDiff }: { snapshotDiff: SnapshotDiffChanged }) {
     return (
       <ErrorBoundary FallbackComponent={Fallback}>
         <Suspense fallback={<Loader />}>
-          <img
+          <HTMLImage
             alt="Diff"
             src={`data:image/png;base64,${base64String}`}
             width={image.width}

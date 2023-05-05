@@ -3,6 +3,8 @@ import { Suspense, useState } from "react";
 import Icon from "../../../components/Icon";
 import { Loader } from "../../../components/Loader";
 import SnapshotImage from "../../../components/SnapshotImage";
+import withRenderOnMount from "../../../components/withRenderOnMount";
+import withSuspenseLoader from "../../../components/withSuspenseLoader";
 import { ProjectSlug } from "../../../lib/types";
 import { frequentlyUpdatedSnapshotsCache } from "../../../suspense/SnapshotCache";
 import classNames from "../../../utils/classNames";
@@ -11,17 +13,13 @@ import {
   SnapshotMetadata,
 } from "../../api/getMostFrequentlyUpdatedSnapshots";
 
-export default function Flaky() {
+export default withRenderOnMount(withSuspenseLoader(Flaky));
+
+function Flaky() {
   const router = useRouter();
   const { date: afterDate, slug: projectSlug } = router.query as {
     [key: string]: string;
   };
-
-  // Note this route may render on the server, in which case all query params are undefined.
-  // TODO Can we access these params on the server somehow so we can server-render the page?
-  if (!projectSlug) {
-    return null;
-  }
 
   return (
     <Suspense fallback={<Loader />}>

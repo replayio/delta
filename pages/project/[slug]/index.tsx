@@ -16,6 +16,7 @@ import {
   RunId,
 } from "../../../lib/types";
 
+import withRenderOnMount from "../../../components/withRenderOnMount";
 import withSuspenseLoader from "../../../components/withSuspenseLoader";
 import { SnapshotDiff } from "../../../lib/server/types";
 import { branchCache, branchesCache } from "../../../suspense/BranchCache";
@@ -23,45 +24,21 @@ import { projectCache } from "../../../suspense/ProjectCache";
 import { runsCache } from "../../../suspense/RunCache";
 import { snapshotDiffForRunCache } from "../../../suspense/SnapshotCache";
 
-export default function Page() {
+export default withRenderOnMount(withSuspenseLoader(Page));
+
+function Page() {
   const router = useRouter();
   const {
     branchId: branchIdFromUrl,
     fileName: currentFile,
     runId: runIdFromUrl,
-    slug: projectSlug,
+    slug: slugFromUrl,
   } = router.query as { [key: string]: string };
 
-  // Note this route may render on the server, in which case all query params are undefined.
-  // TODO Can we access these params on the server somehow so we can server-render the page?
-  if (!projectSlug) {
-    return null;
-  }
+  let branchId = parseInt(branchIdFromUrl) as unknown as BranchId;
+  const projectSlug = slugFromUrl as unknown as ProjectSlug;
+  let runId = parseInt(runIdFromUrl) as unknown as RunId;
 
-  const branchId = parseInt(branchIdFromUrl) as unknown as BranchId;
-  const runId = parseInt(runIdFromUrl) as unknown as RunId;
-
-  return (
-    <PageSuspends
-      branchId={branchId ?? null}
-      currentFile={currentFile ?? null}
-      runId={runId}
-      projectSlug={projectSlug as ProjectSlug}
-    />
-  );
-}
-
-const PageSuspends = withSuspenseLoader(function PageSuspends({
-  branchId,
-  currentFile,
-  runId,
-  projectSlug,
-}: {
-  branchId: BranchId | null;
-  currentFile: string | null;
-  runId: RunId | null;
-  projectSlug: ProjectSlug;
-}) {
   const project = projectCache.read(null, projectSlug);
   const branches = branchesCache.read(project.id);
 
@@ -92,7 +69,7 @@ const PageSuspends = withSuspenseLoader(function PageSuspends({
 
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
-  //   console.groupCollapsed("<PageSuspends>");
+  //   console.groupCollapsed("<Page>");
   //   console.log("project:", project);
   //   console.log("branches:", branches);
   //   console.log("current branch:", currentBranch);
@@ -135,7 +112,7 @@ const PageSuspends = withSuspenseLoader(function PageSuspends({
       )}
     </div>
   );
-});
+}
 
 function SubViewRunPending({
   project,

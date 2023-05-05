@@ -20,7 +20,6 @@
     "node_modules",
     // TODO Remove these excludes once types are fixed
     "scripts",
-    "test"
   ],
   "include": ["next-env.d.ts", "**/*"]
 }

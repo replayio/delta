@@ -69,8 +69,8 @@ export default async function handler(
       branch.github_pr_check_id,
       {
         conclusion: approved ? "success" : "failure",
+        status: "completed",
         title: approved ? "Changes approved" : "Changes rejected",
-        summary: "",
       }
     );
 

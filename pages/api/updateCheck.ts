@@ -93,6 +93,7 @@ export default async function handler(
         {
           conclusion: data.length > 0 ? "failure" : "success",
           status: "completed",
+          title: `${data.length} snapshots changed`,
         }
       );
     }

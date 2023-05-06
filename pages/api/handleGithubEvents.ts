@@ -227,9 +227,10 @@ export default async function handler(
     const check = await createCheck(projectOrganization, projectRepository, {
       details_url: getDeltaBranchUrl(project, branchName),
       head_sha: branchName,
-      summary: "",
-      text: "",
-      title: "In progress",
+      output: {
+        summary: "",
+        title: "Tests are running",
+      },
       status: "in_progress",
     });
 

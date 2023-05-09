@@ -8,18 +8,22 @@ export default async function diffSnapshot(
   newSnapshot: Snapshot | null
 ): Promise<SnapshotDiff | null> {
   if (oldSnapshot && newSnapshot) {
-    const oldImage = await downloadSnapshot(oldSnapshot.delta_path);
-    const newImage = await downloadSnapshot(newSnapshot.delta_path);
-    const { changed } = await diffBase64Images(oldImage, newImage);
-    if (changed) {
-      return {
-        file: oldSnapshot.delta_file,
-        newPath: newSnapshot.delta_path,
-        oldPath: oldSnapshot.delta_path,
-        type: "changed",
-      };
-    } else {
+    if (oldSnapshot.delta_path === newSnapshot.delta_path) {
       return null;
+    } else {
+      const oldImage = await downloadSnapshot(oldSnapshot.delta_path);
+      const newImage = await downloadSnapshot(newSnapshot.delta_path);
+      const { changed } = await diffBase64Images(oldImage, newImage);
+      if (changed) {
+        return {
+          file: oldSnapshot.delta_file,
+          newPath: newSnapshot.delta_path,
+          oldPath: oldSnapshot.delta_path,
+          type: "changed",
+        };
+      } else {
+        return null;
+      }
     }
   } else if (oldSnapshot != null) {
     return {

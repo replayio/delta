@@ -33,16 +33,23 @@ export default async function diffSnapshots(
     }
   });
 
+  const promises: Promise<void>[] = [];
   const diffs: SnapshotDiff[] = [];
   const files = Array.from(map.keys());
   for (let index = 0; index < files.length; index++) {
     const file = files[index];
     const value = map.get(file)!;
-    const diff = await diffSnapshot(value.old, value.new);
-    if (diff !== null) {
-      diffs.push(diff);
-    }
+
+    promises.push(
+      diffSnapshot(value.old, value.new).then((diff) => {
+        if (diff !== null) {
+          diffs.push(diff);
+        }
+      })
+    );
   }
+
+  await Promise.all(promises);
 
   return diffs;
 }

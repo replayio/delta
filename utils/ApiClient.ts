@@ -27,6 +27,10 @@ import type {
   ResponseData as GetRunsResponseData,
 } from "../pages/api/getRuns";
 import type {
+  RequestParams as GetSnapshotDiffCountForRunRequestParams,
+  ResponseData as GetSnapshotDiffCountForRunResponseData,
+} from "../pages/api/getSnapshotDiffCountForRun";
+import type {
   RequestParams as GetSnapshotDiffsForRunRequestParams,
   ResponseData as GetSnapshotDiffsForRunResponseData,
 } from "../pages/api/getSnapshotDiffsForRun";
@@ -93,6 +97,14 @@ export async function getPublicProjects(
 ): Promise<GetPublicProjectsResponseData> {
   return fetchDataFromEndpoint<GetPublicProjectsResponseData>(
     `/api/getPublicProjects?${paramsToUrlString(params)}}`
+  );
+}
+
+export async function getSnapshotDiffCountForRun(
+  params: GetSnapshotDiffCountForRunRequestParams
+): Promise<GetSnapshotDiffCountForRunResponseData> {
+  return fetchDataFromEndpoint<GetSnapshotDiffCountForRunResponseData>(
+    `/api/getSnapshotDiffCountForRun?${paramsToUrlString(params)}`
   );
 }
 

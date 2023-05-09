@@ -1,3 +1,4 @@
+import mergeSnapshots from "../../utils/snapshots";
 import { Snapshot } from "../types";
 import diffSnapshot from "./diffSnapshot";
 import { SnapshotDiff } from "./types";
@@ -6,32 +7,7 @@ export default async function diffSnapshots(
   oldSnapshots: Snapshot[],
   newSnapshots: Snapshot[]
 ): Promise<SnapshotDiff[]> {
-  const map = new Map<
-    string,
-    {
-      new: Snapshot | null;
-      old: Snapshot | null;
-    }
-  >();
-
-  oldSnapshots.forEach((snapshot) => {
-    map.set(snapshot.delta_file, {
-      new: null,
-      old: snapshot,
-    });
-  });
-
-  newSnapshots.forEach((snapshot) => {
-    const value = map.get(snapshot.delta_file);
-    if (value) {
-      value.new = snapshot;
-    } else {
-      map.set(snapshot.delta_file, {
-        new: snapshot,
-        old: null,
-      });
-    }
-  });
+  const map = mergeSnapshots(oldSnapshots, newSnapshots);
 
   const promises: Promise<void>[] = [];
   const diffs: SnapshotDiff[] = [];

@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { Branch, Project, Run } from "../lib/types";
-import { snapshotDiffForRunCache } from "../suspense/SnapshotCache";
+import { snapshotDiffCountForRunCache } from "../suspense/SnapshotCache";
 import { updateBranchStatus } from "../utils/ApiClient";
 import withSuspenseLoader from "./withSuspenseLoader";
 
@@ -27,8 +27,8 @@ export const ApproveButton = withSuspenseLoader(function ApproveButton({
     );
   }
 
-  const snapshotDiffs = snapshotDiffForRunCache.read(run.id);
-  const requiresApproval = snapshotDiffs.length > 0;
+  const count = snapshotDiffCountForRunCache.read(run.id);
+  const requiresApproval = count > 0;
   if (!requiresApproval) {
     return null;
   }

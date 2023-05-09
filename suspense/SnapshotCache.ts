@@ -6,6 +6,7 @@ import {
   downloadSnapshot,
   getDiffImage,
   getMostFrequentlyUpdatedSnapshots,
+  getSnapshotDiffCountForRun,
   getSnapshotDiffsForRun,
 } from "../utils/ApiClient";
 import { Base64Image, base64ImageCache } from "./ImageCache";
@@ -51,6 +52,19 @@ export const snapshotCache = createCache<[path: string], Base64Image>({
     return await base64ImageCache.readAsync(base64String);
   },
 });
+
+// Fetch count of changed snapshots (new, deleted, or changed) for a run
+export const snapshotDiffCountForRunCache = createCache<[runId: RunId], number>(
+  {
+    debugLabel: "snapshotDiffCountForRunCache",
+    getKey([runId]) {
+      return runId;
+    },
+    async load([runId]) {
+      return await getSnapshotDiffCountForRun({ runId });
+    },
+  }
+);
 
 // Fetch list of snapshot diffs (new, deleted, or changed) for a run
 export const snapshotDiffForRunCache = createCache<

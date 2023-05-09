@@ -4,13 +4,12 @@ import Link from "next/link";
 import { useImperativeCacheValue } from "suspense";
 import { Branch, Project, Run, RunId } from "../lib/types";
 import { mostRecentRunCache } from "../suspense/RunCache";
-import { snapshotDiffForRunCache } from "../suspense/SnapshotCache";
+import { snapshotDiffCountForRunCache } from "../suspense/SnapshotCache";
 import { ApproveButton } from "./ApproveButton";
 import Dropdown from "./Dropdown";
 import { Github } from "./SVGs";
 import { Toggle } from "./Toggle";
 import withSuspenseLoader from "./withSuspenseLoader";
-import { Loader } from "./Loader";
 
 export function Header({
   branches,
@@ -172,15 +171,11 @@ const RunCount = withSuspenseLoader(function RunCount({
 }: {
   runId: RunId;
 }) {
-  const { value: snapshotDiffs } = useImperativeCacheValue(
-    snapshotDiffForRunCache,
+  const { value: count } = useImperativeCacheValue(
+    snapshotDiffCountForRunCache,
     runId
   );
-  if (snapshotDiffs == null) {
-    return <Loader />;
-  }
 
-  const count = snapshotDiffs.length;
   if (count === 0) {
     return null;
   }

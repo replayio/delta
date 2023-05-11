@@ -51,7 +51,7 @@ export async function getRunsForGithubRunId(githubRunId: GithubRunId) {
         .select("*")
         .eq("github_run_id", githubRunId)
         .single(),
-    `Could not find Run "${githubRunId}"`
+    `Could not find Run for GitHub run "${githubRunId}"`
   );
 }
 

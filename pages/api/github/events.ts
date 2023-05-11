@@ -53,7 +53,7 @@ export default async function handler(
         break;
       }
       case "workflow_job": {
-        // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_run
+        // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_job
         const event = nextApiRequest.body as WorkflowJobEvent;
         if (event.workflow_job.workflow_name === "Delta") {
           logEvent = true;
@@ -62,7 +62,10 @@ export default async function handler(
       case "workflow_run": {
         // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_run
         const event = nextApiRequest.body as WorkflowRunEvent;
-        if (event.workflow.name === "Delta") {
+        if (
+          event.workflow?.name === "Delta" ||
+          event.workflow_run.name === "Delta"
+        ) {
           switch (event.action) {
             case "completed":
               logEvent = true;

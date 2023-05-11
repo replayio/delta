@@ -5,19 +5,36 @@ import type {
   PullRequestEvent,
   PullRequestOpenedEvent,
   PullRequestReopenedEvent,
+  WorkflowJobEvent,
+  WorkflowRunCompletedEvent,
+  WorkflowRunEvent,
+  WorkflowRunRequestedEvent,
 } from "@octokit/webhooks-types";
 import { getDeltaBranchUrl } from "../../lib/delta";
+import getSnapshotDiffCount from "../../lib/server/getSnapshotDiffCount";
 import { createCheck, updateCheck } from "../../lib/server/github/Checks";
 import { getHTTPRequests, setupHook } from "../../lib/server/http-replay";
 import { insertHTTPEvent } from "../../lib/server/supabase/storage/HttpEvents";
 import {
   getBranchForProjectAndOrganizationAndBranchName,
+  getPrimaryBranchForProject,
   insertBranch,
   updateBranch,
 } from "../../lib/server/supabase/tables/Branches";
 import { insertGithubEvent } from "../../lib/server/supabase/tables/GithubEvents";
 import { getProjectForOrganizationAndRepository } from "../../lib/server/supabase/tables/Projects";
-import { Branch, GithubCheckId, GithubEventType } from "../../lib/types";
+import {
+  getMostRecentRunForBranch,
+  getRunsForGithubRunId,
+  insertRun,
+} from "../../lib/server/supabase/tables/Runs";
+import { getSnapshotsForRun } from "../../lib/server/supabase/tables/Snapshots";
+import {
+  Branch,
+  GithubCheckId,
+  GithubEventType,
+  GithubRunId,
+} from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { ApiErrorResponse, ApiSuccessResponse } from "./types";
 import { isApiErrorResponse, sendApiResponse } from "./utils";
@@ -108,6 +125,47 @@ export default async function handler(
         }
         break;
       }
+      case "workflow_job": {
+        // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_run
+        const event = nextApiRequest.body as WorkflowJobEvent;
+        if (event.workflow_job.workflow_name === "Delta") {
+          const projectOrganization = event.organization?.login;
+          const projectRepository = event.repository?.name;
+
+          let project;
+          if (projectOrganization && projectRepository) {
+            project = await getProjectForOrganizationAndRepository(
+              projectOrganization,
+              projectRepository
+            );
+          }
+
+          await insertGithubEvent({
+            action: nextApiRequest.body.action,
+            handled: false,
+            payload: nextApiRequest.body,
+            project_id: project?.id ?? null,
+            type: eventType,
+          });
+        }
+      }
+      case "workflow_run": {
+        // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_run
+        const event = nextApiRequest.body as WorkflowRunEvent;
+        if (event.workflow.name === "Delta") {
+          switch (event.action) {
+            case "completed":
+              eventProcessed = true;
+              didRespond = await handleWorkflowRunCompleted(event);
+              break;
+            case "requested":
+              eventProcessed = true;
+              didRespond = await handleWorkflowRunRequested(event);
+              break;
+          }
+        }
+        break;
+      }
       default: {
         // Don't care about other event types
         break;
@@ -126,28 +184,6 @@ export default async function handler(
   }
 
   if (!didRespond) {
-    const event = nextApiRequest.body;
-    const projectOrganization = event.organization?.login;
-    const projectRepository = event.repository?.name;
-
-    let project;
-    if (projectOrganization && projectRepository) {
-      project = await getProjectForOrganizationAndRepository(
-        projectOrganization,
-        projectRepository
-      );
-    }
-
-    // Log all GitHub events for debugging purposes.
-    // TODO Remove this eventually.
-    await insertGithubEvent({
-      action: nextApiRequest.body.action,
-      handled: false,
-      payload: nextApiRequest.body,
-      project_id: project?.id ?? null,
-      type: eventType,
-    });
-
     // No-op response
     return sendApiResponse(nextApiRequest, nextApiResponse, {
       data: null,
@@ -231,7 +267,10 @@ export default async function handler(
         organization,
         branchName
       );
-      if (branch.github_pr_status === "closed") {
+      if (
+        branch.github_pr_status === "closed" ||
+        branch.github_pr_number !== prNumber
+      ) {
         updateBranch(branch.id, {
           github_pr_number: prNumber,
           github_pr_status: "open",
@@ -242,46 +281,142 @@ export default async function handler(
         name: branchName,
         organization,
         project_id: project.id,
-        github_pr_check_id: null,
         github_pr_comment_id: null,
         github_pr_number: prNumber,
         github_pr_status: "open",
       });
     }
 
-    if (branch.github_pr_check_id) {
-      await updateCheck(
-        project.organization,
-        project.repository,
-        branch.github_pr_check_id,
-        {
-          conclusion: "neutral",
-          output: {
-            summary: "In progress...",
-            title: "Tests are running",
-          },
-          status: "in_progress",
-        }
-      );
-    } else {
-      const check = await createCheck(projectOrganization, projectRepository, {
-        details_url: getDeltaBranchUrl(project, branchName),
-        head_sha: branchName,
-        output: {
-          summary: "In progress...",
-          title: "Tests are running",
-        },
-        status: "in_progress",
-      });
-
-      updateBranch(branch.id, {
-        github_pr_check_id: check.id as unknown as GithubCheckId,
-      });
-    }
-
     logAndSendResponse(projectOrganization, projectRepository, event.action, {
       data: null,
       httpStatusCode: HTTP_STATUS_CODES.NO_CONTENT,
+    });
+
+    return true;
+  }
+
+  async function handleWorkflowRunCompleted(
+    event: WorkflowRunCompletedEvent
+  ): Promise<boolean> {
+    if (!event.organization) {
+      sendApiResponse(nextApiRequest, nextApiResponse, {
+        data: Error(`Missing required parameters event parameters`),
+        deltaErrorCode: DELTA_ERROR_CODE.MISSING_PARAMETERS,
+        httpStatusCode: HTTP_STATUS_CODES.BAD_REQUEST,
+      });
+
+      return true;
+    }
+
+    const projectOrganization = event.organization.login;
+    const projectRepository = event.repository.name;
+    const project = await getProjectForOrganizationAndRepository(
+      projectOrganization,
+      projectRepository
+    );
+
+    const organization = event.workflow_run.head_repository.name;
+    const branchName = event.workflow_run.head_branch;
+    const branch = await getBranchForProjectAndOrganizationAndBranchName(
+      project.id,
+      organization,
+      branchName
+    );
+    if (branch == null) {
+      throw Error(
+        `No branches found for project ${project.id} and organization "${organization}" with name "${branchName}"`
+      );
+    }
+
+    const githubRunId = event.workflow_run.id as unknown as GithubRunId;
+    const run = await getRunsForGithubRunId(githubRunId);
+
+    const primaryBranch = await getPrimaryBranchForProject(project);
+    if (branch.id !== primaryBranch.id) {
+      const primaryBranchRun = await getMostRecentRunForBranch(
+        primaryBranch.id
+      );
+
+      const oldSnapshots = primaryBranchRun
+        ? await getSnapshotsForRun(primaryBranchRun.id)
+        : [];
+      const newSnapshots = await getSnapshotsForRun(run.id);
+
+      const count = getSnapshotDiffCount(oldSnapshots, newSnapshots);
+
+      await updateCheck(
+        project.organization,
+        project.repository,
+        run.github_check_id,
+        {
+          conclusion: "neutral",
+          output: {
+            summary: count > 0 ? `${count} snapshots changed` : "No changes",
+            title: count > 0 ? "Completed" : "Requires approval",
+          },
+          status: "completed",
+        }
+      );
+
+      // TODO Create or update PR comment
+    }
+
+    return true;
+  }
+
+  async function handleWorkflowRunRequested(
+    event: WorkflowRunRequestedEvent
+  ): Promise<boolean> {
+    if (!event.organization) {
+      sendApiResponse(nextApiRequest, nextApiResponse, {
+        data: Error(`Missing required parameters event parameters`),
+        deltaErrorCode: DELTA_ERROR_CODE.MISSING_PARAMETERS,
+        httpStatusCode: HTTP_STATUS_CODES.BAD_REQUEST,
+      });
+
+      return true;
+    }
+
+    const projectOrganization = event.organization.login;
+    const projectRepository = event.repository.name;
+    const project = await getProjectForOrganizationAndRepository(
+      projectOrganization,
+      projectRepository
+    );
+
+    const organization = event.workflow_run.head_repository.name;
+    const branchName = event.workflow_run.head_branch;
+    const branch = await getBranchForProjectAndOrganizationAndBranchName(
+      project.id,
+      organization,
+      branchName
+    );
+    if (branch == null) {
+      throw Error(
+        `No branches found for project ${project.id} and organization "${organization}" with name "${branchName}"`
+      );
+    }
+
+    const check = await createCheck(projectOrganization, projectRepository, {
+      details_url: getDeltaBranchUrl(project, branchName),
+      head_sha: branchName,
+      output: {
+        summary: "In progress...",
+        title: "Tests are running",
+      },
+      status: "in_progress",
+    });
+
+    const actor = event.sender.login;
+    const githubRunId = event.workflow_run.id as unknown as GithubRunId;
+
+    await insertRun({
+      branch_id: branch.id,
+      delta_has_user_approval: false,
+      github_actor: actor,
+      github_check_id: check.id as unknown as GithubCheckId,
+      github_run_id: githubRunId,
+      github_status: "pending",
     });
 
     return true;

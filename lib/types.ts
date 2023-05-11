@@ -22,13 +22,11 @@ export type Branch = {
   project_id: ProjectId;
 
   // Github API
-  github_pr_check_id: Opaque<"number", Branch> | null;
   github_pr_comment_id: Opaque<"number", Branch> | null;
   github_pr_number: number | null;
   github_pr_status: PullRequestStatus;
 };
 export type BranchId = Branch["id"];
-export type GithubCheckId = Branch["github_pr_check_id"];
 export type GithubCommentId = Branch["github_pr_comment_id"];
 
 export type RunStatus = "pending" | "completed";
@@ -39,6 +37,7 @@ export type Run = {
 
   // Github API
   github_actor: string | null;
+  github_check_id: Opaque<"number", Run> | null;
   github_run_id: Opaque<"number", Run>;
   github_status: RunStatus;
 
@@ -46,6 +45,7 @@ export type Run = {
   delta_has_user_approval: boolean;
 };
 export type RunId = Run["id"];
+export type GithubCheckId = Run["github_check_id"];
 export type GithubRunId = Run["github_run_id"];
 
 export type Snapshot = {

@@ -4,10 +4,7 @@ import { createHash } from "crypto";
 import { uploadSnapshot } from "../../lib/server/supabase/storage/Snapshots";
 import { getBranchForProjectAndOrganizationAndBranchName } from "../../lib/server/supabase/tables/Branches";
 import { getProjectForSlug } from "../../lib/server/supabase/tables/Projects";
-import {
-  getRunsForGithubRunId,
-  insertRun,
-} from "../../lib/server/supabase/tables/Runs";
+import { getRunsForGithubRunId } from "../../lib/server/supabase/tables/Runs";
 import { insertSnapshot } from "../../lib/server/supabase/tables/Snapshots";
 import { GithubRunId, ProjectSlug, Run } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
@@ -64,29 +61,7 @@ export default async function handler(
 
   try {
     const project = await getProjectForSlug(projectSlug);
-    const branch = await getBranchForProjectAndOrganizationAndBranchName(
-      project.id,
-      owner,
-      branchName
-    );
-    if (branch == null) {
-      throw Error(
-        `No branches found for project ${project.id} and owner "${owner}" with name "${branchName}"`
-      );
-    }
-
-    let run: Run;
-    try {
-      run = await getRunsForGithubRunId(githubRunId);
-    } catch (error) {
-      run = await insertRun({
-        branch_id: branch.id,
-        delta_has_user_approval: false,
-        github_actor: actor,
-        github_run_id: githubRunId,
-        github_status: "pending",
-      });
-    }
+    const run = await getRunsForGithubRunId(githubRunId);
 
     const { base64, file } = image;
 

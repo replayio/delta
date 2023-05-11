@@ -13,6 +13,7 @@ import {
 import { getProjectForId } from "../../lib/server/supabase/tables/Projects";
 import {
   getMostRecentRunForBranch,
+  getRunForId,
   updateRun,
 } from "../../lib/server/supabase/tables/Runs";
 import { getSnapshotsForRun } from "../../lib/server/supabase/tables/Snapshots";
@@ -57,6 +58,7 @@ export default async function handler(
   try {
     const branch = await getBranchForId(branchId);
     const project = await getProjectForId(projectId);
+    const run = await getRunForId(runId);
 
     updateRun(runId, {
       delta_has_user_approval: approved,
@@ -76,7 +78,7 @@ export default async function handler(
     const check = await updateCheck(
       project.organization,
       project.repository,
-      branch.github_pr_check_id,
+      run.github_check_id,
       {
         conclusion: approved ? "success" : "failure",
         status: "completed",

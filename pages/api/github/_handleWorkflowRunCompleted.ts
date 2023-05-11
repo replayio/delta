@@ -15,6 +15,7 @@ import { getProjectForOrganizationAndRepository } from "../../../lib/server/supa
 import {
   getMostRecentRunForBranch,
   getRunsForGithubRunId,
+  updateRun,
 } from "../../../lib/server/supabase/tables/Runs";
 import { getSnapshotsForRun } from "../../../lib/server/supabase/tables/Snapshots";
 import { GithubCommentId, GithubRunId } from "../../../lib/types";
@@ -48,6 +49,10 @@ export async function handleWorkflowRunCompleted(
 
   const githubRunId = event.workflow_run.id as unknown as GithubRunId;
   const run = await getRunsForGithubRunId(githubRunId);
+
+  await updateRun(run.id, {
+    github_status: "completed",
+  });
 
   const primaryBranch = await getPrimaryBranchForProject(project);
   if (branch.id !== primaryBranch.id) {

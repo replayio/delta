@@ -10,6 +10,7 @@ import Dropdown from "./Dropdown";
 import { Github } from "./SVGs";
 import { Toggle } from "./Toggle";
 import withSuspenseLoader from "./withSuspenseLoader";
+import Icon from "./Icon";
 
 export function Header({
   branches,
@@ -158,8 +159,13 @@ function BranchDropDownItem({
       className="h-full w-full"
       href={`/project/${project.slug}/?branchId=${branch.id}`}
     >
-      <div className="flex justify-between w-full">
-        <div className="truncate pr-4">{branch.name}</div>
+      <div className="flex flex-row gap-1 items-center justify-between w-full">
+        {project.organization !== branch.organization && (
+          <div className="text-violet-500" title={branch.organization}>
+            <Icon type="fork" />
+          </div>
+        )}
+        <div className="truncate">{branch.name}</div>
         {run && <RunCount runId={run.id} />}
       </div>
     </Link>

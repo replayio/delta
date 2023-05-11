@@ -77,6 +77,7 @@ export type GithubEvent = {
   id: Opaque<"number", GithubEvent>;
   payload: Object;
   project_id: ProjectId | null;
+  threw: boolean;
   type: GithubEventType;
 };
 export type GithubEventId = GithubEvent["id"];

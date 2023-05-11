@@ -8,7 +8,7 @@ import type {
   WorkflowJobEvent,
   WorkflowRunCompletedEvent,
   WorkflowRunEvent,
-  WorkflowRunRequestedEvent,
+  WorkflowRunInProgressEvent,
 } from "@octokit/webhooks-types";
 import { getDeltaBranchUrl } from "../../lib/delta";
 import getSnapshotDiffCount from "../../lib/server/getSnapshotDiffCount";
@@ -158,9 +158,9 @@ export default async function handler(
               eventProcessed = true;
               didRespond = await handleWorkflowRunCompleted(event);
               break;
-            case "requested":
+            case "in_progress":
               eventProcessed = true;
-              didRespond = await handleWorkflowRunRequested(event);
+              didRespond = await handleWorkflowRunInProgress(event);
               break;
           }
         }
@@ -364,8 +364,8 @@ export default async function handler(
     return true;
   }
 
-  async function handleWorkflowRunRequested(
-    event: WorkflowRunRequestedEvent
+  async function handleWorkflowRunInProgress(
+    event: WorkflowRunInProgressEvent
   ): Promise<boolean> {
     if (!event.organization) {
       sendApiResponse(nextApiRequest, nextApiResponse, {

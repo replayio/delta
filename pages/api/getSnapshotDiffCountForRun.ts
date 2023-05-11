@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
+import getSnapshotDiffCount from "../../lib/server/getSnapshotDiffCount";
 import { getPrimaryBranchForProject } from "../../lib/server/supabase/tables/Branches";
 import { getProjectForRun } from "../../lib/server/supabase/tables/Projects";
 import {
@@ -8,7 +9,6 @@ import {
 } from "../../lib/server/supabase/tables/Runs";
 import { getSnapshotsForRun } from "../../lib/server/supabase/tables/Snapshots";
 import { RunId } from "../../lib/types";
-import mergeSnapshots from "../../utils/snapshots";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
@@ -40,23 +40,7 @@ export default async function handler(
       : [];
     const newSnapshots = await getSnapshotsForRun(run.id);
 
-    let count = 0;
-
-    const map = mergeSnapshots(oldSnapshots, newSnapshots);
-    map.forEach((value) => {
-      const { new: newSnapshot, old: oldSnapshot } = value;
-      if (oldSnapshot && newSnapshot) {
-        if (oldSnapshot.delta_path !== newSnapshot.delta_path) {
-          count++;
-        }
-      } else if (oldSnapshot != null) {
-        count++;
-      } else if (newSnapshot != null) {
-        count++;
-      } else {
-        // Unexpected
-      }
-    });
+    const count = getSnapshotDiffCount(oldSnapshots, newSnapshots);
 
     return sendApiResponse<ResponseData>(request, response, {
       httpStatusCode: HTTP_STATUS_CODES.OK,

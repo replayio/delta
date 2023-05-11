@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import diffSnapshots from "../../lib/server/diffSnapshots";
-import { updateCheck } from "../../lib/server/github/Checks";
+import getSnapshotDiffCount from "../../lib/server/getSnapshotDiffCount";
+import { UpdateCheckData, updateCheck } from "../../lib/server/github/Checks";
 import {
   getBranchForProjectAndOrganizationAndBranchName,
   getPrimaryBranchForProject,
@@ -57,6 +57,8 @@ export default async function handler(
 
   try {
     const project = await getProjectForSlug(projectSlug);
+    console.log(`Found project: ${project.id}`);
+
     const branch = await getBranchForProjectAndOrganizationAndBranchName(
       project.id,
       owner,
@@ -68,12 +70,16 @@ export default async function handler(
       );
     }
 
+    console.log(`Found branch: ${branch.id}`);
+
     const run = await getRunsForGithubRunId(githubRunId);
     updateRun(run.id, {
       github_status: "completed",
     });
+    console.log(`Found run: ${run.id}`);
 
     const primaryBranch = await getPrimaryBranchForProject(project);
+    console.log(`Found primary branch: ${primaryBranch.id}`);
     if (branch.id !== primaryBranch.id) {
       const primaryBranchRun = await getMostRecentRunForBranch(
         primaryBranch.id
@@ -83,18 +89,32 @@ export default async function handler(
         ? await getSnapshotsForRun(primaryBranchRun.id)
         : [];
       const newSnapshots = await getSnapshotsForRun(run.id);
+      console.log(
+        `Found ${oldSnapshots.length} old snapshots and ${newSnapshots.length} new snapshots`
+      );
 
-      const data = await diffSnapshots(oldSnapshots, newSnapshots);
+      const count = getSnapshotDiffCount(oldSnapshots, newSnapshots);
+      const summary = count > 0 ? `${count} snapshots changed` : "No changes";
+      const title = count > 0 ? "Completed" : "Requires approval";
 
-      updateCheck(
+      const checkRun: UpdateCheckData = {
+        conclusion: count > 0 ? "failure" : "success",
+        status: "completed",
+        output: {
+          summary,
+          title,
+        },
+      };
+      console.log(
+        `Updating GitHub check-run ${branch.github_pr_check_id}:`,
+        checkRun
+      );
+
+      await updateCheck(
         project.organization,
         project.repository,
         branch.github_pr_check_id,
-        {
-          conclusion: data.length > 0 ? "failure" : "success",
-          status: "completed",
-          title: `${data.length} snapshots changed`,
-        }
+        checkRun
       );
     }
 
@@ -103,6 +123,7 @@ export default async function handler(
       httpStatusCode: HTTP_STATUS_CODES.OK,
     });
   } catch (error) {
+    console.error("updateCheck failed for query:", request.query);
     console.error(error);
 
     return sendApiResponse(request, response, {

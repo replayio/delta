@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 
 import { getDeltaBranchUrl } from "../../lib/delta";
 
-import diffSnapshots from "../../lib/server/diffSnapshots";
+import getSnapshotDiffCount from "../../lib/server/getSnapshotDiffCount";
 import { updateCheck } from "../../lib/server/github/Checks";
 import { updateComment } from "../../lib/server/github/Comments";
 import { CheckRun, IssueComment } from "../../lib/server/github/types";
@@ -16,8 +16,7 @@ import {
   updateRun,
 } from "../../lib/server/supabase/tables/Runs";
 import { getSnapshotsForRun } from "../../lib/server/supabase/tables/Snapshots";
-import { SnapshotDiff } from "../../lib/server/types";
-import { BranchId, Project, ProjectId, RunId, Snapshot } from "../../lib/types";
+import { BranchId, ProjectId, RunId } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
@@ -63,6 +62,17 @@ export default async function handler(
       delta_has_user_approval: approved,
     });
 
+    const primaryBranch = await getPrimaryBranchForProject(project);
+    const primaryBranchRun = await getMostRecentRunForBranch(primaryBranch.id);
+    const oldSnapshots = primaryBranchRun
+      ? await getSnapshotsForRun(primaryBranchRun.id)
+      : [];
+    const newSnapshots = await getSnapshotsForRun(runId);
+
+    const count = getSnapshotDiffCount(oldSnapshots, newSnapshots);
+    const summary = count > 0 ? `${count} snapshots changed` : "No changes";
+    const title = approved ? "Changed approved" : "Changes rejected";
+
     const check = await updateCheck(
       project.organization,
       project.repository,
@@ -70,19 +80,19 @@ export default async function handler(
       {
         conclusion: approved ? "success" : "failure",
         status: "completed",
-        title: approved ? "Changes approved" : "Changes rejected",
+        output: {
+          summary,
+          title,
+        },
       }
     );
 
     let issueComment: IssueComment | null = null;
     if (branch.github_pr_comment_id) {
-      const snapshots = await getSnapshotsForRun(runId);
-
-      const [comment] = await createDiffComment({
-        branchName: branch.name,
-        newSnapshots: snapshots,
-        project,
-      });
+      const count = getSnapshotDiffCount(oldSnapshots, newSnapshots);
+      const title = `${count} snapshot changes from primary branch`;
+      const deltaUrl = getDeltaBranchUrl(project, branch.name);
+      const comment = `**<a href="${deltaUrl}">${title}</a>**`;
 
       issueComment = await updateComment(
         project.organization,
@@ -108,28 +118,4 @@ export default async function handler(
       httpStatusCode: HTTP_STATUS_CODES.NOT_FOUND,
     });
   }
-}
-
-export async function createDiffComment({
-  branchName,
-  newSnapshots,
-  project,
-}: {
-  branchName: string;
-  newSnapshots: Snapshot[];
-  project: Project;
-}): Promise<[comment: string, diff: SnapshotDiff[]]> {
-  const primaryBranch = await getPrimaryBranchForProject(project);
-  const primaryBranchRun = await getMostRecentRunForBranch(primaryBranch.id);
-  const oldSnapshots = primaryBranchRun
-    ? await getSnapshotsForRun(primaryBranchRun.id)
-    : [];
-
-  const diff = await diffSnapshots(oldSnapshots, newSnapshots);
-  const numChanges = diff.length;
-  const title = `${numChanges} snapshot changes from primary branch`;
-  const deltaUrl = getDeltaBranchUrl(project, branchName);
-  const comment = `**<a href="${deltaUrl}">${title}</a>**`;
-
-  return [comment, diff];
 }

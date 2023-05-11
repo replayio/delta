@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import diffSnapshots from "../../lib/server/diffSnapshots";
+import diffSnapshot from "../../lib/server/diffSnapshot";
 import { getPrimaryBranchForProject } from "../../lib/server/supabase/tables/Branches";
 import { getProjectForRun } from "../../lib/server/supabase/tables/Projects";
 import {
@@ -9,7 +9,8 @@ import {
 } from "../../lib/server/supabase/tables/Runs";
 import { getSnapshotsForRun } from "../../lib/server/supabase/tables/Snapshots";
 import { SnapshotDiff } from "../../lib/server/types";
-import { RunId } from "../../lib/types";
+import { RunId, Snapshot } from "../../lib/types";
+import mergeSnapshots from "../../utils/snapshots";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
@@ -54,4 +55,31 @@ export default async function handler(
       httpStatusCode: HTTP_STATUS_CODES.NOT_FOUND,
     });
   }
+}
+
+async function diffSnapshots(
+  oldSnapshots: Snapshot[],
+  newSnapshots: Snapshot[]
+): Promise<SnapshotDiff[]> {
+  const map = mergeSnapshots(oldSnapshots, newSnapshots);
+
+  const promises: Promise<void>[] = [];
+  const diffs: SnapshotDiff[] = [];
+  const files = Array.from(map.keys());
+  for (let index = 0; index < files.length; index++) {
+    const file = files[index];
+    const value = map.get(file)!;
+
+    promises.push(
+      diffSnapshot(value.old, value.new).then((diff) => {
+        if (diff !== null) {
+          diffs.push(diff);
+        }
+      })
+    );
+  }
+
+  await Promise.all(promises);
+
+  return diffs;
 }

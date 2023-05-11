@@ -228,7 +228,7 @@ export default async function handler(
       details_url: getDeltaBranchUrl(project, branchName),
       head_sha: branchName,
       output: {
-        summary: "",
+        summary: "In progress...",
         title: "Tests are running",
       },
       status: "in_progress",

@@ -36,7 +36,7 @@ export async function getRunsForBranch(
         .from("branches")
         .select("id, runs(*)")
         .eq("id", branchId)
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: false, foreignTable: "runs" })
         .limit(limit),
     `Could not find Runs for Branch "${branchId}"`
   );

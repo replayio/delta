@@ -52,21 +52,19 @@ function Page() {
   }
 
   const currentBranch = branchCache.read(project.id, branchId);
-  const runs = runsCache.read(currentBranch.id);
-  if (runs.length === 0) {
-    return null;
-  }
+  const runs = runsCache.read(currentBranch.id) ?? [];
 
   if (!runId) {
-    runId = runs[0].id;
+    runId = runs[0]?.id;
   }
 
-  const currentRun = runs.find((run) => run.id === runId);
-  if (!currentRun) {
-    return null;
-  }
+  const currentRun = runId
+    ? runs.find((run) => run.id === runId) ?? null
+    : null;
 
-  const snapshotDiffs = snapshotDiffForRunCache.read(currentRun.id);
+  const snapshotDiffs = currentRun
+    ? snapshotDiffForRunCache.read(currentRun.id)
+    : [];
 
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
@@ -96,7 +94,7 @@ function Page() {
         runs={runs}
       />
 
-      {isPending ? (
+      {currentRun && isPending ? (
         <SubViewRunPending project={project} runId={currentRun.github_run_id} />
       ) : shownBranches.length == 0 ? (
         <SubViewNoOpenBranches />

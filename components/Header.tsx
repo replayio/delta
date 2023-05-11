@@ -20,7 +20,7 @@ export function Header({
 }: {
   branches: Branch[];
   currentBranch: Branch;
-  currentRun: Run;
+  currentRun: Run | null;
   project: Project;
   runs: Run[];
 }) {

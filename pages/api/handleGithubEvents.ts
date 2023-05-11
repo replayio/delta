@@ -7,7 +7,7 @@ import type {
   PullRequestReopenedEvent,
 } from "@octokit/webhooks-types";
 import { getDeltaBranchUrl } from "../../lib/delta";
-import { createCheck } from "../../lib/server/github/Checks";
+import { createCheck, updateCheck } from "../../lib/server/github/Checks";
 import { getHTTPRequests, setupHook } from "../../lib/server/http-replay";
 import { insertHTTPEvent } from "../../lib/server/supabase/storage/HttpEvents";
 import {
@@ -224,16 +224,6 @@ export default async function handler(
     const organization = event.pull_request.head.repo.owner.login;
     const branchName = event.pull_request.head.ref;
 
-    const check = await createCheck(projectOrganization, projectRepository, {
-      details_url: getDeltaBranchUrl(project, branchName),
-      head_sha: branchName,
-      output: {
-        summary: "In progress...",
-        title: "Tests are running",
-      },
-      status: "in_progress",
-    });
-
     let branch: Branch;
     try {
       branch = await getBranchForProjectAndOrganizationAndBranchName(
@@ -243,7 +233,6 @@ export default async function handler(
       );
       if (branch.github_pr_status === "closed") {
         updateBranch(branch.id, {
-          github_pr_check_id: check.id as unknown as GithubCheckId,
           github_pr_number: prNumber,
           github_pr_status: "open",
         });
@@ -253,10 +242,40 @@ export default async function handler(
         name: branchName,
         organization,
         project_id: project.id,
-        github_pr_check_id: check.id as unknown as GithubCheckId,
+        github_pr_check_id: null,
         github_pr_comment_id: null,
         github_pr_number: prNumber,
         github_pr_status: "open",
+      });
+    }
+
+    if (branch.github_pr_check_id) {
+      await updateCheck(
+        project.organization,
+        project.repository,
+        branch.github_pr_check_id,
+        {
+          conclusion: "neutral",
+          output: {
+            summary: "In progress...",
+            title: "Tests are running",
+          },
+          status: "in_progress",
+        }
+      );
+    } else {
+      const check = await createCheck(projectOrganization, projectRepository, {
+        details_url: getDeltaBranchUrl(project, branchName),
+        head_sha: branchName,
+        output: {
+          summary: "In progress...",
+          title: "Tests are running",
+        },
+        status: "in_progress",
+      });
+
+      updateBranch(branch.id, {
+        github_pr_check_id: check.id as unknown as GithubCheckId,
       });
     }
 

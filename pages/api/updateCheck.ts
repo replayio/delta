@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import getSnapshotDiffCount from "../../lib/server/getSnapshotDiffCount";
-import { UpdateCheckData, updateCheck } from "../../lib/server/github/Checks";
+import { updateCheck } from "../../lib/server/github/Checks";
 import {
   getBranchForProjectAndOrganizationAndBranchName,
   getPrimaryBranchForProject,
@@ -97,24 +97,18 @@ export default async function handler(
       const summary = count > 0 ? `${count} snapshots changed` : "No changes";
       const title = count > 0 ? "Completed" : "Requires approval";
 
-      const checkRun: UpdateCheckData = {
-        conclusion: count > 0 ? "failure" : "success",
-        status: "completed",
-        output: {
-          summary,
-          title,
-        },
-      };
-      console.log(
-        `Updating GitHub check-run ${branch.github_pr_check_id}:`,
-        checkRun
-      );
-
       await updateCheck(
         project.organization,
         project.repository,
         branch.github_pr_check_id,
-        checkRun
+        {
+          conclusion: count > 0 ? "action_required" : "success",
+          status: "completed",
+          output: {
+            summary,
+            title,
+          },
+        }
       );
     }
 

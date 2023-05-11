@@ -30,20 +30,18 @@ export async function createCheck(
   return response.data as CheckRun;
 }
 
-export type UpdateCheckData = {
-  conclusion: CheckRun["conclusion"];
-  output: {
-    summary: string;
-    title: string;
-  };
-  status: string;
-};
-
 export async function updateCheck(
   projectOrganization: string,
   projectRepository: string,
   checkRunId: GithubCheckId,
-  checkRun: UpdateCheckData
+  checkRun: {
+    conclusion: CheckRun["conclusion"];
+    output: {
+      summary: string;
+      title: string;
+    };
+    status: string;
+  }
 ) {
   const octokit = await getOctokit();
   const response = await octokit.request(

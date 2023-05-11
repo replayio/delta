@@ -25,6 +25,8 @@ export default async function handler(
 ) {
   const eventType = nextApiRequest.headers["x-github-event"] as GithubEventType;
 
+  console.log(`Received GitHub event type: "${eventType}"`);
+
   let didRespond = false;
   let didThrow = false;
   let logEvent = false;

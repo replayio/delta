@@ -129,8 +129,8 @@ const RunDropDownItem = withSuspenseLoader(function RunDropDownItem({
       className="h-full w-full"
       href={`/project/${project.slug}/?branchId=${currentBranchName}&runId=${run.id}`}
     >
-      <div className="flex justify-between w-full">
-        <div className="truncate pr-4">{relativeTime(run.created_at)}</div>
+      <div className="flex w-full gap-1 items-center">
+        <div className="truncate grow">{relativeTime(run.created_at)}</div>
         <RunCount runId={run.id} />
       </div>
     </Link>
@@ -159,13 +159,13 @@ function BranchDropDownItem({
       className="h-full w-full"
       href={`/project/${project.slug}/?branchId=${branch.id}`}
     >
-      <div className="flex flex-row gap-1 items-center justify-between w-full">
+      <div className="flex flex-row gap-1 items-center w-full">
         {project.organization !== branch.organization && (
           <div className="text-violet-500" title={branch.organization}>
             <Icon type="fork" />
           </div>
         )}
-        <div className="truncate">{branch.name}</div>
+        <div className="truncate grow">{branch.name}</div>
         {run && <RunCount runId={run.id} />}
       </div>
     </Link>

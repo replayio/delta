@@ -33,9 +33,10 @@ export async function handleWorkflowRunInProgress(
     );
   }
 
+  const sha = event.workflow_run.head_commit.id;
   const check = await createCheck(projectOrganization, projectRepository, {
     details_url: getDeltaBranchUrl(project, branch.id),
-    head_sha: branchName,
+    head_sha: sha,
     output: {
       summary: "In progress...",
       title: "Tests are running",

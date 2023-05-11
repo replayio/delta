@@ -58,14 +58,12 @@ export default async function handler(
         if (event.workflow_job.workflow_name === "Delta") {
           logEvent = true;
         }
+        break;
       }
       case "workflow_run": {
         // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_run
         const event = nextApiRequest.body as WorkflowRunEvent;
-        if (
-          event.workflow?.name === "Delta" ||
-          event.workflow_run.name === "Delta"
-        ) {
+        if (event.workflow?.name === "Delta") {
           switch (event.action) {
             case "completed":
               logEvent = true;

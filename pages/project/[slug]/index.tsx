@@ -23,6 +23,7 @@ import { branchCache, branchesCache } from "../../../suspense/BranchCache";
 import { projectCache } from "../../../suspense/ProjectCache";
 import { runsCache } from "../../../suspense/RunCache";
 import { snapshotDiffForRunCache } from "../../../suspense/SnapshotCache";
+import { SnapshotDiffWithMetadata } from "../../../lib/client/types";
 
 export default withRenderOnMount(withSuspenseLoader(Page));
 
@@ -147,25 +148,54 @@ function SubViewLoadedData({
   projectSlug: ProjectSlug;
   snapshotDiffs: SnapshotDiff[];
 }) {
-  if (!currentFile && snapshotDiffs.length > 0) {
-    currentFile = snapshotDiffs[0].file;
+  // Sort and group snapshots by file name/theme
+  const snapshotDiffsWithMetadata = useMemo<SnapshotDiffWithMetadata[]>(() => {
+    return snapshotDiffs
+      .map((snapshotDiff) => {
+        const filePieces = snapshotDiff.file.split("/");
+        const displayName = filePieces
+          .pop()!
+          .replace(/-/g, " ")
+          .replace(".png", "");
+        const theme = filePieces.pop()!;
+
+        return {
+          ...snapshotDiff,
+          metadata: {
+            displayName,
+            theme,
+          },
+        };
+      })
+      .sort((a, b) => {
+        if (a.metadata.displayName === b.metadata.displayName) {
+          return a.metadata.theme.localeCompare(b.metadata.theme);
+        } else {
+          return a.metadata.displayName.localeCompare(b.metadata.displayName);
+        }
+      });
+  }, [snapshotDiffs]);
+
+  if (!currentFile && snapshotDiffsWithMetadata.length > 0) {
+    currentFile = snapshotDiffsWithMetadata[0].file;
   }
 
   const index = useMemo(
     () =>
-      snapshotDiffs.findIndex(
+      snapshotDiffsWithMetadata.findIndex(
         (snapshotDiff) => snapshotDiff.file === currentFile
       ),
-    [currentFile, snapshotDiffs]
+    [currentFile, snapshotDiffsWithMetadata]
   );
 
-  useSnapshotPrefetchedData(snapshotDiffs, index);
+  useSnapshotPrefetchedData(snapshotDiffsWithMetadata, index);
 
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
   //   console.groupCollapsed("<SubViewLoadedData>");
   //   console.log("currentFile:", currentFile);
   //   console.log("snapshotDiffs:", snapshotDiffs);
+  //   console.log("snapshotDiffsWithMetadata:", snapshotDiffsWithMetadata);
   //   console.groupEnd();
   // }
 
@@ -174,7 +204,7 @@ function SubViewLoadedData({
       <PanelGroup direction="horizontal">
         <Panel minSize={5} maxSize={25} defaultSize={15} order={1}>
           <div className="w-full h-full flex flex-col h-full overflow-y-auto overflow-x-hidden bg-slate-100 py-1">
-            {snapshotDiffs.map((snapshotDiff) => (
+            {snapshotDiffsWithMetadata.map((snapshotDiff) => (
               <SnapshotRow
                 branchId={branchId}
                 isSelected={snapshotDiff.file === currentFile}
@@ -192,7 +222,10 @@ function SubViewLoadedData({
         <Panel order={2}>
           <div className="w-full h-full flex flex-col flex-grow overflow-y-auto overflow-x-hidden items-center">
             {index >= 0 && (
-              <Snapshot key={index} snapshotDiff={snapshotDiffs[index]} />
+              <Snapshot
+                key={index}
+                snapshotDiff={snapshotDiffsWithMetadata[index]}
+              />
             )}
           </div>
         </Panel>

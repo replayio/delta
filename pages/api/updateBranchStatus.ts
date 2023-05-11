@@ -1,11 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { getDeltaBranchUrl } from "../../lib/delta";
-
 import getSnapshotDiffCount from "../../lib/server/getSnapshotDiffCount";
 import { updateCheck } from "../../lib/server/github/Checks";
-import { updateComment } from "../../lib/server/github/Comments";
-import { CheckRun, IssueComment } from "../../lib/server/github/types";
+import { CheckRun } from "../../lib/server/github/types";
 import {
   getBranchForId,
   getPrimaryBranchForProject,
@@ -31,7 +28,6 @@ export type RequestParams = {
 };
 export type ResponseData = {
   check: CheckRun;
-  comment: IssueComment | null;
 };
 
 export default async function handler(
@@ -89,27 +85,9 @@ export default async function handler(
       }
     );
 
-    let issueComment: IssueComment | null = null;
-    if (branch.github_pr_comment_id) {
-      const count = getSnapshotDiffCount(oldSnapshots, newSnapshots);
-      const title = `${count} snapshot changes from primary branch`;
-      const deltaUrl = getDeltaBranchUrl(project, branch.name);
-      const comment = `**<a href="${deltaUrl}">${title}</a>**`;
-
-      issueComment = await updateComment(
-        project.organization,
-        project.repository,
-        branch.github_pr_comment_id,
-        {
-          body: comment,
-        }
-      );
-    }
-
     return sendApiResponse<ResponseData>(request, response, {
       data: {
         check,
-        comment: issueComment,
       },
       httpStatusCode: HTTP_STATUS_CODES.OK,
     });

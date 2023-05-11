@@ -1,9 +1,15 @@
 import type { WorkflowRunCompletedEvent } from "@octokit/webhooks-types";
+import { getDeltaBranchUrl } from "../../../lib/delta";
 import getSnapshotDiffCount from "../../../lib/server/getSnapshotDiffCount";
 import { updateCheck } from "../../../lib/server/github/Checks";
 import {
+  createComment,
+  updateComment,
+} from "../../../lib/server/github/Comments";
+import {
   getBranchForProjectAndOrganizationAndBranchName,
   getPrimaryBranchForProject,
+  updateBranch,
 } from "../../../lib/server/supabase/tables/Branches";
 import { getProjectForOrganizationAndRepository } from "../../../lib/server/supabase/tables/Projects";
 import {
@@ -11,7 +17,7 @@ import {
   getRunsForGithubRunId,
 } from "../../../lib/server/supabase/tables/Runs";
 import { getSnapshotsForRun } from "../../../lib/server/supabase/tables/Snapshots";
-import { GithubRunId } from "../../../lib/types";
+import { GithubCommentId, GithubRunId } from "../../../lib/types";
 
 export async function handleWorkflowRunCompleted(
   event: WorkflowRunCompletedEvent
@@ -68,7 +74,30 @@ export async function handleWorkflowRunCompleted(
       }
     );
 
-    // TODO Create or update PR comment
+    const deltaUrl = getDeltaBranchUrl(project, branch.id);
+    const commentBody = `**<a href="${deltaUrl}">${count} snapshot changes from primary branch</a>**`;
+
+    if (branch.github_pr_comment_id) {
+      await updateComment(
+        projectOrganization,
+        projectRepository,
+        branch.github_pr_comment_id,
+        {
+          body: commentBody,
+        }
+      );
+    } else if (branch.github_pr_number) {
+      const comment = await createComment(
+        projectOrganization,
+        projectRepository,
+        branch.github_pr_number,
+        { body: commentBody }
+      );
+
+      await updateBranch(branch.id, {
+        github_pr_comment_id: comment.id as unknown as GithubCommentId,
+      });
+    }
   }
 
   return true;

@@ -34,7 +34,7 @@ export async function handleWorkflowRunInProgress(
   }
 
   const check = await createCheck(projectOrganization, projectRepository, {
-    details_url: getDeltaBranchUrl(project, branchName),
+    details_url: getDeltaBranchUrl(project, branch.id),
     head_sha: branchName,
     output: {
       summary: "In progress...",

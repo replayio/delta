@@ -50,7 +50,7 @@ export function Header({
         <Dropdown
           align="left"
           options={branches.map((branch) => ({
-            isSelected: branch.name === currentBranch?.name,
+            isSelected: branch.id === currentBranch?.id,
             key: branch.id,
             render: () => (
               <BranchDropDownItem branch={branch} project={project} />

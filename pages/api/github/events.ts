@@ -73,6 +73,9 @@ export default async function handler(
               logEvent = true;
               didRespond = await handleWorkflowRunInProgress(event);
               break;
+            default:
+              // Don't care about the other action types
+              break;
           }
         }
         break;

@@ -20,7 +20,7 @@ export async function handleWorkflowRunInProgress(
     projectRepository
   );
 
-  const organization = event.workflow_run.head_repository.name;
+  const organization = event.workflow_run.head_repository.owner.login;
   const branchName = event.workflow_run.head_branch;
   const branch = await getBranchForProjectAndOrganizationAndBranchName(
     project.id,

@@ -13,7 +13,13 @@ export function createErrorFromPostgrestError(
     message = `${messagePrefix}\n\n${message}`;
   }
 
-  return Error(message);
+  const error = Error(message);
+  // @ts-ignore
+  error.code = parseInt(postgrestError.code);
+  // @ts-ignore
+  error.details = postgrestError.details;
+
+  return error;
 }
 
 export function isApiErrorResponse(

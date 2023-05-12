@@ -70,7 +70,7 @@ export default async function handler(
         if (event.workflow_job.workflow_name === "Delta") {
           logEvent = true;
 
-          extractedEventParams = await getParamsFromWorkflowJobEvent(event);
+          extractedEventParams = getParamsFromWorkflowJobEvent(event);
         }
         break;
       }

@@ -1,3 +1,4 @@
+import { WorkflowRun } from "@octokit/webhooks-types";
 import Opaque from "ts-opaque";
 
 export type Project = {
@@ -38,6 +39,7 @@ export type Run = {
   // Github API
   github_actor: string | null;
   github_check_id: Opaque<"number", Run> | null;
+  github_conclusion: WorkflowRun["conclusion"] | null;
   github_run_id: Opaque<"number", Run>;
   github_status: RunStatus;
 

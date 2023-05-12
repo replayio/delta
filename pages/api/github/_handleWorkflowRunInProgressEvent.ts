@@ -52,6 +52,7 @@ export async function handleWorkflowRunInProgressEvent(
     delta_has_user_approval: false,
     github_actor: actor,
     github_check_id: check.id as unknown as GithubCheckId,
+    github_conclusion: null,
     github_run_id: githubRunId,
     github_status: "pending",
   });

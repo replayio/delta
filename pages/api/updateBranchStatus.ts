@@ -9,7 +9,7 @@ import {
 } from "../../lib/server/supabase/tables/Branches";
 import { getProjectForId } from "../../lib/server/supabase/tables/Projects";
 import {
-  getMostRecentRunForBranch,
+  getMostRecentSuccessfulRunForBranch,
   getRunForId,
   updateRun,
 } from "../../lib/server/supabase/tables/Runs";
@@ -61,7 +61,9 @@ export default async function handler(
     });
 
     const primaryBranch = await getPrimaryBranchForProject(project);
-    const primaryBranchRun = await getMostRecentRunForBranch(primaryBranch.id);
+    const primaryBranchRun = await getMostRecentSuccessfulRunForBranch(
+      primaryBranch.id
+    );
     const oldSnapshots = primaryBranchRun
       ? await getSnapshotsForRun(primaryBranchRun.id)
       : [];

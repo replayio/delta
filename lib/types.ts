@@ -48,6 +48,7 @@ export type Run = {
 };
 export type RunId = Run["id"];
 export type GithubCheckId = Run["github_check_id"];
+export type GithubConclusion = Run["github_conclusion"];
 export type GithubRunId = Run["github_run_id"];
 
 export type Snapshot = {

@@ -4,7 +4,7 @@ import diffSnapshot from "../../lib/server/diffSnapshot";
 import { getPrimaryBranchForProject } from "../../lib/server/supabase/tables/Branches";
 import { getProjectForRun } from "../../lib/server/supabase/tables/Projects";
 import {
-  getMostRecentRunForBranch,
+  getMostRecentSuccessfulRunForBranch,
   getRunForId,
 } from "../../lib/server/supabase/tables/Runs";
 import { getSnapshotsForRun } from "../../lib/server/supabase/tables/Snapshots";
@@ -35,7 +35,9 @@ export default async function handler(
     const project = await getProjectForRun(run.id);
 
     const primaryBranch = await getPrimaryBranchForProject(project);
-    const primaryBranchRun = await getMostRecentRunForBranch(primaryBranch.id);
+    const primaryBranchRun = await getMostRecentSuccessfulRunForBranch(
+      primaryBranch.id
+    );
 
     const oldSnapshots = primaryBranchRun
       ? await getSnapshotsForRun(primaryBranchRun.id)

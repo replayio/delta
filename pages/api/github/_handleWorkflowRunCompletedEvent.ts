@@ -13,7 +13,7 @@ import {
 } from "../../../lib/server/supabase/tables/Branches";
 import { getProjectForOrganizationAndRepository } from "../../../lib/server/supabase/tables/Projects";
 import {
-  getMostRecentRunForBranch,
+  getMostRecentSuccessfulRunForBranch,
   getRunsForGithubRunId,
   updateRun,
 } from "../../../lib/server/supabase/tables/Runs";
@@ -74,7 +74,7 @@ export async function handleWorkflowRunCompletedEvent(
   } else {
     const primaryBranch = await getPrimaryBranchForProject(project);
     if (branch.id !== primaryBranch.id) {
-      const primaryBranchRun = await getMostRecentRunForBranch(
+      const primaryBranchRun = await getMostRecentSuccessfulRunForBranch(
         primaryBranch.id
       );
 

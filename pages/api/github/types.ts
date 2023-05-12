@@ -1,5 +1,5 @@
 export type ExtractedEventParams = {
-  branchName: string;
+  branchName: string | null;
   organization: string | null;
   projectOrganization: string | null;
   projectRepository: string;

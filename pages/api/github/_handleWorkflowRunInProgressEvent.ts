@@ -6,6 +6,7 @@ import { getProjectForOrganizationAndRepository } from "../../../lib/server/supa
 import { insertRun } from "../../../lib/server/supabase/tables/Runs";
 import { GithubCheckId, GithubRunId } from "../../../lib/types";
 import { getParamsFromWorkflowRunEvent } from "./_getParamsFromWorkflowRunEvent";
+import { POSTGRESQL_ERROR_CODES } from "../../../lib/server/supabase/constants";
 
 export async function handleWorkflowRunInProgressEvent(
   event: WorkflowRunInProgressEvent
@@ -47,15 +48,21 @@ export async function handleWorkflowRunInProgressEvent(
   const actor = event.sender.login;
   const githubRunId = event.workflow_run.id as unknown as GithubRunId;
 
-  await insertRun({
-    branch_id: branch.id,
-    delta_has_user_approval: false,
-    github_actor: actor,
-    github_check_id: check.id as unknown as GithubCheckId,
-    github_conclusion: null,
-    github_run_id: githubRunId,
-    github_status: "pending",
-  });
+  try {
+    await insertRun({
+      branch_id: branch.id,
+      delta_has_user_approval: false,
+      github_actor: actor,
+      github_check_id: check.id as unknown as GithubCheckId,
+      github_conclusion: null,
+      github_run_id: githubRunId,
+      github_status: "pending",
+    });
+  } catch (error) {
+    if (error.code !== POSTGRESQL_ERROR_CODES.UNIQUENESS_VIOLATION) {
+      throw error;
+    }
+  }
 
   return true;
 }

@@ -50,58 +50,79 @@ export async function handleWorkflowRunCompletedEvent(
   const githubRunId = event.workflow_run.id as unknown as GithubRunId;
   const run = await getRunsForGithubRunId(githubRunId);
 
+  const conclusion = event.workflow_run.conclusion;
+
   await updateRun(run.id, {
+    github_conclusion: conclusion,
     github_status: "completed",
   });
 
-  const primaryBranch = await getPrimaryBranchForProject(project);
-  if (branch.id !== primaryBranch.id) {
-    const primaryBranchRun = await getMostRecentRunForBranch(primaryBranch.id);
-
-    const oldSnapshots = primaryBranchRun
-      ? await getSnapshotsForRun(primaryBranchRun.id)
-      : [];
-    const newSnapshots = await getSnapshotsForRun(run.id);
-
-    const count = await getSnapshotDiffCount(oldSnapshots, newSnapshots);
-
+  if (conclusion !== "success") {
     await updateCheck(
       project.organization,
       project.repository,
       run.github_check_id,
       {
-        conclusion: count > 0 ? "failure" : "success",
+        conclusion: "neutral",
         output: {
-          summary: count > 0 ? `${count} snapshots changed` : "No changes",
-          title: count > 0 ? "Completed" : "Requires approval",
+          summary: `Workflow concluded with status "${conclusion}"`,
+          title: "Workflow inconclusive",
         },
         status: "completed",
       }
     );
+  } else {
+    const primaryBranch = await getPrimaryBranchForProject(project);
+    if (branch.id !== primaryBranch.id) {
+      const primaryBranchRun = await getMostRecentRunForBranch(
+        primaryBranch.id
+      );
 
-    const deltaUrl = getDeltaBranchUrl(project, branch.id);
-    const commentBody = `**<a href="${deltaUrl}">${count} snapshot changes from primary branch</a>**`;
+      const oldSnapshots = primaryBranchRun
+        ? await getSnapshotsForRun(primaryBranchRun.id)
+        : [];
+      const newSnapshots = await getSnapshotsForRun(run.id);
 
-    if (branch.github_pr_comment_id) {
-      await updateComment(
-        projectOrganization,
-        projectRepository,
-        branch.github_pr_comment_id,
+      const count = await getSnapshotDiffCount(oldSnapshots, newSnapshots);
+
+      await updateCheck(
+        project.organization,
+        project.repository,
+        run.github_check_id,
         {
-          body: commentBody,
+          conclusion: count > 0 ? "failure" : "success",
+          output: {
+            summary: count > 0 ? `${count} snapshots changed` : "No changes",
+            title: count > 0 ? "Completed" : "Requires approval",
+          },
+          status: "completed",
         }
       );
-    } else if (branch.github_pr_number) {
-      const comment = await createComment(
-        projectOrganization,
-        projectRepository,
-        branch.github_pr_number,
-        { body: commentBody }
-      );
 
-      await updateBranch(branch.id, {
-        github_pr_comment_id: comment.id as unknown as GithubCommentId,
-      });
+      const deltaUrl = getDeltaBranchUrl(project, branch.id);
+      const commentBody = `**<a href="${deltaUrl}">${count} snapshot changes from primary branch</a>**`;
+
+      if (branch.github_pr_comment_id) {
+        await updateComment(
+          projectOrganization,
+          projectRepository,
+          branch.github_pr_comment_id,
+          {
+            body: commentBody,
+          }
+        );
+      } else if (branch.github_pr_number) {
+        const comment = await createComment(
+          projectOrganization,
+          projectRepository,
+          branch.github_pr_number,
+          { body: commentBody }
+        );
+
+        await updateBranch(branch.id, {
+          github_pr_comment_id: comment.id as unknown as GithubCommentId,
+        });
+      }
     }
   }
 

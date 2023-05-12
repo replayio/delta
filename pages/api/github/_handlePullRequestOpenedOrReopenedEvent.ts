@@ -9,15 +9,15 @@ import {
 } from "../../../lib/server/supabase/tables/Branches";
 import { getProjectForOrganizationAndRepository } from "../../../lib/server/supabase/tables/Projects";
 import { Branch } from "../../../lib/types";
-import { ExtractedEventParams } from "./types";
+import { getParamsFromPullRequestEvent } from "./_getParamsFromPullRequestEvent";
 
 export async function handlePullRequestOpenedOrReopenedEvent(
   event: PullRequestOpenedEvent | PullRequestReopenedEvent
 ): Promise<boolean> {
   const { branchName, organization, projectOrganization, projectRepository } =
-    getParamsFromPullRequestOpenedOrReopenedEvent(event);
+    getParamsFromPullRequestEvent(event);
 
-  if (!organization || !projectOrganization) {
+  if (!branchName || !organization || !projectOrganization) {
     throw Error(`Missing required parameters event parameters`);
   }
 
@@ -56,15 +56,4 @@ export async function handlePullRequestOpenedOrReopenedEvent(
   }
 
   return true;
-}
-
-export function getParamsFromPullRequestOpenedOrReopenedEvent(
-  event: PullRequestOpenedEvent | PullRequestReopenedEvent
-): ExtractedEventParams {
-  return {
-    branchName: event.pull_request.head.ref,
-    organization: event.pull_request.head.repo?.owner.login ?? null,
-    projectOrganization: event.organization?.login ?? null,
-    projectRepository: event.repository.name,
-  };
 }

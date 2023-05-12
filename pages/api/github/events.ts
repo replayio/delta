@@ -12,22 +12,13 @@ import { getProjectForOrganizationAndRepository } from "../../../lib/server/supa
 import { Branch, GithubEventType, Project } from "../../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "../constants";
 import { sendApiResponse } from "../utils";
-import {
-  getParamsFromPullRequestClosedEvent,
-  handlePullRequestClosedEvent,
-} from "./_handlePullRequestClosedEvent";
-import {
-  getParamsFromPullRequestOpenedOrReopenedEvent,
-  handlePullRequestOpenedOrReopenedEvent,
-} from "./_handlePullRequestOpenedOrReopenedEvent";
-import {
-  getParamsFromWorkflowRunCompleted,
-  handleWorkflowRunCompleted,
-} from "./_handleWorkflowRunCompleted";
-import {
-  getParamsFromWorkflowRunInProgress,
-  handleWorkflowRunInProgress,
-} from "./_handleWorkflowRunInProgress";
+import { getParamsFromPullRequestEvent } from "./_getParamsFromPullRequestEvent";
+import { getParamsFromWorkflowJobEvent } from "./_getParamsFromWorkflowJob";
+import { getParamsFromWorkflowRunEvent } from "./_getParamsFromWorkflowRunEvent";
+import { handlePullRequestClosedEvent } from "./_handlePullRequestClosedEvent";
+import { handlePullRequestOpenedOrReopenedEvent } from "./_handlePullRequestOpenedOrReopenedEvent";
+import { handleWorkflowRunCompletedEvent } from "./_handleWorkflowRunCompletedEvent";
+import { handleWorkflowRunInProgressEvent } from "./_handleWorkflowRunInProgressEvent";
 import { ExtractedEventParams } from "./types";
 
 // Spy on HTTP client requests for debug logging in Supabase.
@@ -51,22 +42,18 @@ export default async function handler(
       case "pull_request": {
         // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
         const event = nextApiRequest.body as PullRequestEvent;
+
+        extractedEventParams = getParamsFromPullRequestEvent(event);
+
         switch (event.action) {
           case "closed": {
             logEvent = true;
-
-            extractedEventParams = getParamsFromPullRequestClosedEvent(event);
-
             didRespond = await handlePullRequestClosedEvent(event);
             break;
           }
           case "opened":
           case "reopened": {
             logEvent = true;
-
-            extractedEventParams =
-              getParamsFromPullRequestOpenedOrReopenedEvent(event);
-
             didRespond = await handlePullRequestOpenedOrReopenedEvent(event);
             break;
           }
@@ -82,28 +69,27 @@ export default async function handler(
         const event = nextApiRequest.body as WorkflowJobEvent;
         if (event.workflow_job.workflow_name === "Delta") {
           logEvent = true;
+
+          extractedEventParams = await getParamsFromWorkflowJobEvent(event);
         }
         break;
       }
       case "workflow_run": {
         // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_run
         const event = nextApiRequest.body as WorkflowRunEvent;
+
+        extractedEventParams = getParamsFromWorkflowRunEvent(event);
+
         if (event.workflow?.name === "Delta") {
           switch (event.action) {
             case "completed": {
               logEvent = true;
-
-              extractedEventParams = getParamsFromWorkflowRunCompleted(event);
-
-              didRespond = await handleWorkflowRunCompleted(event);
+              didRespond = await handleWorkflowRunCompletedEvent(event);
               break;
             }
             case "in_progress": {
               logEvent = true;
-
-              extractedEventParams = getParamsFromWorkflowRunInProgress(event);
-
-              didRespond = await handleWorkflowRunInProgress(event);
+              didRespond = await handleWorkflowRunInProgressEvent(event);
               break;
             }
             default: {

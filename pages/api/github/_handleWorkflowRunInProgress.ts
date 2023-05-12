@@ -5,6 +5,7 @@ import { getBranchForProjectAndOrganizationAndBranchName } from "../../../lib/se
 import { getProjectForOrganizationAndRepository } from "../../../lib/server/supabase/tables/Projects";
 import { insertRun } from "../../../lib/server/supabase/tables/Runs";
 import { GithubCheckId, GithubRunId } from "../../../lib/types";
+import { ExtractedEventParams } from "./types";
 
 export async function handleWorkflowRunInProgress(
   event: WorkflowRunInProgressEvent
@@ -12,7 +13,7 @@ export async function handleWorkflowRunInProgress(
   const { branchName, organization, projectOrganization, projectRepository } =
     getParamsFromWorkflowRunInProgress(event);
 
-  if (!projectOrganization) {
+  if (!organization || !projectOrganization) {
     throw Error(`Missing required parameters event parameters`);
   }
 
@@ -60,12 +61,7 @@ export async function handleWorkflowRunInProgress(
 
 export function getParamsFromWorkflowRunInProgress(
   event: WorkflowRunInProgressEvent
-): {
-  branchName: string;
-  organization: string;
-  projectOrganization: string | null;
-  projectRepository: string;
-} {
+): ExtractedEventParams {
   return {
     branchName: event.workflow_run.head_branch,
     organization: event.workflow_run.head_repository.owner.login,

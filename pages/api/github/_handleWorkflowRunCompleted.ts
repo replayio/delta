@@ -19,6 +19,7 @@ import {
 } from "../../../lib/server/supabase/tables/Runs";
 import { getSnapshotsForRun } from "../../../lib/server/supabase/tables/Snapshots";
 import { GithubCommentId, GithubRunId } from "../../../lib/types";
+import { ExtractedEventParams } from "./types";
 
 export async function handleWorkflowRunCompleted(
   event: WorkflowRunCompletedEvent
@@ -26,7 +27,7 @@ export async function handleWorkflowRunCompleted(
   const { branchName, organization, projectOrganization, projectRepository } =
     getParamsFromWorkflowRunCompleted(event);
 
-  if (!projectOrganization) {
+  if (!organization || !projectOrganization) {
     throw Error(`Missing required parameters event parameters`);
   }
 
@@ -109,12 +110,7 @@ export async function handleWorkflowRunCompleted(
 
 export function getParamsFromWorkflowRunCompleted(
   event: WorkflowRunCompletedEvent
-): {
-  branchName: string;
-  organization: string;
-  projectOrganization: string | null;
-  projectRepository: string;
-} {
+): ExtractedEventParams {
   return {
     branchName: event.workflow_run.head_branch,
     organization: event.workflow_run.head_repository.owner.login,

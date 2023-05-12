@@ -28,6 +28,7 @@ import {
   getParamsFromWorkflowRunInProgress,
   handleWorkflowRunInProgress,
 } from "./_handleWorkflowRunInProgress";
+import { ExtractedEventParams } from "./types";
 
 // Spy on HTTP client requests for debug logging in Supabase.
 setupHook();
@@ -42,12 +43,8 @@ export default async function handler(
 
   let didRespond = false;
   let didThrow = false;
+  let extractedEventParams: ExtractedEventParams | null = null;
   let logEvent = false;
-
-  let branchName: string | null = null;
-  let organization: string | null = null;
-  let projectOrganization: string | null = null;
-  let projectRepository: string | null = null;
 
   try {
     switch (eventType) {
@@ -58,11 +55,7 @@ export default async function handler(
           case "closed": {
             logEvent = true;
 
-            const extracted = getParamsFromPullRequestClosedEvent(event);
-            branchName = extracted.branchName;
-            organization = extracted.organization;
-            projectOrganization = extracted.projectOrganization;
-            projectRepository = extracted.projectRepository;
+            extractedEventParams = getParamsFromPullRequestClosedEvent(event);
 
             didRespond = await handlePullRequestClosedEvent(event);
             break;
@@ -71,12 +64,8 @@ export default async function handler(
           case "reopened": {
             logEvent = true;
 
-            const extracted =
+            extractedEventParams =
               getParamsFromPullRequestOpenedOrReopenedEvent(event);
-            branchName = extracted.branchName;
-            organization = extracted.organization;
-            projectOrganization = extracted.projectOrganization;
-            projectRepository = extracted.projectRepository;
 
             didRespond = await handlePullRequestOpenedOrReopenedEvent(event);
             break;
@@ -104,11 +93,7 @@ export default async function handler(
             case "completed": {
               logEvent = true;
 
-              const extracted = getParamsFromWorkflowRunCompleted(event);
-              branchName = extracted.branchName;
-              organization = extracted.organization;
-              projectOrganization = extracted.projectOrganization;
-              projectRepository = extracted.projectRepository;
+              extractedEventParams = getParamsFromWorkflowRunCompleted(event);
 
               didRespond = await handleWorkflowRunCompleted(event);
               break;
@@ -116,11 +101,7 @@ export default async function handler(
             case "in_progress": {
               logEvent = true;
 
-              const extracted = getParamsFromWorkflowRunInProgress(event);
-              branchName = extracted.branchName;
-              organization = extracted.organization;
-              projectOrganization = extracted.projectOrganization;
-              projectRepository = extracted.projectRepository;
+              extractedEventParams = getParamsFromWorkflowRunInProgress(event);
 
               didRespond = await handleWorkflowRunInProgress(event);
               break;
@@ -148,18 +129,27 @@ export default async function handler(
     let branch: Branch | undefined = undefined;
     let project: Project | undefined = undefined;
     try {
-      if (projectOrganization && projectRepository) {
-        project = await getProjectForOrganizationAndRepository(
+      if (extractedEventParams) {
+        const {
+          branchName,
+          organization,
           projectOrganization,
-          projectRepository
-        );
+          projectRepository,
+        } = extractedEventParams;
 
-        if (branchName && organization) {
-          branch = await getBranchForProjectAndOrganizationAndBranchName(
-            project.id,
-            organization,
-            branchName
+        if (projectOrganization && projectRepository) {
+          project = await getProjectForOrganizationAndRepository(
+            projectOrganization,
+            projectRepository
           );
+
+          if (branchName && organization) {
+            branch = await getBranchForProjectAndOrganizationAndBranchName(
+              project.id,
+              organization,
+              branchName
+            );
+          }
         }
       }
     } catch (error) {}

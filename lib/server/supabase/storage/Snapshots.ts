@@ -59,9 +59,7 @@ export async function removeCorruptedSnapshots(projectId: ProjectId) {
 export async function uploadSnapshot(
   path: string,
   content: string | Buffer
-): Promise<StoredSnapshot> {
-  const sha = createHash("sha256").update(content).digest("hex");
-
+): Promise<void> {
   if (typeof content === "string") {
     content = Buffer.from(content, "base64");
   }
@@ -82,6 +80,4 @@ export async function uploadSnapshot(
   if (error && !error.message.includes("The resource already exists")) {
     throw error;
   }
-
-  return { path, sha };
 }

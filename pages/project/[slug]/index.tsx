@@ -18,12 +18,12 @@ import {
 
 import withRenderOnMount from "../../../components/withRenderOnMount";
 import withSuspenseLoader from "../../../components/withSuspenseLoader";
+import { SnapshotDiffWithMetadata } from "../../../lib/client/types";
 import { SnapshotDiff } from "../../../lib/server/types";
 import { branchCache, branchesCache } from "../../../suspense/BranchCache";
 import { projectCache } from "../../../suspense/ProjectCache";
 import { runsCache } from "../../../suspense/RunCache";
 import { snapshotDiffForRunCache } from "../../../suspense/SnapshotCache";
-import { SnapshotDiffWithMetadata } from "../../../lib/client/types";
 
 export default withRenderOnMount(withSuspenseLoader(Page));
 
@@ -74,7 +74,7 @@ function Page() {
   //   console.log("current branch:", currentBranch);
   //   console.log("runs:", runs);
   //   console.log("current run:", currentRun);
-  //   console.log("snapshotFiles:", snapshotFiles);
+  //   console.log("snapshotDiffs:", snapshotDiffs);
   //   console.groupEnd();
   // }
 

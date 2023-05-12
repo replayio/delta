@@ -40,7 +40,7 @@ export default async function handler(
       : [];
     const newSnapshots = await getSnapshotsForRun(run.id);
 
-    const count = getSnapshotDiffCount(oldSnapshots, newSnapshots);
+    const count = await getSnapshotDiffCount(oldSnapshots, newSnapshots);
 
     return sendApiResponse<ResponseData>(request, response, {
       httpStatusCode: HTTP_STATUS_CODES.OK,

@@ -11,8 +11,10 @@ export default async function diffSnapshot(
     if (oldSnapshot.delta_path === newSnapshot.delta_path) {
       return null;
     } else {
-      const oldImage = await downloadSnapshot(oldSnapshot.delta_path);
-      const newImage = await downloadSnapshot(newSnapshot.delta_path);
+      const [oldImage, newImage] = await Promise.all([
+        downloadSnapshot(oldSnapshot.delta_path),
+        downloadSnapshot(newSnapshot.delta_path),
+      ]);
       const { changed } = await diffBase64Images(oldImage, newImage);
       if (changed) {
         return {

@@ -2,11 +2,9 @@ import type { NextApiRequest, NextApiResponse } from "next";
 
 import { createHash } from "crypto";
 import { uploadSnapshot } from "../../lib/server/supabase/storage/Snapshots";
-import { getBranchForProjectAndOrganizationAndBranchName } from "../../lib/server/supabase/tables/Branches";
-import { getProjectForSlug } from "../../lib/server/supabase/tables/Projects";
 import { getRunsForGithubRunId } from "../../lib/server/supabase/tables/Runs";
 import { insertSnapshot } from "../../lib/server/supabase/tables/Snapshots";
-import { GithubRunId, ProjectSlug, Run } from "../../lib/types";
+import { GithubRunId, ProjectSlug } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
@@ -60,7 +58,6 @@ export default async function handler(
   }
 
   try {
-    const project = await getProjectForSlug(projectSlug);
     const run = await getRunsForGithubRunId(githubRunId);
 
     const { base64, file } = image;

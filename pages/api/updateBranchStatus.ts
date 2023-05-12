@@ -67,7 +67,7 @@ export default async function handler(
       : [];
     const newSnapshots = await getSnapshotsForRun(runId);
 
-    const count = getSnapshotDiffCount(oldSnapshots, newSnapshots);
+    const count = await getSnapshotDiffCount(oldSnapshots, newSnapshots);
     const summary = count > 0 ? `${count} snapshots changed` : "No changes";
     const title = approved ? "Changed approved" : "Changes rejected";
 

@@ -63,7 +63,7 @@ export async function handleWorkflowRunCompleted(
       : [];
     const newSnapshots = await getSnapshotsForRun(run.id);
 
-    const count = getSnapshotDiffCount(oldSnapshots, newSnapshots);
+    const count = await getSnapshotDiffCount(oldSnapshots, newSnapshots);
 
     await updateCheck(
       project.organization,

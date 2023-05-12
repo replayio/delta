@@ -70,7 +70,7 @@ export async function handleWorkflowRunCompleted(
       project.repository,
       run.github_check_id,
       {
-        conclusion: count > 0 ? "success" : "failure",
+        conclusion: count > 0 ? "failure" : "success",
         output: {
           summary: count > 0 ? `${count} snapshots changed` : "No changes",
           title: count > 0 ? "Completed" : "Requires approval",

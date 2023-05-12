@@ -6,15 +6,28 @@ import type {
   WorkflowRunEvent,
 } from "@octokit/webhooks-types";
 import { setupHook } from "../../../lib/server/http-replay";
+import { getBranchForProjectAndOrganizationAndBranchName } from "../../../lib/server/supabase/tables/Branches";
 import { insertGithubEvent } from "../../../lib/server/supabase/tables/GithubEvents";
 import { getProjectForOrganizationAndRepository } from "../../../lib/server/supabase/tables/Projects";
-import { GithubEventType } from "../../../lib/types";
+import { Branch, GithubEventType, Project } from "../../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "../constants";
 import { sendApiResponse } from "../utils";
-import { handlePullRequestClosedEvent } from "./_handlePullRequestClosedEvent";
-import { handlePullRequestOpenedOrReopenedEvent } from "./_handlePullRequestOpenedOrReopenedEvent";
-import { handleWorkflowRunCompleted } from "./_handleWorkflowRunCompleted";
-import { handleWorkflowRunInProgress } from "./_handleWorkflowRunInProgress";
+import {
+  getParamsFromPullRequestClosedEvent,
+  handlePullRequestClosedEvent,
+} from "./_handlePullRequestClosedEvent";
+import {
+  getParamsFromPullRequestOpenedOrReopenedEvent,
+  handlePullRequestOpenedOrReopenedEvent,
+} from "./_handlePullRequestOpenedOrReopenedEvent";
+import {
+  getParamsFromWorkflowRunCompleted,
+  handleWorkflowRunCompleted,
+} from "./_handleWorkflowRunCompleted";
+import {
+  getParamsFromWorkflowRunInProgress,
+  handleWorkflowRunInProgress,
+} from "./_handleWorkflowRunInProgress";
 
 // Spy on HTTP client requests for debug logging in Supabase.
 setupHook();
@@ -31,24 +44,47 @@ export default async function handler(
   let didThrow = false;
   let logEvent = false;
 
+  let branchName: string | null = null;
+  let organization: string | null = null;
+  let projectOrganization: string | null = null;
+  let projectRepository: string | null = null;
+
   try {
     switch (eventType) {
       case "pull_request": {
         // https://docs.github.com/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
         const event = nextApiRequest.body as PullRequestEvent;
         switch (event.action) {
-          case "closed":
+          case "closed": {
             logEvent = true;
+
+            const extracted = getParamsFromPullRequestClosedEvent(event);
+            branchName = extracted.branchName;
+            organization = extracted.organization;
+            projectOrganization = extracted.projectOrganization;
+            projectRepository = extracted.projectRepository;
+
             didRespond = await handlePullRequestClosedEvent(event);
             break;
+          }
           case "opened":
-          case "reopened":
+          case "reopened": {
             logEvent = true;
+
+            const extracted =
+              getParamsFromPullRequestOpenedOrReopenedEvent(event);
+            branchName = extracted.branchName;
+            organization = extracted.organization;
+            projectOrganization = extracted.projectOrganization;
+            projectRepository = extracted.projectRepository;
+
             didRespond = await handlePullRequestOpenedOrReopenedEvent(event);
             break;
-          default:
+          }
+          default: {
             // Don't care about the other action types
             break;
+          }
         }
         break;
       }
@@ -65,17 +101,34 @@ export default async function handler(
         const event = nextApiRequest.body as WorkflowRunEvent;
         if (event.workflow?.name === "Delta") {
           switch (event.action) {
-            case "completed":
+            case "completed": {
               logEvent = true;
+
+              const extracted = getParamsFromWorkflowRunCompleted(event);
+              branchName = extracted.branchName;
+              organization = extracted.organization;
+              projectOrganization = extracted.projectOrganization;
+              projectRepository = extracted.projectRepository;
+
               didRespond = await handleWorkflowRunCompleted(event);
               break;
-            case "in_progress":
+            }
+            case "in_progress": {
               logEvent = true;
+
+              const extracted = getParamsFromWorkflowRunInProgress(event);
+              branchName = extracted.branchName;
+              organization = extracted.organization;
+              projectOrganization = extracted.projectOrganization;
+              projectRepository = extracted.projectRepository;
+
               didRespond = await handleWorkflowRunInProgress(event);
               break;
-            default:
+            }
+            default: {
               // Don't care about the other action types
               break;
+            }
           }
         }
         break;
@@ -92,20 +145,28 @@ export default async function handler(
   }
 
   if (logEvent) {
-    const event = nextApiRequest.body;
-    const projectOrganization = event.organization?.login;
-    const projectRepository = event.repository?.name;
+    let branch: Branch | undefined = undefined;
+    let project: Project | undefined = undefined;
+    try {
+      if (projectOrganization && projectRepository) {
+        project = await getProjectForOrganizationAndRepository(
+          projectOrganization,
+          projectRepository
+        );
 
-    let project;
-    if (projectOrganization && projectRepository) {
-      project = await getProjectForOrganizationAndRepository(
-        projectOrganization,
-        projectRepository
-      );
-    }
+        if (branchName && organization) {
+          branch = await getBranchForProjectAndOrganizationAndBranchName(
+            project.id,
+            organization,
+            branchName
+          );
+        }
+      }
+    } catch (error) {}
 
     await insertGithubEvent({
       action: nextApiRequest.body.action,
+      branch_id: branch?.id ?? null,
       handled: didRespond,
       payload: nextApiRequest.body,
       project_id: project?.id ?? null,

@@ -23,19 +23,18 @@ import { GithubCommentId, GithubRunId } from "../../../lib/types";
 export async function handleWorkflowRunCompleted(
   event: WorkflowRunCompletedEvent
 ): Promise<boolean> {
-  if (!event.organization) {
+  const { branchName, organization, projectOrganization, projectRepository } =
+    getParamsFromWorkflowRunCompleted(event);
+
+  if (!projectOrganization) {
     throw Error(`Missing required parameters event parameters`);
   }
 
-  const projectOrganization = event.organization.login;
-  const projectRepository = event.repository.name;
   const project = await getProjectForOrganizationAndRepository(
     projectOrganization,
     projectRepository
   );
 
-  const organization = event.workflow_run.head_repository.owner.login;
-  const branchName = event.workflow_run.head_branch;
   const branch = await getBranchForProjectAndOrganizationAndBranchName(
     project.id,
     organization,
@@ -106,4 +105,20 @@ export async function handleWorkflowRunCompleted(
   }
 
   return true;
+}
+
+export function getParamsFromWorkflowRunCompleted(
+  event: WorkflowRunCompletedEvent
+): {
+  branchName: string;
+  organization: string;
+  projectOrganization: string | null;
+  projectRepository: string;
+} {
+  return {
+    branchName: event.workflow_run.head_branch,
+    organization: event.workflow_run.head_repository.owner.login,
+    projectOrganization: event.organization?.login ?? null,
+    projectRepository: event.repository.name,
+  };
 }

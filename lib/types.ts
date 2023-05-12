@@ -72,6 +72,7 @@ export type GithubEventType =
 
 export type GithubEvent = {
   action: string;
+  branch_id: BranchId | null;
   created_at: string;
   handled: boolean;
   id: Opaque<"number", GithubEvent>;

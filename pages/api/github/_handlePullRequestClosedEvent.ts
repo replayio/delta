@@ -4,23 +4,23 @@ import {
   updateBranch,
 } from "../../../lib/server/supabase/tables/Branches";
 import { getProjectForOrganizationAndRepository } from "../../../lib/server/supabase/tables/Projects";
+import { ExtractedEventParams } from "./types";
 
 export async function handlePullRequestClosedEvent(
   event: PullRequestClosedEvent
 ): Promise<boolean> {
-  if (!event.organization || !event.pull_request.head.repo) {
+  const { branchName, organization, projectOrganization, projectRepository } =
+    getParamsFromPullRequestClosedEvent(event);
+
+  if (!organization || !projectOrganization) {
     throw Error(`Missing required parameters event parameters`);
   }
 
-  const projectOrganization = event.organization.login;
-  const projectRepository = event.repository.name;
   const project = await getProjectForOrganizationAndRepository(
     projectOrganization,
     projectRepository
   );
 
-  const organization = event.pull_request.head.repo.owner.login;
-  const branchName = event.pull_request.head.ref;
   const branch = await getBranchForProjectAndOrganizationAndBranchName(
     project.id,
     organization,
@@ -37,4 +37,15 @@ export async function handlePullRequestClosedEvent(
   });
 
   return true;
+}
+
+export function getParamsFromPullRequestClosedEvent(
+  event: PullRequestClosedEvent
+): ExtractedEventParams {
+  return {
+    branchName: event.pull_request.head.ref,
+    organization: event.pull_request.head.repo?.owner.login ?? null,
+    projectOrganization: event.organization?.login ?? null,
+    projectRepository: event.repository.name,
+  };
 }

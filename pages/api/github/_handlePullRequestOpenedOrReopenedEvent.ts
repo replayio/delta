@@ -9,24 +9,24 @@ import {
 } from "../../../lib/server/supabase/tables/Branches";
 import { getProjectForOrganizationAndRepository } from "../../../lib/server/supabase/tables/Projects";
 import { Branch } from "../../../lib/types";
+import { ExtractedEventParams } from "./types";
 
 export async function handlePullRequestOpenedOrReopenedEvent(
   event: PullRequestOpenedEvent | PullRequestReopenedEvent
 ): Promise<boolean> {
-  if (!event.organization || !event.pull_request.head.repo) {
+  const { branchName, organization, projectOrganization, projectRepository } =
+    getParamsFromPullRequestOpenedOrReopenedEvent(event);
+
+  if (!organization || !projectOrganization) {
     throw Error(`Missing required parameters event parameters`);
   }
 
-  const projectOrganization = event.organization.login;
-  const projectRepository = event.repository.name;
   const project = await getProjectForOrganizationAndRepository(
     projectOrganization,
     projectRepository
   );
 
   const prNumber = event.number;
-  const organization = event.pull_request.head.repo.owner.login;
-  const branchName = event.pull_request.head.ref;
 
   let branch: Branch;
   try {
@@ -56,4 +56,15 @@ export async function handlePullRequestOpenedOrReopenedEvent(
   }
 
   return true;
+}
+
+export function getParamsFromPullRequestOpenedOrReopenedEvent(
+  event: PullRequestOpenedEvent | PullRequestReopenedEvent
+): ExtractedEventParams {
+  return {
+    branchName: event.pull_request.head.ref,
+    organization: event.pull_request.head.repo?.owner.login ?? null,
+    projectOrganization: event.organization?.login ?? null,
+    projectRepository: event.repository.name,
+  };
 }

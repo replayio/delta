@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
+import { getMostRecentlyUpdatedSnapshotsForProject } from "../../lib/server/supabase/functions/recently_updated_snapshots_for_project";
 import { getProjectForSlug } from "../../lib/server/supabase/tables/Projects";
-import { getRecentlyUpdatedSnapshotsForProject } from "../../lib/server/supabase/tables/Snapshots";
 import { ProjectId, ProjectSlug } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
@@ -48,7 +48,7 @@ export default async function handler(
 
   // Find all recent snapshots for this project.
   try {
-    const snapshots = await getRecentlyUpdatedSnapshotsForProject(
+    const records = await getMostRecentlyUpdatedSnapshotsForProject(
       projectId,
       afterDate
         ? new Date(afterDate)
@@ -57,24 +57,24 @@ export default async function handler(
 
     const pathMetadataMap = new Map<string, PathMetadata>();
     const snapshotFileToMetadataMap = new Map<string, SnapshotMetadata>();
-    snapshots.forEach((snapshot) => {
+    records.body?.forEach((record) => {
       const metadata: SnapshotMetadata = snapshotFileToMetadataMap.get(
-        snapshot.delta_file
+        record.delta_file
       ) ?? {
         count: 0,
-        file: snapshot.delta_file,
+        file: record.delta_file,
         paths: [],
       };
 
-      const key = `${snapshot.delta_file}:${snapshot.delta_path}}`;
+      const key = `${record.delta_file}:${record.delta_path}}`;
       const pathMetadata = pathMetadataMap.get(key) ?? {
         count: 0,
-        path: snapshot.delta_path,
+        path: record.delta_path,
       };
       pathMetadata.count++;
       pathMetadataMap.set(key, pathMetadata);
 
-      snapshotFileToMetadataMap.set(snapshot.delta_file, {
+      snapshotFileToMetadataMap.set(record.delta_file, {
         ...metadata,
         count: metadata.count + 1,
         paths:
@@ -84,9 +84,9 @@ export default async function handler(
       });
     });
 
-    const data = Array.from(snapshotFileToMetadataMap.values()).sort(
-      (a, b) => b.count - a.count
-    );
+    const data = Array.from(snapshotFileToMetadataMap.values())
+      .filter((record) => record.count > 1)
+      .sort((a, b) => b.count - a.count);
 
     return sendApiResponse<ResponseData>(request, response, {
       httpStatusCode: HTTP_STATUS_CODES.OK,

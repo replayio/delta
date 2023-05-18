@@ -31,24 +31,6 @@ export async function getMostRecentSnapshotForBranchAndFile(
   return snapshot;
 }
 
-export async function getRecentlyUpdatedSnapshotsForProject(
-  projectId: ProjectId,
-  afterDate: Date,
-  limit: number = 1000
-) {
-  return await assertQueryResponse<Snapshot>(
-    () =>
-      supabase
-        .from("snapshots")
-        .select("*, runs(branches(projects(id)))")
-        .eq("runs.branches.projects.id", projectId)
-        .gte("created_at", afterDate.toLocaleDateString())
-        .order("delta_file", { ascending: true })
-        .limit(limit),
-    `Could not find Snapshots for Project "${projectId}" after date "${afterDate.toLocaleDateString()}"`
-  );
-}
-
 export async function getSnapshotsForRun(runId: RunId) {
   return await assertQueryResponse<Snapshot>(
     () =>

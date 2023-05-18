@@ -51,9 +51,6 @@ function FlakySuspends({
 
 function SnapshotListItem({ metadata }: { metadata: SnapshotMetadata }) {
   const [expanded, setExpanded] = useState(false);
-  if (expanded) {
-    console.log("<SnapshotListItem>", metadata);
-  }
 
   return (
     <li>

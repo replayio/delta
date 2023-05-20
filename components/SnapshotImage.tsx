@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { snapshotCache } from "../suspense/SnapshotCache";
+import { snapshotImageCache } from "../suspense/SnapshotVariantCache";
 
 export default function SnapshotImage({
   className,
@@ -8,7 +8,7 @@ export default function SnapshotImage({
   className?: string;
   path: string;
 }) {
-  const { base64String, height, width } = snapshotCache.read(path);
+  const { base64String, height, width } = snapshotImageCache.read(path);
 
   // if (process.env.NODE_ENV === "development") {
   //   console.groupCollapsed(`<SnapshotImage path="${path}">`);

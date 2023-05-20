@@ -8,10 +8,7 @@ import withSuspenseLoader from "../../../components/withSuspenseLoader";
 import { ProjectSlug } from "../../../lib/types";
 import { frequentlyUpdatedSnapshotsCache } from "../../../suspense/SnapshotCache";
 import classNames from "../../../utils/classNames";
-import {
-  PathMetadata,
-  SnapshotMetadata,
-} from "../../api/getMostFrequentlyUpdatedSnapshots";
+import { SnapshotMetadata } from "../../api/getMostFrequentlyUpdatedSnapshots";
 
 export default withRenderOnMount(withSuspenseLoader(Flaky));
 
@@ -41,9 +38,9 @@ function FlakySuspends({
   const metadata = frequentlyUpdatedSnapshotsCache.read(projectSlug, afterDate);
 
   return (
-    <ul className="list-none p-1">
+    <ul className="list-none p-1 inline-flex flex-col items-start">
       {metadata.map((datum) => (
-        <SnapshotListItem key={datum.file} metadata={datum} />
+        <SnapshotListItem key={datum.key} metadata={datum} />
       ))}
     </ul>
   );
@@ -53,11 +50,11 @@ function SnapshotListItem({ metadata }: { metadata: SnapshotMetadata }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <li>
-      <div
-        className="mb-1 flex flex-row gap-1 cursor-pointer hover:bg-slate-100"
-        onClick={() => setExpanded(!expanded)}
-      >
+    <li
+      className="inline-flex flex-col items-start"
+      onClick={() => setExpanded(!expanded)}
+    >
+      <div className="m-1 inline-flex flex-row gap-1">
         <div className="bg-violet-500 text-white px-1 py-0.5 text-center rounded">
           <Icon
             className={classNames(
@@ -67,31 +64,46 @@ function SnapshotListItem({ metadata }: { metadata: SnapshotMetadata }) {
             type="expandable-closed"
           />
         </div>
-        <div className="text-sm">{metadata.file}</div>
         <div className="bg-slate-200 px-1 py-0.5 text-center rounded text-xs">
-          {metadata.count} total
+          {metadata.testFileName}
         </div>
+        <div className="text-sm">{metadata.imageFileName}</div>
         <div className="bg-slate-200 px-1 py-0.5 text-center rounded text-xs">
-          {metadata.paths.length} unique
+          {metadata.imageCount} snapshots
         </div>
       </div>
       {expanded && (
-        <ul className="list-none p-1 bg-slate-100 flex flex-col gap-1">
-          {metadata.paths.map((path) => (
-            <Suspense fallback={<Loader />} key={path.path}>
-              <SnapshotImages path={path} />
-            </Suspense>
-          ))}
+        <ul className="list-none inline-flex flex-col items-start gap-1">
+          {Array.from(Object.entries(metadata.variantsToSupabasePaths)).map(
+            ([variant, supabasePaths]) => (
+              <ul
+                className="inline-flex flex-row gap-1 items-center bg-slate-100 rounded p-1"
+                key={variant}
+              >
+                {supabasePaths.map((supabasePath) => (
+                  <Suspense fallback={<Loader />} key={supabasePath}>
+                    <SnapshotImages supabasePath={supabasePath} />
+                  </Suspense>
+                ))}
+                <li className="px-1 py-0.5 text-center rounded text-xs h-full">
+                  {variant}
+                </li>
+              </ul>
+            )
+          )}
         </ul>
       )}
     </li>
   );
 }
 
-function SnapshotImages({ path }: { path: PathMetadata }) {
+function SnapshotImages({ supabasePath }: { supabasePath: string }) {
   return (
-    <li className="flex flex-row gap-1 items-center">
-      <SnapshotImage className="shrink min-w-0" path={path.path} />
+    <li>
+      <SnapshotImage
+        className="shrink w-auto max-h-40 rounded border-x border-y border-slate-300"
+        path={supabasePath}
+      />
     </li>
   );
 }

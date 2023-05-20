@@ -41,7 +41,7 @@ export async function getRunsForBranch(
   return result.length === 0 ? [] : (result[0].runs as Run[]);
 }
 
-export async function getRunsForGithubRunId(githubRunId: GithubRunId) {
+export async function getRunForGithubRunId(githubRunId: GithubRunId) {
   return assertQuerySingleResponse<Run>(
     () =>
       supabase

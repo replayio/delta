@@ -1,34 +1,12 @@
-import {
-  BranchId,
-  ProjectId,
-  RunId,
-  Snapshot,
-  SnapshotId,
-} from "../../../types";
+import { RunId, Snapshot, SnapshotId, SnapshotVariant } from "../../../types";
 import { supabase } from "../../initSupabase";
 import { assertQueryResponse, assertQuerySingleResponse } from "../supabase";
-import { getRunsForBranch } from "./Runs";
 
-export async function getMostRecentSnapshotForBranchAndFile(
-  branchId: BranchId,
-  file: string
-): Promise<Snapshot> {
-  const runs = await getRunsForBranch(branchId);
-  const mostRecentRun = runs[runs.length - 1];
-  const snapshot = await assertQuerySingleResponse<Snapshot>(
-    () =>
-      supabase
-        .from("snapshots")
-        .select("*")
-        .eq("delta_file", file)
-        .eq("run_id", mostRecentRun.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single(),
-    `Could not find Snapshot for Run "${mostRecentRun.id}" and file "${file}"`
+export async function getSnapshotForId(snapshotId: SnapshotId) {
+  return assertQuerySingleResponse<Snapshot>(
+    () => supabase.from("snapshots").select("*").eq("id", snapshotId).single(),
+    `Could not find Snapshot "${snapshotId}"`
   );
-
-  return snapshot;
 }
 
 export async function getSnapshotsForRun(runId: RunId) {
@@ -38,8 +16,10 @@ export async function getSnapshotsForRun(runId: RunId) {
         .from("snapshots")
         .select("*")
         .eq("run_id", runId)
-        .order("delta_file", { ascending: true }),
-    `Could not find Snapshot for Run "${runId}" `
+        .order("delta_test_filename", { ascending: true })
+        .order("delta_test_name", { ascending: true })
+        .order("delta_image_filename", { ascending: true }),
+    `Could not find Snapshots for Run "${runId}" `
   );
 }
 

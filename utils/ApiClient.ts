@@ -34,6 +34,10 @@ import type {
   RequestParams as GetSnapshotDiffsForRunRequestParams,
   ResponseData as GetSnapshotDiffsForRunResponseData,
 } from "../pages/api/getSnapshotDiffsForRun";
+import type {
+  RequestParams as GetSnapshotForIdRequestParams,
+  ResponseData as GetSnapshotForIdResponseData,
+} from "../pages/api/getSnapshotForId";
 import { ApiResponse } from "../pages/api/types";
 import type {
   RequestParams as UpdateBranchStatusRequestParams,
@@ -97,6 +101,14 @@ export async function getPublicProjects(
 ): Promise<GetPublicProjectsResponseData> {
   return fetchDataFromEndpoint<GetPublicProjectsResponseData>(
     `/api/getPublicProjects?${paramsToUrlString(params)}}`
+  );
+}
+
+export async function getSnapshotForId(
+  params: GetSnapshotForIdRequestParams
+): Promise<GetSnapshotForIdResponseData> {
+  return fetchDataFromEndpoint<GetSnapshotForIdResponseData>(
+    `/api/getSnapshotForId?${paramsToUrlString(params)}`
   );
 }
 

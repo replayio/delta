@@ -13,7 +13,7 @@ import {
   getRunForId,
   updateRun,
 } from "../../lib/server/supabase/tables/Runs";
-import { getSnapshotsForRun } from "../../lib/server/supabase/tables/Snapshots";
+import { getSnapshotVariantsForRun } from "../../lib/server/supabase/tables/SnapshotVariants";
 import { BranchId, ProjectId, RunId } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
@@ -64,12 +64,16 @@ export default async function handler(
     const primaryBranchRun = await getMostRecentSuccessfulRunForBranch(
       primaryBranch.id
     );
-    const oldSnapshots = primaryBranchRun
-      ? await getSnapshotsForRun(primaryBranchRun.id)
+    const oldSnapshotVariants = primaryBranchRun
+      ? await getSnapshotVariantsForRun(primaryBranchRun.id)
       : [];
-    const newSnapshots = await getSnapshotsForRun(runId);
+    const newSnapshotVariants = await getSnapshotVariantsForRun(run.id);
 
-    const count = await getSnapshotDiffCount(oldSnapshots, newSnapshots);
+    const count = await getSnapshotDiffCount(
+      oldSnapshotVariants,
+      newSnapshotVariants
+    );
+
     const summary = count > 0 ? `${count} snapshots changed` : "No changes";
     const title = approved ? "Changed approved" : "Changes rejected";
 

@@ -7,7 +7,7 @@ import {
   getMostRecentSuccessfulRunForBranch,
   getRunForId,
 } from "../../lib/server/supabase/tables/Runs";
-import { getSnapshotsForRun } from "../../lib/server/supabase/tables/Snapshots";
+import { getSnapshotVariantsForRun } from "../../lib/server/supabase/tables/SnapshotVariants";
 import { RunId } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
@@ -38,9 +38,9 @@ export default async function handler(
     );
 
     const oldSnapshots = primaryBranchRun
-      ? await getSnapshotsForRun(primaryBranchRun.id)
+      ? await getSnapshotVariantsForRun(primaryBranchRun.id)
       : [];
-    const newSnapshots = await getSnapshotsForRun(run.id);
+    const newSnapshots = await getSnapshotVariantsForRun(run.id);
 
     const count = await getSnapshotDiffCount(oldSnapshots, newSnapshots);
 

@@ -1,18 +1,13 @@
 import { ChangeEvent, Dispatch, SetStateAction } from "react";
-import { snapshotCache } from "../suspense/SnapshotCache";
 import withSuspenseLoader from "./withSuspenseLoader";
 
 export default withSuspenseLoader(function ImageSlider({
   onChange,
-  pathData,
   value,
 }: {
   onChange: Dispatch<SetStateAction<number>>;
-  pathData: string;
   value: number;
 }) {
-  const { width = 0 } = snapshotCache.read(pathData);
-
   return (
     <>
       <input
@@ -24,7 +19,7 @@ export default withSuspenseLoader(function ImageSlider({
           onChange(parseInt(event.target.value))
         }
         style={{
-          width: `${width}px`,
+          width: 300,
         }}
         type="range"
         value={value}

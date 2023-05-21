@@ -7,7 +7,7 @@ type SnapshotVariantDiffObject = { [variant: string]: SnapshotVariantDiff };
 export default async function diffSnapshotVariants(
   oldSnapshotVariants: VariantToSnapshotVariant,
   newSnapshotVariants: VariantToSnapshotVariant
-): Promise<SnapshotVariantDiffObject> {
+): Promise<SnapshotVariantDiffObject | null> {
   const variants = Array.from(
     new Set([
       ...Object.keys(oldSnapshotVariants),
@@ -57,5 +57,5 @@ export default async function diffSnapshotVariants(
     }
   }
 
-  return diffObject;
+  return Object.keys(diffObject).length > 0 ? diffObject : null;
 }

@@ -14,8 +14,10 @@ import {
   ProjectSlug,
   Run,
   RunId,
+  SnapshotId,
 } from "../../../lib/types";
 
+import Expandable from "../../../components/Expandable";
 import withRenderOnMount from "../../../components/withRenderOnMount";
 import withSuspenseLoader from "../../../components/withSuspenseLoader";
 import { SnapshotDiff } from "../../../lib/server/types";
@@ -23,7 +25,6 @@ import { branchCache, branchesCache } from "../../../suspense/BranchCache";
 import { projectCache } from "../../../suspense/ProjectCache";
 import { runsCache } from "../../../suspense/RunCache";
 import { snapshotDiffForRunCache } from "../../../suspense/SnapshotCache";
-import Expandable from "../../../components/Expandable";
 
 export default withRenderOnMount(withSuspenseLoader(Page));
 
@@ -31,14 +32,22 @@ function Page() {
   const router = useRouter();
   const {
     branchId: branchIdFromUrl,
-    fileName: currentSnapshotId,
     runId: runIdFromUrl,
     slug: slugFromUrl,
+    snapshotId: snapshotIdFromUrl,
   } = router.query as { [key: string]: string };
 
-  let branchId = parseInt(branchIdFromUrl) as unknown as BranchId;
+  let branchId =
+    branchIdFromUrl != null
+      ? (parseInt(branchIdFromUrl) as unknown as BranchId)
+      : null;
   const projectSlug = slugFromUrl as unknown as ProjectSlug;
-  let runId = parseInt(runIdFromUrl) as unknown as RunId;
+  let runId =
+    runIdFromUrl != null ? (parseInt(runIdFromUrl) as unknown as RunId) : null;
+  let snapshotId =
+    snapshotIdFromUrl != null
+      ? (parseInt(snapshotIdFromUrl) as unknown as SnapshotId)
+      : null;
 
   const project = projectCache.read(projectSlug);
   const branches = branchesCache.read(project.id);
@@ -65,7 +74,10 @@ function Page() {
   const snapshotDiffs = currentRun
     ? snapshotDiffForRunCache.read(currentRun.id)
     : [];
-  console.log("snapshotDiffs:", snapshotDiffs);
+
+  if (!snapshotId) {
+    snapshotId = snapshotDiffs?.[0]?.snapshot?.id ?? null;
+  }
 
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
@@ -104,7 +116,7 @@ function Page() {
       ) : (
         <SubViewLoadedData
           branchId={branchId}
-          currentSnapshotId={currentSnapshotId}
+          currentSnapshotId={snapshotId}
           currentRun={currentRun}
           projectSlug={projectSlug}
           snapshotDiffs={snapshotDiffs}
@@ -134,6 +146,15 @@ function SubViewRunPending({
   );
 }
 
+type TestNameAndSnapshotDiffs = {
+  testName: string;
+  snapshotDiffs: SnapshotDiff[];
+};
+type TestFileAndTestNames = {
+  testFilename: string;
+  testNameAndSnapshotDiffs: TestNameAndSnapshotDiffs[];
+};
+
 function SubViewLoadedData({
   branchId,
   currentSnapshotId,
@@ -142,16 +163,11 @@ function SubViewLoadedData({
   snapshotDiffs,
 }: {
   branchId: BranchId;
-  currentSnapshotId: string | null;
+  currentSnapshotId: SnapshotId;
   currentRun: Run | null;
   projectSlug: ProjectSlug;
   snapshotDiffs: SnapshotDiff[];
 }) {
-  if (!currentSnapshotId && snapshotDiffs.length > 0) {
-    currentSnapshotId = snapshotDiffs[0].snapshot?.id;
-  }
-
-  console.log("snapshotDiffs:", snapshotDiffs);
   const index = useMemo(
     () =>
       snapshotDiffs.findIndex(
@@ -162,38 +178,63 @@ function SubViewLoadedData({
 
   useSnapshotPrefetchedData(snapshotDiffs, index);
 
+  // Group tests by test file, and group snapshot diffs by test, sorted by name
+  const groupedDiffs = useMemo(() => {
+    const grouped: {
+      [testFilename: string]: {
+        [testName: string]: SnapshotDiff[];
+      };
+    } = {};
+
+    const returnArray: TestFileAndTestNames[] = [];
+
+    let testNameAndSnapshotDiffs: TestNameAndSnapshotDiffs;
+    let testFileAndTestNames: TestFileAndTestNames;
+
+    snapshotDiffs.forEach((snapshotDiff) => {
+      const { delta_test_filename: testFilename, delta_test_name: testName } =
+        snapshotDiff.snapshot;
+
+      let outer = grouped[testFilename];
+      if (outer == null) {
+        outer = grouped[testFilename] = {};
+
+        testFileAndTestNames = {
+          testFilename,
+          testNameAndSnapshotDiffs: [],
+        };
+
+        returnArray.push(testFileAndTestNames);
+      }
+
+      let inner = outer[testName];
+      if (inner == null) {
+        inner = outer[testName] = [];
+
+        testNameAndSnapshotDiffs = {
+          snapshotDiffs: [],
+          testName,
+        };
+
+        testFileAndTestNames.testNameAndSnapshotDiffs.push(
+          testNameAndSnapshotDiffs
+        );
+      }
+
+      testNameAndSnapshotDiffs.snapshotDiffs.push(snapshotDiff);
+    });
+
+    return returnArray;
+  }, [snapshotDiffs]);
+
   // Debug logging
   // if (process.env.NODE_ENV === "development") {
   //   console.groupCollapsed("<SubViewLoadedData>");
   //   console.log("currentSnapshotId:", currentSnapshotId);
   //   console.log("snapshotDiffs:", snapshotDiffs);
+  //   console.log("groupedDiffs:", groupedDiffs);
   //   console.groupEnd();
   // }
-
-  const snapshotDiffsByTest = useMemo(() => {
-    const grouped = {};
-    const groupedArray: {
-      snapshotDiffs: SnapshotDiff[];
-      testFilename: string;
-      testName: string;
-    }[] = [];
-    snapshotDiffs.forEach((snapshotDiff) => {
-      const { delta_test_filename: testFilename, delta_test_name: testName } =
-        snapshotDiff.snapshot;
-      const key = `${testFilename}:${testName}`;
-      let group = grouped[key];
-      if (group == null) {
-        grouped[key] = group = [];
-        groupedArray.push({
-          snapshotDiffs: group,
-          testFilename,
-          testName,
-        });
-      }
-      group.push(snapshotDiff);
-    });
-    return groupedArray;
-  }, [snapshotDiffs]);
 
   const project = projectCache.read(projectSlug);
   const branch = branchCache.read(project.id, branchId);
@@ -204,47 +245,65 @@ function SubViewLoadedData({
       <PanelGroup direction="horizontal">
         <Panel minSize={5} maxSize={25} defaultSize={15} order={1}>
           <div className="w-full h-full flex flex-col h-full overflow-y-auto overflow-x-hidden bg-slate-100">
-            {snapshotDiffsByTest.map(
-              ({ snapshotDiffs, testFilename, testName }) => (
-                <Expandable
-                  className="p-1 flex flex-row items-center gap-1 border-b border-slate-300 bg-slate-200 "
-                  content={
-                    <div className="border-b border-slate-300 bg-slate-100 ">
-                      {snapshotDiffs.map((snapshotDiff) => (
-                        <SnapshotRow
-                          branchId={branchId}
-                          key={snapshotDiff.snapshot.id}
-                          isSelected={
-                            snapshotDiff.snapshot.id === currentSnapshotId
-                          }
-                          projectSlug={projectSlug}
-                          runId={currentRun?.id ?? null}
-                          snapshotDiff={snapshotDiff}
-                        />
-                      ))}
+            {groupedDiffs.map(({ testFilename, testNameAndSnapshotDiffs }) => (
+              <Expandable
+                className="p-1 flex flex-row items-center gap-1 border-b border-slate-300 bg-slate-200 "
+                content={
+                  <div className="border-b border-slate-300 bg-slate-100">
+                    {testNameAndSnapshotDiffs.map(
+                      ({ snapshotDiffs, testName }) => (
+                        <Fragment key={testName}>
+                          <div
+                            className="text-xs pr-2 pl-6 truncate text-left bg-slate-100"
+                            dir="rtl"
+                            title={testName}
+                          >
+                            {testName}
+                          </div>
+                          <div className="bg-white">
+                            {snapshotDiffs.map((snapshotDiff) => (
+                              <SnapshotRow
+                                branchId={branchId}
+                                key={snapshotDiff.snapshot.id}
+                                isSelected={
+                                  snapshotDiff.snapshot.id === currentSnapshotId
+                                }
+                                projectSlug={projectSlug}
+                                runId={currentRun?.id ?? null}
+                                snapshotDiff={snapshotDiff}
+                              />
+                            ))}
+                          </div>
+                        </Fragment>
+                      )
+                    )}
+                  </div>
+                }
+                defaultOpen={true}
+                header={
+                  <>
+                    <div
+                      className="text-xs text-slate-800 truncate text-left grow shrink"
+                      dir="rtl"
+                      title={testFilename}
+                    >
+                      {testFilename}
                     </div>
-                  }
-                  header={
-                    <>
-                      <div className="grow text-xs text-slate-800" dir="ltr">
-                        {testName}
-                      </div>
-                      <a
-                        href={`${baseUrl}/${testFilename}`}
-                        rel="noreferrer"
-                        target="_blank"
-                      >
-                        <Icon className="w-5 h-5 text-violet-500" type="file" />
-                      </a>
-                    </>
-                  }
-                  key={testName}
-                />
-              )
-            )}
+                    <a
+                      href={`${baseUrl}/${testFilename}`}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <Icon className="w-5 h-5 text-violet-500" type="file" />
+                    </a>
+                  </>
+                }
+                key={testFilename}
+              />
+            ))}
           </div>
         </Panel>
-        <PanelResizeHandle className="w-2 h-full flex items-center justify-center overflow-visible bg-slate-200 text-slate-400">
+        <PanelResizeHandle className="w-2 h-full flex items-center justify-center overflow-visible bg-slate-300 text-slate-400">
           <Icon type="drag-handle" />
         </PanelResizeHandle>
         <Panel order={2}>

@@ -17,7 +17,7 @@ export function SnapshotRow({
 }) {
   return (
     <Link
-      className={`py-1 px-2 text-xs truncate cursor-pointer text-ellipsis truncate shrink-0 block font-light text-violet-900 ${
+      className={`py-1 pr-2 pl-6 text-xs truncate cursor-pointer text-ellipsis truncate shrink-0 block font-light text-violet-900 ${
         isSelected ? "bg-violet-100" : "hover:bg-violet-100"
       }`}
       href={encodeURI(

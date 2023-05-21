@@ -1,13 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import getSnapshotDiffCount from "../../lib/server/getSnapshotDiffCount";
+import { computeSnapshotDiffs } from "../../lib/server/computeSnapshotDiffs";
 import { getPrimaryBranchForProject } from "../../lib/server/supabase/tables/Branches";
 import { getProjectForRun } from "../../lib/server/supabase/tables/Projects";
 import {
   getMostRecentSuccessfulRunForBranch,
   getRunForId,
 } from "../../lib/server/supabase/tables/Runs";
-import { getSnapshotVariantsForRun } from "../../lib/server/supabase/tables/SnapshotVariants";
+import { getSnapshotAndSnapshotVariantsForRun } from "../../lib/server/supabase/utils/getSnapshotAndSnapshotVariantsForRun";
 import { RunId } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
@@ -38,11 +38,12 @@ export default async function handler(
     );
 
     const oldSnapshots = primaryBranchRun
-      ? await getSnapshotVariantsForRun(primaryBranchRun.id)
+      ? await getSnapshotAndSnapshotVariantsForRun(primaryBranchRun.id)
       : [];
-    const newSnapshots = await getSnapshotVariantsForRun(run.id);
+    const newSnapshots = await getSnapshotAndSnapshotVariantsForRun(run.id);
 
-    const count = await getSnapshotDiffCount(oldSnapshots, newSnapshots);
+    const data = await computeSnapshotDiffs(oldSnapshots, newSnapshots);
+    const count = data.length;
 
     return sendApiResponse<ResponseData>(request, response, {
       httpStatusCode: HTTP_STATUS_CODES.OK,

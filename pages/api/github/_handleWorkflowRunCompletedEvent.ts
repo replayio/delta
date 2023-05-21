@@ -1,6 +1,6 @@
 import type { WorkflowRunCompletedEvent } from "@octokit/webhooks-types";
 import { getDeltaBranchUrl } from "../../../lib/delta";
-import getSnapshotDiffCount from "../../../lib/server/getSnapshotDiffCount";
+import { computeSnapshotDiffs } from "../../../lib/server/computeSnapshotDiffs";
 import { updateCheck } from "../../../lib/server/github/Checks";
 import {
   createComment,
@@ -17,7 +17,7 @@ import {
   getRunForGithubRunId,
   updateRun,
 } from "../../../lib/server/supabase/tables/Runs";
-import { getSnapshotVariantsForRun } from "../../../lib/server/supabase/tables/SnapshotVariants";
+import { getSnapshotAndSnapshotVariantsForRun } from "../../../lib/server/supabase/utils/getSnapshotAndSnapshotVariantsForRun";
 import { GithubCommentId, GithubRunId } from "../../../lib/types";
 import { getParamsFromWorkflowRunEvent } from "./_getParamsFromWorkflowRunEvent";
 
@@ -79,14 +79,17 @@ export async function handleWorkflowRunCompletedEvent(
       );
 
       const oldSnapshotVariants = primaryBranchRun
-        ? await getSnapshotVariantsForRun(primaryBranchRun.id)
+        ? await getSnapshotAndSnapshotVariantsForRun(primaryBranchRun.id)
         : [];
-      const newSnapshotVariants = await getSnapshotVariantsForRun(run.id);
+      const newSnapshotVariants = await getSnapshotAndSnapshotVariantsForRun(
+        run.id
+      );
 
-      const count = await getSnapshotDiffCount(
+      const diffs = await computeSnapshotDiffs(
         oldSnapshotVariants,
         newSnapshotVariants
       );
+      const count = diffs.length;
 
       await updateCheck(
         project.organization,

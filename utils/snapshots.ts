@@ -1,39 +1,6 @@
 import { SnapshotAndSnapshotVariants } from "../lib/server/supabase/utils/getSnapshotAndSnapshotVariantsForRun";
 import { VariantToSnapshotVariant } from "../lib/server/types";
-import { Snapshot, SnapshotVariant } from "../lib/types";
-
-export type SnapshotVariantPairs = {
-  new: SnapshotVariant | null;
-  old: SnapshotVariant | null;
-};
-
-export function mergeSnapshotVariants(
-  oldSnapshotVariant: SnapshotVariant[],
-  newSnapshotVariant: SnapshotVariant[]
-): SnapshotVariantPairs[] {
-  const pairs: { [snapshotId: string]: SnapshotVariantPairs } = {};
-
-  oldSnapshotVariant.forEach((record) => {
-    pairs[record.snapshot_id] = {
-      new: null,
-      old: record,
-    };
-  });
-
-  newSnapshotVariant.forEach((record) => {
-    const match = pairs[record.snapshot_id];
-    if (match) {
-      match.new = record;
-    } else {
-      pairs[record.snapshot_id] = {
-        new: record,
-        old: null,
-      };
-    }
-  });
-
-  return Object.values(pairs);
-}
+import { Snapshot } from "../lib/types";
 
 export type MergedSnapshotAndSnapshotVariants = {
   [key: string]: {

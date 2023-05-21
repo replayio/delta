@@ -1,19 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import diffSnapshotVariants from "../../lib/server/diffSnapshotVariants";
+import { computeSnapshotDiffs } from "../../lib/server/computeSnapshotDiffs";
 import { getPrimaryBranchForProject } from "../../lib/server/supabase/tables/Branches";
 import { getProjectForRun } from "../../lib/server/supabase/tables/Projects";
 import {
   getMostRecentSuccessfulRunForBranch,
   getRunForId,
 } from "../../lib/server/supabase/tables/Runs";
-import {
-  SnapshotAndSnapshotVariants,
-  getSnapshotAndSnapshotVariantsForRun,
-} from "../../lib/server/supabase/utils/getSnapshotAndSnapshotVariantsForRun";
+import { getSnapshotAndSnapshotVariantsForRun } from "../../lib/server/supabase/utils/getSnapshotAndSnapshotVariantsForRun";
 import { SnapshotDiff } from "../../lib/server/types";
 import { RunId } from "../../lib/types";
-import { mergeSnapshotAndSnapshotVariants } from "../../utils/snapshots";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
@@ -48,7 +44,7 @@ export default async function handler(
     const newSnapshotAndSnapshotVariants =
       await getSnapshotAndSnapshotVariantsForRun(run.id);
 
-    const data = await computeDiff(
+    const data = await computeSnapshotDiffs(
       oldSnapshotAndSnapshotVariants,
       newSnapshotAndSnapshotVariants
     );
@@ -64,37 +60,4 @@ export default async function handler(
       httpStatusCode: HTTP_STATUS_CODES.NOT_FOUND,
     });
   }
-}
-
-async function computeDiff(
-  oldSnapshotAndSnapshotVariants: SnapshotAndSnapshotVariants[],
-  newSnapshotAndSnapshotVariants: SnapshotAndSnapshotVariants[]
-): Promise<SnapshotDiff[]> {
-  const merged = mergeSnapshotAndSnapshotVariants(
-    oldSnapshotAndSnapshotVariants,
-    newSnapshotAndSnapshotVariants
-  );
-
-  const promises: Promise<void>[] = [];
-  const diffs: SnapshotDiff[] = [];
-  for (let key in merged) {
-    const { snapshot, variants } = merged[key];
-
-    promises.push(
-      diffSnapshotVariants(variants.old ?? {}, variants.new ?? {}).then(
-        (snapshotVariantDiffs) => {
-          if (snapshotVariantDiffs !== null) {
-            diffs.push({
-              snapshot,
-              snapshotVariantDiffs,
-            });
-          }
-        }
-      )
-    );
-  }
-
-  await Promise.all(promises);
-
-  return diffs;
 }

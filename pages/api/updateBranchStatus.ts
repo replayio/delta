@@ -1,19 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import getSnapshotDiffCount from "../../lib/server/getSnapshotDiffCount";
+import { computeSnapshotDiffs } from "../../lib/server/computeSnapshotDiffs";
 import { updateCheck } from "../../lib/server/github/Checks";
 import { CheckRun } from "../../lib/server/github/types";
-import {
-  getBranchForId,
-  getPrimaryBranchForProject,
-} from "../../lib/server/supabase/tables/Branches";
+import { getPrimaryBranchForProject } from "../../lib/server/supabase/tables/Branches";
 import { getProjectForId } from "../../lib/server/supabase/tables/Projects";
 import {
   getMostRecentSuccessfulRunForBranch,
   getRunForId,
   updateRun,
 } from "../../lib/server/supabase/tables/Runs";
-import { getSnapshotVariantsForRun } from "../../lib/server/supabase/tables/SnapshotVariants";
+import { getSnapshotAndSnapshotVariantsForRun } from "../../lib/server/supabase/utils/getSnapshotAndSnapshotVariantsForRun";
 import { BranchId, ProjectId, RunId } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
@@ -52,7 +49,6 @@ export default async function handler(
   const approved = approvedString === "true";
 
   try {
-    const branch = await getBranchForId(branchId);
     const project = await getProjectForId(projectId);
     const run = await getRunForId(runId);
 
@@ -65,14 +61,17 @@ export default async function handler(
       primaryBranch.id
     );
     const oldSnapshotVariants = primaryBranchRun
-      ? await getSnapshotVariantsForRun(primaryBranchRun.id)
+      ? await getSnapshotAndSnapshotVariantsForRun(primaryBranchRun.id)
       : [];
-    const newSnapshotVariants = await getSnapshotVariantsForRun(run.id);
+    const newSnapshotVariants = await getSnapshotAndSnapshotVariantsForRun(
+      run.id
+    );
 
-    const count = await getSnapshotDiffCount(
+    const diffs = await computeSnapshotDiffs(
       oldSnapshotVariants,
       newSnapshotVariants
     );
+    const count = diffs.length;
 
     const summary = count > 0 ? `${count} snapshots changed` : "No changes";
     const title = approved ? "Changed approved" : "Changes rejected";

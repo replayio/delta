@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { useRouter } from "next/router";
-import { Fragment, useMemo } from "react";
+import { Fragment, MouseEvent, useMemo } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { Header } from "../../../components/Header";
 import Icon from "../../../components/Icon";
@@ -247,7 +247,7 @@ function SubViewLoadedData({
           <div className="w-full h-full flex flex-col h-full overflow-y-auto overflow-x-hidden bg-slate-100">
             {groupedDiffs.map(({ testFilename, testNameAndSnapshotDiffs }) => (
               <Expandable
-                className="p-1 flex flex-row items-center gap-1 border-b border-slate-300 bg-slate-200 "
+                className="p-1 flex flex-row items-center gap-1 border-b border-slate-300 bg-slate-200 hover:bg-slate-300"
                 content={
                   <div className="border-b border-slate-300 bg-slate-100">
                     {testNameAndSnapshotDiffs.map(
@@ -291,6 +291,7 @@ function SubViewLoadedData({
                     </div>
                     <a
                       href={`${baseUrl}/${testFilename}`}
+                      onClick={stopPropagation}
                       rel="noreferrer"
                       target="_blank"
                     >
@@ -364,3 +365,7 @@ const EXPRESSIONS = [
   "The more things change, the more they stay the same.",
   "No news is good news.",
 ];
+
+function stopPropagation(event: MouseEvent) {
+  event.stopPropagation();
+}

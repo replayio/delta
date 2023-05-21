@@ -1,9 +1,10 @@
 import { useEffect } from "react";
-import { imageDiffCache, snapshotCache } from "../../suspense/SnapshotCache";
+import { imageDiffCache } from "../../suspense/SnapshotCache";
+import { snapshotImageCache } from "../../suspense/SnapshotVariantCache";
 import {
   SnapshotDiff,
-  isSnapshotDiffAdded,
-  isSnapshotDiffRemoved,
+  isSnapshotVariantDiffAdded,
+  isSnapshotVariantDiffRemoved,
 } from "../server/types";
 
 // Naive implementation for pre-fetching snapshot data.
@@ -24,19 +25,25 @@ export default function useSnapshotPrefetchedData(
 }
 
 function prefetchSnapshotFile(snapshotDiff: SnapshotDiff) {
-  if (isSnapshotDiffAdded(snapshotDiff)) {
-    prefetchSnapshot(snapshotDiff.newPath);
-  } else if (isSnapshotDiffRemoved(snapshotDiff)) {
-    prefetchSnapshot(snapshotDiff.oldPath);
-  } else {
-    prefetchSnapshot(snapshotDiff.newPath);
-    prefetchSnapshot(snapshotDiff.oldPath);
-    imageDiffCache.prefetch(snapshotDiff.oldPath, snapshotDiff.newPath);
+  for (let variant in snapshotDiff.snapshotVariantDiffs) {
+    const snapshotVariantDiff = snapshotDiff.snapshotVariantDiffs[variant];
+    if (isSnapshotVariantDiffAdded(snapshotVariantDiff)) {
+      prefetchSnapshot(snapshotVariantDiff.newPath);
+    } else if (isSnapshotVariantDiffRemoved(snapshotVariantDiff)) {
+      prefetchSnapshot(snapshotVariantDiff.oldPath);
+    } else {
+      prefetchSnapshot(snapshotVariantDiff.newPath);
+      prefetchSnapshot(snapshotVariantDiff.oldPath);
+      imageDiffCache.prefetch(
+        snapshotVariantDiff.oldPath,
+        snapshotVariantDiff.newPath
+      );
+    }
   }
 }
 
 function prefetchSnapshot(path: string | null) {
   if (path !== null) {
-    snapshotCache.prefetch(path);
+    snapshotImageCache.prefetch(path);
   }
 }

@@ -1,4 +1,4 @@
-import { snapshotCache } from "../suspense/SnapshotCache";
+import { snapshotImageCache } from "../suspense/SnapshotVariantCache";
 import SnapshotImage from "./SnapshotImage";
 
 export function SnapshotImageSlider({
@@ -10,7 +10,7 @@ export function SnapshotImageSlider({
   oldPath: string;
   percentage: number;
 }) {
-  const { height = 0, width = 0 } = snapshotCache.read(newPath);
+  const { height = 0, width = 0 } = snapshotImageCache.read(newPath);
 
   return (
     <>

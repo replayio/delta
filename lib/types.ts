@@ -10,6 +10,7 @@ export type Project = {
   primary_branch: string;
   repository: string;
   slug: Opaque<"string", Project>;
+  test_directory: string;
 };
 export type ProjectId = Project["id"];
 export type ProjectSlug = Project["slug"];
@@ -60,10 +61,22 @@ export type Snapshot = {
   github_run_id: Opaque<"number", Run>;
 
   // Workflow API
-  delta_file: string;
-  delta_path: string;
+  delta_image_filename: string;
+  delta_test_filename: string;
+  delta_test_name: string;
 };
 export type SnapshotId = Snapshot["id"];
+
+export type SnapshotVariant = {
+  created_at: string;
+  id: Opaque<"number", SnapshotVariant>;
+  snapshot_id: SnapshotId;
+  supabase_path: string;
+
+  // Workflow API
+  delta_variant: string;
+};
+export type SnapshotVariantId = SnapshotVariant["id"];
 
 export type GithubEventType =
   | "check_run"

@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import { getMostRecentlyUpdatedSnapshotsForProject } from "../../lib/server/supabase/functions/recently_updated_snapshots_for_project";
+import { getRecentlyUpdatedSnapshotDataForProject } from "../../lib/server/supabase/functions/getRecentlyUpdatedSnapshotDataForProject";
 import { getProjectForSlug } from "../../lib/server/supabase/tables/Projects";
 import { ProjectId, ProjectSlug } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
@@ -8,13 +8,18 @@ import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
 export type PathMetadata = {
   count: number;
-  path: string;
+  supabasePath: string;
 };
 
 export type SnapshotMetadata = {
-  count: number;
-  file: string;
-  paths: PathMetadata[];
+  imageCount: number;
+  imageFileName: string;
+  key: string;
+  testFileName: string;
+  testName: string;
+  variantsToSupabasePaths: {
+    [variant: string]: string[];
+  };
 };
 
 export type RequestParams = {
@@ -22,6 +27,7 @@ export type RequestParams = {
   projectId?: ProjectId;
   projectSlug?: ProjectSlug;
 };
+
 export type ResponseData = SnapshotMetadata[];
 
 // Projects have Branches have Actions have Snapshots.
@@ -48,49 +54,61 @@ export default async function handler(
 
   // Find all recent snapshots for this project.
   try {
-    const records = await getMostRecentlyUpdatedSnapshotsForProject(
+    const { data, error } = await getRecentlyUpdatedSnapshotDataForProject(
       projectId,
       afterDate
         ? new Date(afterDate)
         : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
     );
+    if (error != null) {
+      throw error;
+    }
 
-    const pathMetadataMap = new Map<string, PathMetadata>();
-    const snapshotFileToMetadataMap = new Map<string, SnapshotMetadata>();
-    records.body?.forEach((record) => {
-      const metadata: SnapshotMetadata = snapshotFileToMetadataMap.get(
-        record.delta_file
-      ) ?? {
-        count: 0,
-        file: record.delta_file,
-        paths: [],
-      };
+    const snapshotMetadataMap = new Map<string, SnapshotMetadata>();
+    data?.forEach((record) => {
+      const {
+        delta_image_filename: imageFileName,
+        delta_test_filename: testFileName,
+        delta_test_name: testName,
+        delta_variant: variant,
+        supabase_path: supabasePath,
+      } = record;
 
-      const key = `${record.delta_file}:${record.delta_path}}`;
-      const pathMetadata = pathMetadataMap.get(key) ?? {
-        count: 0,
-        path: record.delta_path,
-      };
-      pathMetadata.count++;
-      pathMetadataMap.set(key, pathMetadata);
+      const key = `${testFileName}:${testName}:${imageFileName}`;
 
-      snapshotFileToMetadataMap.set(record.delta_file, {
-        ...metadata,
-        count: metadata.count + 1,
-        paths:
-          pathMetadata.count === 1
-            ? [...metadata.paths, pathMetadata]
-            : metadata.paths,
-      });
+      let snapshotMetadata = snapshotMetadataMap.get(key);
+      if (snapshotMetadata == null) {
+        snapshotMetadata = {
+          imageCount: 0,
+          imageFileName,
+          key,
+          testFileName,
+          testName,
+          variantsToSupabasePaths: {},
+        };
+        snapshotMetadataMap.set(key, snapshotMetadata);
+      }
+
+      let supabasePaths = snapshotMetadata.variantsToSupabasePaths[variant];
+      if (supabasePaths == null) {
+        snapshotMetadata.variantsToSupabasePaths[variant] = supabasePaths = [];
+      }
+
+      if (supabasePaths.indexOf(supabasePath) < 0) {
+        snapshotMetadata.imageCount++;
+        supabasePaths.push(supabasePath);
+      }
     });
-
-    const data = Array.from(snapshotFileToMetadataMap.values())
-      .filter((record) => record.count > 1)
-      .sort((a, b) => b.count - a.count);
 
     return sendApiResponse<ResponseData>(request, response, {
       httpStatusCode: HTTP_STATUS_CODES.OK,
-      data,
+      data: Array.from(snapshotMetadataMap.values())
+        .filter(
+          (record) =>
+            record.imageCount >
+            Object.keys(record.variantsToSupabasePaths).length
+        )
+        .sort((a, b) => b.imageCount - a.imageCount),
     });
   } catch (error) {
     return sendApiResponse(request, response, {

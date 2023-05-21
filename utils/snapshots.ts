@@ -1,37 +1,86 @@
-import { Snapshot } from "../lib/types";
+import { SnapshotAndSnapshotVariants } from "../lib/server/supabase/utils/getSnapshotAndSnapshotVariantsForRun";
+import { VariantToSnapshotVariant } from "../lib/server/types";
+import { Snapshot, SnapshotVariant } from "../lib/types";
 
-export type MergedSnapshotsMap = Map<
-  string,
-  {
-    new: Snapshot | null;
-    old: Snapshot | null;
-  }
->;
+export type SnapshotVariantPairs = {
+  new: SnapshotVariant | null;
+  old: SnapshotVariant | null;
+};
 
-export default function mergeSnapshots(
-  oldSnapshots: Snapshot[],
-  newSnapshots: Snapshot[]
-): MergedSnapshotsMap {
-  const map: MergedSnapshotsMap = new Map();
+export function mergeSnapshotVariants(
+  oldSnapshotVariant: SnapshotVariant[],
+  newSnapshotVariant: SnapshotVariant[]
+): SnapshotVariantPairs[] {
+  const pairs: { [snapshotId: string]: SnapshotVariantPairs } = {};
 
-  oldSnapshots.forEach((snapshot) => {
-    map.set(snapshot.delta_file, {
+  oldSnapshotVariant.forEach((record) => {
+    pairs[record.snapshot_id] = {
       new: null,
-      old: snapshot,
-    });
+      old: record,
+    };
   });
 
-  newSnapshots.forEach((snapshot) => {
-    const value = map.get(snapshot.delta_file);
-    if (value) {
-      value.new = snapshot;
+  newSnapshotVariant.forEach((record) => {
+    const match = pairs[record.snapshot_id];
+    if (match) {
+      match.new = record;
     } else {
-      map.set(snapshot.delta_file, {
-        new: snapshot,
+      pairs[record.snapshot_id] = {
+        new: record,
         old: null,
-      });
+      };
     }
   });
 
-  return map;
+  return Object.values(pairs);
+}
+
+export type MergedSnapshotAndSnapshotVariants = {
+  [key: string]: {
+    snapshot: Snapshot;
+    variants: {
+      new: VariantToSnapshotVariant | null;
+      old: VariantToSnapshotVariant | null;
+    };
+  };
+};
+
+export function mergeSnapshotAndSnapshotVariants(
+  oldSnapshotAndSnapshotVariants: SnapshotAndSnapshotVariants[],
+  newSnapshotAndSnapshotVariants: SnapshotAndSnapshotVariants[]
+): MergedSnapshotAndSnapshotVariants {
+  const merged: MergedSnapshotAndSnapshotVariants = {};
+
+  oldSnapshotAndSnapshotVariants.forEach((record) => {
+    const key = getSnapshotKey(record.snapshot);
+    merged[key] = {
+      snapshot: record.snapshot,
+      variants: {
+        new: null,
+        old: record.snapshotVariants,
+      },
+    };
+  });
+
+  newSnapshotAndSnapshotVariants.forEach((record) => {
+    const key = getSnapshotKey(record.snapshot);
+    const value = merged[key];
+    if (value) {
+      value.variants.new = record.snapshotVariants;
+    } else {
+      merged[key] = {
+        snapshot: record.snapshot,
+        variants: {
+          new: record.snapshotVariants,
+          old: null,
+        },
+      };
+    }
+  });
+
+  return merged;
+}
+
+function getSnapshotKey(snapshot: Snapshot): string {
+  return `${snapshot.delta_test_filename}:${snapshot.delta_test_name}:${snapshot.delta_image_filename}`;
 }

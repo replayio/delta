@@ -14,10 +14,10 @@ import {
 import { getProjectForOrganizationAndRepository } from "../../../lib/server/supabase/tables/Projects";
 import {
   getMostRecentSuccessfulRunForBranch,
-  getRunsForGithubRunId,
+  getRunForGithubRunId,
   updateRun,
 } from "../../../lib/server/supabase/tables/Runs";
-import { getSnapshotsForRun } from "../../../lib/server/supabase/tables/Snapshots";
+import { getSnapshotVariantsForRun } from "../../../lib/server/supabase/tables/SnapshotVariants";
 import { GithubCommentId, GithubRunId } from "../../../lib/types";
 import { getParamsFromWorkflowRunEvent } from "./_getParamsFromWorkflowRunEvent";
 
@@ -48,7 +48,7 @@ export async function handleWorkflowRunCompletedEvent(
   }
 
   const githubRunId = event.workflow_run.id as unknown as GithubRunId;
-  const run = await getRunsForGithubRunId(githubRunId);
+  const run = await getRunForGithubRunId(githubRunId);
 
   const conclusion = event.workflow_run.conclusion;
 
@@ -78,12 +78,15 @@ export async function handleWorkflowRunCompletedEvent(
         primaryBranch.id
       );
 
-      const oldSnapshots = primaryBranchRun
-        ? await getSnapshotsForRun(primaryBranchRun.id)
+      const oldSnapshotVariants = primaryBranchRun
+        ? await getSnapshotVariantsForRun(primaryBranchRun.id)
         : [];
-      const newSnapshots = await getSnapshotsForRun(run.id);
+      const newSnapshotVariants = await getSnapshotVariantsForRun(run.id);
 
-      const count = await getSnapshotDiffCount(oldSnapshots, newSnapshots);
+      const count = await getSnapshotDiffCount(
+        oldSnapshotVariants,
+        newSnapshotVariants
+      );
 
       await updateCheck(
         project.organization,

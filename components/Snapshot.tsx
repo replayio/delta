@@ -3,16 +3,18 @@ import { unstable_Offscreen as Offscreen, Suspense, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
 import { comparisonModeAtom } from "../lib/client/state";
-import { imageDiffCache, snapshotCache } from "../suspense/SnapshotCache";
+import { imageDiffCache } from "../suspense/SnapshotCache";
 import Icon from "./Icon";
 
 import {
   SnapshotDiff,
-  SnapshotDiffChanged,
-  isSnapshotDiffAdded,
-  isSnapshotDiffRemoved,
+  SnapshotVariantDiff,
+  SnapshotVariantDiffChanged,
+  isSnapshotVariantDiffAdded,
+  isSnapshotVariantDiffRemoved,
 } from "../lib/server/types";
 import { base64ImageCache } from "../suspense/ImageCache";
+import { snapshotImageCache } from "../suspense/SnapshotVariantCache";
 import ImageSlider from "./ImageSlider";
 import { Loader } from "./Loader";
 import SnapshotImage from "./SnapshotImage";
@@ -25,28 +27,21 @@ export function Snapshot({ snapshotDiff }: { snapshotDiff: SnapshotDiff }) {
 
   const [sliderPercentage, setSliderPercentage] = useState(50);
 
-  let pathData: string | null = null;
-  if (isSnapshotDiffRemoved(snapshotDiff)) {
-    pathData = snapshotDiff.oldPath;
-  } else {
-    pathData = snapshotDiff.newPath;
-  }
+  const variants = Object.keys(snapshotDiff.snapshotVariantDiffs);
 
   return (
     <div className="flex flex-col items-center grow p-2 gap-2">
       {mode === "slider" && (
-        <ImageSlider
-          onChange={setSliderPercentage}
-          pathData={pathData!}
-          value={sliderPercentage}
-        />
+        <ImageSlider onChange={setSliderPercentage} value={sliderPercentage} />
       )}
       <div className="w-full flex flex-col center gap-2 items-stretch">
-        <SnapshotVariant
-          key="light"
-          sliderPercentage={sliderPercentage}
-          snapshotDiff={snapshotDiff}
-        />
+        {variants.map((variant) => (
+          <SnapshotVariant
+            key={variant}
+            sliderPercentage={sliderPercentage}
+            snapshotVariantDiff={snapshotDiff.snapshotVariantDiffs[variant]}
+          />
+        ))}
       </div>
     </div>
   );
@@ -54,41 +49,41 @@ export function Snapshot({ snapshotDiff }: { snapshotDiff: SnapshotDiff }) {
 
 function SnapshotVariant({
   sliderPercentage,
-  snapshotDiff,
+  snapshotVariantDiff,
 }: {
   sliderPercentage: number;
-  snapshotDiff: SnapshotDiff;
+  snapshotVariantDiff: SnapshotVariantDiff;
 }) {
   const [mode] = useAtom(comparisonModeAtom);
 
-  if (isSnapshotDiffAdded(snapshotDiff)) {
+  if (isSnapshotVariantDiffAdded(snapshotVariantDiff)) {
     return (
       <ErrorBoundary FallbackComponent={Fallback}>
         <Suspense fallback={<Loader />}>
           <div className="flex flex-col overflow-y-auto overflow-x-auto items-center p-2 bg-slate-100 rounded">
             <div className="font-bold	text-xs text-green-600">Added</div>
             <div className="border-solid border border-green-600">
-              <SnapshotImage path={snapshotDiff.newPath} />
+              <SnapshotImage path={snapshotVariantDiff.newPath} />
             </div>
           </div>
         </Suspense>
       </ErrorBoundary>
     );
-  } else if (isSnapshotDiffRemoved(snapshotDiff)) {
+  } else if (isSnapshotVariantDiffRemoved(snapshotVariantDiff)) {
     return (
       <ErrorBoundary FallbackComponent={Fallback}>
         <Suspense fallback={<Loader />}>
           <div className="flex flex-col overflow-y-auto overflow-x-auto items-center p-2 bg-slate-100 rounded">
             <div className="font-bold	text-xs text-red-600">Deleted</div>
             <div className="border-solid border border-red-600">
-              <SnapshotImage path={snapshotDiff.oldPath} />
+              <SnapshotImage path={snapshotVariantDiff.oldPath} />
             </div>
           </div>
         </Suspense>
       </ErrorBoundary>
     );
   } else {
-    const { newPath, oldPath } = snapshotDiff;
+    const { newPath, oldPath } = snapshotVariantDiff;
     return (
       <div className="flex flex-col overflow-y-auto overflow-x-auto items-center p-2 bg-slate-100 rounded">
         <Offscreen mode={mode == "slider" ? "visible" : "hidden"}>
@@ -99,10 +94,10 @@ function SnapshotVariant({
           />
         </Offscreen>
         <Offscreen mode={mode == "compare" ? "visible" : "hidden"}>
-          <SubViewCompare snapshotDiff={snapshotDiff} />
+          <SubViewCompare snapshotVariantDiff={snapshotVariantDiff} />
         </Offscreen>
         <Offscreen mode={mode == "diff" ? "visible" : "hidden"}>
-          <SubViewDiff snapshotDiff={snapshotDiff} />
+          <SubViewDiff snapshotVariantDiff={snapshotVariantDiff} />
         </Offscreen>
       </div>
     );
@@ -121,11 +116,11 @@ function Fallback({ error }) {
 }
 
 function SubViewCompare({
-  snapshotDiff,
+  snapshotVariantDiff,
 }: {
-  snapshotDiff: SnapshotDiffChanged;
+  snapshotVariantDiff: SnapshotVariantDiffChanged;
 }) {
-  const { newPath, oldPath } = snapshotDiff;
+  const { newPath, oldPath } = snapshotVariantDiff;
 
   return (
     <div className="flex flex-row items-start gap-1">
@@ -153,11 +148,15 @@ function SubViewCompare({
   );
 }
 
-function NoDiffData({ snapshotDiff }: { snapshotDiff: SnapshotDiffChanged }) {
-  const { newPath, oldPath } = snapshotDiff;
+function NoDiffData({
+  snapshotVariantDiff,
+}: {
+  snapshotVariantDiff: SnapshotVariantDiffChanged;
+}) {
+  const { newPath, oldPath } = snapshotVariantDiff;
 
   const path = newPath || oldPath;
-  const { height = 0, width = 0 } = path ? snapshotCache.read(path) : {};
+  const { height = 0, width = 0 } = path ? snapshotImageCache.read(path) : {};
 
   return (
     <div
@@ -172,10 +171,14 @@ function NoDiffData({ snapshotDiff }: { snapshotDiff: SnapshotDiffChanged }) {
   );
 }
 
-function SubViewDiff({ snapshotDiff }: { snapshotDiff: SnapshotDiffChanged }) {
+function SubViewDiff({
+  snapshotVariantDiff,
+}: {
+  snapshotVariantDiff: SnapshotVariantDiffChanged;
+}) {
   const base64String = imageDiffCache.read(
-    snapshotDiff.oldPath,
-    snapshotDiff.newPath
+    snapshotVariantDiff.oldPath,
+    snapshotVariantDiff.newPath
   );
   if (base64String) {
     const image = base64ImageCache.read(base64String);
@@ -192,7 +195,7 @@ function SubViewDiff({ snapshotDiff }: { snapshotDiff: SnapshotDiffChanged }) {
       </ErrorBoundary>
     );
   } else {
-    return <NoDiffData snapshotDiff={snapshotDiff} />;
+    return <NoDiffData snapshotVariantDiff={snapshotVariantDiff} />;
   }
 }
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SnapshotDiffWithMetadata } from "../lib/client/types";
+import { SnapshotDiff } from "../lib/server/types";
 import { BranchId, ProjectSlug, RunId } from "../lib/types";
 
 export function SnapshotRow({
@@ -13,21 +13,19 @@ export function SnapshotRow({
   isSelected: boolean;
   projectSlug: ProjectSlug;
   runId: RunId | null;
-  snapshotDiff: SnapshotDiffWithMetadata;
+  snapshotDiff: SnapshotDiff;
 }) {
   return (
     <Link
-      className={`flex flex-row gap-1 items-center px-2 text-sm cursor-pointer text-ellipsis truncate shrink-0 block font-light text-violet-900 leading-6 capitalize ${
-        isSelected ? "bg-violet-200" : "hover:bg-violet-100"
+      className={`py-1 px-2 text-xs truncate cursor-pointer text-ellipsis truncate shrink-0 block font-light text-violet-900 ${
+        isSelected ? "bg-violet-100" : "hover:bg-violet-100"
       }`}
       href={encodeURI(
-        `/project/${projectSlug}?branchId=${branchId}&runId=${runId}&fileName=${snapshotDiff.file}&`
+        `/project/${projectSlug}?branchId=${branchId}&runId=${runId}&snapshotId=${snapshotDiff.snapshot.id}&`
       )}
+      title={snapshotDiff.snapshot.delta_image_filename}
     >
-      <span className="flex-auto truncate">
-        {snapshotDiff.metadata.displayName}
-      </span>
-      <small className="grow-0 shrink-0">({snapshotDiff.metadata.theme})</small>
+      {snapshotDiff.snapshot.delta_image_filename}
     </Link>
   );
 }

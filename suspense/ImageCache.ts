@@ -11,7 +11,7 @@ export const base64ImageCache = createCache<
   [base64String: string],
   Base64Image
 >({
-  debugLabel: "snapshot",
+  debugLabel: "base64Image",
   async load([base64String]) {
     return await createSnapshotImage(base64String);
   },

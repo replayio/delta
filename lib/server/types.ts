@@ -1,41 +1,51 @@
-export type SnapshotDiffAdded = {
-  file: string;
+import { Snapshot, SnapshotVariant } from "../types";
+
+export type VariantToSnapshotVariant = {
+  [variant: string]: SnapshotVariant;
+};
+
+export type SnapshotVariantDiffAdded = {
   newPath: string;
   type: "added";
 };
 
-export type SnapshotDiffChanged = {
-  file: string;
+export type SnapshotVariantDiffChanged = {
   newPath: string;
   oldPath: string;
   type: "changed";
 };
 
-export type SnapshotDiffRemoved = {
-  file: string;
+export type SnapshotVariantDiffRemoved = {
   oldPath: string;
   type: "removed";
 };
 
-export type SnapshotDiff =
-  | SnapshotDiffAdded
-  | SnapshotDiffChanged
-  | SnapshotDiffRemoved;
+export type SnapshotDiff = {
+  snapshot: Snapshot;
+  snapshotVariantDiffs: {
+    [variant: string]: SnapshotVariantDiff;
+  };
+};
 
-export function isSnapshotDiffAdded(
-  snapshotDiff: SnapshotDiff
-): snapshotDiff is SnapshotDiffAdded {
-  return snapshotDiff.type === "added";
+export type SnapshotVariantDiff =
+  | SnapshotVariantDiffAdded
+  | SnapshotVariantDiffChanged
+  | SnapshotVariantDiffRemoved;
+
+export function isSnapshotVariantDiffAdded(
+  snapshotVariantDiff: SnapshotVariantDiff
+): snapshotVariantDiff is SnapshotVariantDiffAdded {
+  return snapshotVariantDiff.type === "added";
 }
 
-export function isSnapshotDiffChanged(
-  snapshotDiff: SnapshotDiff
-): snapshotDiff is SnapshotDiffChanged {
-  return snapshotDiff.type === "changed";
+export function isSnapshotVariantDiffChanged(
+  snapshotVariantDiff: SnapshotVariantDiff
+): snapshotVariantDiff is SnapshotVariantDiffChanged {
+  return snapshotVariantDiff.type === "changed";
 }
 
-export function isSnapshotDiffRemoved(
-  snapshotDiff: SnapshotDiff
-): snapshotDiff is SnapshotDiffRemoved {
-  return snapshotDiff.type === "removed";
+export function isSnapshotVariantDiffRemoved(
+  snapshotVariantDiff: SnapshotVariantDiff
+): snapshotVariantDiff is SnapshotVariantDiffRemoved {
+  return snapshotVariantDiff.type === "removed";
 }

@@ -1,15 +1,14 @@
 import { createCache } from "suspense";
 import { SnapshotDiff } from "../lib/server/types";
-import { ProjectSlug, RunId } from "../lib/types";
+import { ProjectSlug, RunId, Snapshot, SnapshotId } from "../lib/types";
 import { ResponseData } from "../pages/api/getMostFrequentlyUpdatedSnapshots";
 import {
-  downloadSnapshot,
   getDiffImage,
   getMostFrequentlyUpdatedSnapshots,
   getSnapshotDiffCountForRun,
   getSnapshotDiffsForRun,
+  getSnapshotForId,
 } from "../utils/ApiClient";
-import { Base64Image, base64ImageCache } from "./ImageCache";
 
 export type SnapshotTheme = "dark" | "light";
 
@@ -44,12 +43,11 @@ export const imageDiffCache = createCache<
   },
 });
 
-// Fetch base64 encoded snapshot image (with dimensions)
-export const snapshotCache = createCache<[path: string], Base64Image>({
+// Supabase snapshot record
+export const snapshotCache = createCache<[snapshotId: SnapshotId], Snapshot>({
   debugLabel: "snapshot",
-  async load([path]) {
-    const base64String = await downloadSnapshot({ path });
-    return await base64ImageCache.readAsync(base64String);
+  async load([snapshotId]) {
+    return await getSnapshotForId({ snapshotId });
   },
 });
 

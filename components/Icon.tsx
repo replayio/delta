@@ -1,10 +1,12 @@
 export type IconType =
+  | "arrow"
   | "compare"
   | "delta"
   | "drag-handle"
   | "equal"
   | "expandable-closed"
   | "expandable-open"
+  | "file"
   | "fork"
   | "image"
   | "image-off"
@@ -28,6 +30,8 @@ export default function Icon({
 
 function getPathData(type: IconType): string {
   switch (type) {
+    case "arrow":
+      return "M8 5v14l11-7z";
     case "compare":
       return "M9 14H2V16H9V19L13 15L9 11V14M15 13V10H22V8H15V5L11 9L15 13Z";
     case "delta":
@@ -40,6 +44,8 @@ function getPathData(type: IconType): string {
       return "M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z";
     case "expandable-open":
       return "M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z";
+    case "file":
+      return "M13,9H18.5L13,3.5V9M6,2H14L20,8V20A2,2 0 0,1 18,22H6C4.89,22 4,21.1 4,20V4C4,2.89 4.89,2 6,2M6.12,15.5L9.86,19.24L11.28,17.83L8.95,15.5L11.28,13.17L9.86,11.76L6.12,15.5M17.28,15.5L13.54,11.76L12.12,13.17L14.45,15.5L12.12,17.83L13.54,19.24L17.28,15.5Z";
     case "fork":
       return "M3,4V12.5L6,9.5L9,13C10,14 10,15 10,15V21H14V14C14,14 14,13 13.47,12C12.94,11 12,10 12,10L9,6.58L11.5,4M18,4L13.54,8.47L14,9C14,9 14.93,10 15.47,11C15.68,11.4 15.8,11.79 15.87,12.13L21,7";
     case "image":

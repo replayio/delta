@@ -1,16 +1,19 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import diffSnapshot from "../../lib/server/diffSnapshot";
+import diffSnapshotVariants from "../../lib/server/diffSnapshotVariants";
 import { getPrimaryBranchForProject } from "../../lib/server/supabase/tables/Branches";
 import { getProjectForRun } from "../../lib/server/supabase/tables/Projects";
 import {
   getMostRecentSuccessfulRunForBranch,
   getRunForId,
 } from "../../lib/server/supabase/tables/Runs";
-import { getSnapshotsForRun } from "../../lib/server/supabase/tables/Snapshots";
+import {
+  SnapshotAndSnapshotVariants,
+  getSnapshotAndSnapshotVariantsForRun,
+} from "../../lib/server/supabase/utils/getSnapshotAndSnapshotVariantsForRun";
 import { SnapshotDiff } from "../../lib/server/types";
-import { RunId, Snapshot } from "../../lib/types";
-import mergeSnapshots from "../../utils/snapshots";
+import { RunId } from "../../lib/types";
+import { mergeSnapshotAndSnapshotVariants } from "../../utils/snapshots";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
@@ -39,12 +42,16 @@ export default async function handler(
       primaryBranch.id
     );
 
-    const oldSnapshots = primaryBranchRun
-      ? await getSnapshotsForRun(primaryBranchRun.id)
+    const oldSnapshotAndSnapshotVariants = primaryBranchRun
+      ? await getSnapshotAndSnapshotVariantsForRun(primaryBranchRun.id)
       : [];
-    const newSnapshots = await getSnapshotsForRun(run.id);
+    const newSnapshotAndSnapshotVariants =
+      await getSnapshotAndSnapshotVariantsForRun(run.id);
 
-    const data = await diffSnapshots(oldSnapshots, newSnapshots);
+    const data = await computeDiff(
+      oldSnapshotAndSnapshotVariants,
+      newSnapshotAndSnapshotVariants
+    );
 
     return sendApiResponse<ResponseData>(request, response, {
       httpStatusCode: HTTP_STATUS_CODES.OK,
@@ -59,25 +66,31 @@ export default async function handler(
   }
 }
 
-async function diffSnapshots(
-  oldSnapshots: Snapshot[],
-  newSnapshots: Snapshot[]
+async function computeDiff(
+  oldSnapshotAndSnapshotVariants: SnapshotAndSnapshotVariants[],
+  newSnapshotAndSnapshotVariants: SnapshotAndSnapshotVariants[]
 ): Promise<SnapshotDiff[]> {
-  const map = mergeSnapshots(oldSnapshots, newSnapshots);
+  const merged = mergeSnapshotAndSnapshotVariants(
+    oldSnapshotAndSnapshotVariants,
+    newSnapshotAndSnapshotVariants
+  );
 
   const promises: Promise<void>[] = [];
   const diffs: SnapshotDiff[] = [];
-  const files = Array.from(map.keys());
-  for (let index = 0; index < files.length; index++) {
-    const file = files[index];
-    const value = map.get(file)!;
+  for (let key in merged) {
+    const { snapshot, variants } = merged[key];
 
     promises.push(
-      diffSnapshot(value.old, value.new).then((diff) => {
-        if (diff !== null) {
-          diffs.push(diff);
+      diffSnapshotVariants(variants.old ?? {}, variants.new ?? {}).then(
+        (snapshotVariantDiffs) => {
+          if (snapshotVariantDiffs !== null) {
+            diffs.push({
+              snapshot,
+              snapshotVariantDiffs,
+            });
+          }
         }
-      })
+      )
     );
   }
 

@@ -3,6 +3,10 @@ import type {
   ResponseData as DownloadSnapshotResponseData,
 } from "../pages/api/downloadSnapshot";
 import type {
+  RequestParams as GetBranchRequestParams,
+  ResponseData as GetBranchResponseData,
+} from "../pages/api/getBranch";
+import type {
   RequestParams as GetBranchesRequestParams,
   ResponseData as GetBranchesResponseData,
 } from "../pages/api/getBranches";
@@ -77,6 +81,14 @@ export async function getRuns(
 ): Promise<GetRunsResponseData> {
   return fetchDataFromEndpoint<GetRunsResponseData>(
     `/api/getRuns?${paramsToUrlString(params)}`
+  );
+}
+
+export async function getBranch(
+  params: GetBranchRequestParams
+): Promise<GetBranchResponseData> {
+  return fetchDataFromEndpoint<GetBranchResponseData>(
+    `/api/getBranch?${paramsToUrlString(params)}`
   );
 }
 

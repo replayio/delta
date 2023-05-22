@@ -41,6 +41,7 @@ function Page() {
     branchIdFromUrl != null
       ? (parseInt(branchIdFromUrl) as unknown as BranchId)
       : null;
+  console.log("branchId:", branchId);
   const projectSlug = slugFromUrl as unknown as ProjectSlug;
   let runId =
     runIdFromUrl != null ? (parseInt(runIdFromUrl) as unknown as RunId) : null;
@@ -60,7 +61,7 @@ function Page() {
     return <SubViewNoOpenBranches />;
   }
 
-  const currentBranch = branchCache.read(project.id, branchId);
+  const currentBranch = branchCache.read(branchId);
   const runs = runsCache.read(currentBranch.id) ?? [];
 
   if (!runId) {
@@ -94,6 +95,10 @@ function Page() {
   const shownBranches = branches.filter(
     (branch) => branch.name !== project.primary_branch
   );
+
+  if (shownBranches.findIndex((branch) => branch.id === branchId) === -1) {
+    shownBranches.unshift(currentBranch);
+  }
 
   const isPending = currentRun?.github_status != "completed";
 
@@ -237,7 +242,7 @@ function SubViewLoadedData({
   // }
 
   const project = projectCache.read(projectSlug);
-  const branch = branchCache.read(project.id, branchId);
+  const branch = branchCache.read(branchId);
   const baseUrl = `https://github.com/${branch.organization}/${project.repository}/blob/${branch.name}/${project.test_directory}`;
 
   return (

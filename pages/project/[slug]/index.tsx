@@ -41,7 +41,6 @@ function Page() {
     branchIdFromUrl != null
       ? (parseInt(branchIdFromUrl) as unknown as BranchId)
       : null;
-  console.log("branchId:", branchId);
   const projectSlug = slugFromUrl as unknown as ProjectSlug;
   let runId =
     runIdFromUrl != null ? (parseInt(runIdFromUrl) as unknown as RunId) : null;

@@ -32,8 +32,10 @@ export async function handlePullRequestClosedEvent(
     );
   }
 
+  const status = event.pull_request.merged_at !== null ? "merged" : "closed";
+
   await updateBranch(branch.id, {
-    github_pr_status: "closed",
+    github_pr_status: status,
   });
 
   return true;

@@ -65,6 +65,8 @@ export async function sendApiResponse<Type = unknown>(
   nextApiResponse.json({ data: apiResponse.data });
 
   if (isApiErrorResponse(apiResponse)) {
+    console.error("Sending error response:", apiResponse.data);
+
     try {
       // Fire and forget
       await insertErrorLog({

@@ -29,18 +29,27 @@ export async function getBranchForProjectAndOrganizationAndBranchName(
 
 export async function getBranchesForProject(
   projectId: ProjectId,
-  status?: string
+  open?: boolean,
+  limit?: number
 ) {
   return assertQueryResponse<Branch>(() => {
     let query = supabase
       .from("branches")
       .select("*")
       .eq("project_id", projectId);
-    if (status) {
-      query = query.eq("github_pr_status", status);
+    if (open != null) {
+      if (open) {
+        query = query.eq("github_pr_status", "open");
+      } else {
+        query = query.not("github_pr_status", "eq", "open");
+      }
     }
+    if (limit != null) {
+      query = query.limit(limit);
+    }
+    query = query.order("created_at", { ascending: false });
     return query;
-  }, `Could not find Branches for Project "${projectId}"${status ? ` and status "${status}"` : ""}`);
+  }, `Could not find ${open ? "open" : "closed or merged"} Branches for Project "${projectId}"`);
 }
 
 export async function getPrimaryBranchForProject(project: Project) {

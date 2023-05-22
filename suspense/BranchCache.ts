@@ -1,6 +1,6 @@
 import { createCache } from "suspense";
 import { Branch, BranchId, ProjectId } from "../lib/types";
-import { getBranch, getBranches } from "../utils/ApiClient";
+import { getBranch, getMostRecentBranches } from "../utils/ApiClient";
 
 export const branchCache = createCache<[branchId: BranchId], Branch>({
   debugLabel: "branch",
@@ -12,6 +12,6 @@ export const branchCache = createCache<[branchId: BranchId], Branch>({
 export const branchesCache = createCache<[projectId: ProjectId], Branch[]>({
   debugLabel: "branches",
   async load([projectId]) {
-    return getBranches({ projectId, status: "open" });
+    return getMostRecentBranches({ projectId });
   },
 });

@@ -7,10 +7,10 @@ import { mostRecentRunCache } from "../suspense/RunCache";
 import { snapshotDiffCountForRunCache } from "../suspense/SnapshotCache";
 import { ApproveButton } from "./ApproveButton";
 import Dropdown from "./Dropdown";
+import Icon from "./Icon";
 import { Github } from "./SVGs";
 import { Toggle } from "./Toggle";
 import withSuspenseLoader from "./withSuspenseLoader";
-import Icon from "./Icon";
 
 export function Header({
   branches,
@@ -156,10 +156,18 @@ function BranchDropDownItem({
 
   return (
     <Link
-      className="h-full w-full"
+      className={`h-full w-full ${
+        branch.github_pr_status !== "open" ? "text-gray-400" : ""
+      }`}
       href={`/project/${project.slug}/?branchId=${branch.id}`}
     >
       <div className="flex flex-row gap-1 items-center w-full">
+        {branch.github_pr_status === "closed" && (
+          <Icon className="w-4 h-4 text-red-500" type="closed" />
+        )}
+        {branch.github_pr_status === "merged" && (
+          <Icon className="w-4 h-4 text-green-600" type="merged" />
+        )}
         {project.organization !== branch.organization && (
           <div className="text-violet-500" title={branch.organization}>
             <Icon type="fork" />

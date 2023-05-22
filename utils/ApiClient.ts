@@ -7,9 +7,9 @@ import type {
   ResponseData as GetBranchResponseData,
 } from "../pages/api/getBranch";
 import type {
-  RequestParams as GetBranchesRequestParams,
-  ResponseData as GetBranchesResponseData,
-} from "../pages/api/getBranches";
+  RequestParams as GetMostRecentBranchesRequestParams,
+  ResponseData as GetMostRecentBranchesResponseData,
+} from "../pages/api/getMostRecentBranches";
 import type {
   RequestParams as GetDiffImageRequestParams,
   ResponseData as GetDiffImageResponseData,
@@ -92,11 +92,11 @@ export async function getBranch(
   );
 }
 
-export async function getBranches(
-  params: GetBranchesRequestParams
-): Promise<GetBranchesResponseData> {
-  return fetchDataFromEndpoint<GetBranchesResponseData>(
-    `/api/getBranches?${paramsToUrlString(params)}`
+export async function getMostRecentBranches(
+  params: GetMostRecentBranchesRequestParams
+): Promise<GetMostRecentBranchesResponseData> {
+  return fetchDataFromEndpoint<GetMostRecentBranchesResponseData>(
+    `/api/getMostRecentBranches?${paramsToUrlString(params)}`
   );
 }
 

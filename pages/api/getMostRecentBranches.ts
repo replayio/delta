@@ -6,8 +6,8 @@ import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
 
 export type RequestParams = {
+  limit?: string;
   projectId: ProjectId;
-  status?: "open" | "closed";
 };
 export type ResponseData = Branch[];
 
@@ -15,7 +15,7 @@ export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse<Response>
 ) {
-  const { projectId: projectIdString, status = "open" } =
+  const { limit: limitString = "20", projectId: projectIdString } =
     request.query as RequestParams;
   if (!projectIdString) {
     return sendApiMissingParametersResponse(request, response, {
@@ -23,13 +23,24 @@ export default async function handler(
     });
   }
 
+  const limit = parseInt(limitString);
   const projectId = parseInt(projectIdString) as unknown as ProjectId;
 
   try {
-    const data = await getBranchesForProject(projectId, status);
+    const openBranches = await getBranchesForProject(projectId, true, limit);
+
+    let closedBranches: Branch[] = [];
+    if (openBranches.length < limit) {
+      closedBranches = await getBranchesForProject(
+        projectId,
+        false,
+        limit - openBranches.length
+      );
+    }
+
     return sendApiResponse<ResponseData>(request, response, {
       httpStatusCode: HTTP_STATUS_CODES.OK,
-      data,
+      data: [...openBranches, ...closedBranches],
     });
   } catch (error) {
     return sendApiResponse(request, response, {

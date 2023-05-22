@@ -15,7 +15,7 @@ export type Project = {
 export type ProjectId = Project["id"];
 export type ProjectSlug = Project["slug"];
 
-export type PullRequestStatus = "closed" | "open";
+export type PullRequestStatus = "closed" | "merged" | "open";
 export type Branch = {
   created_at: string;
   id: Opaque<"number", Branch>;

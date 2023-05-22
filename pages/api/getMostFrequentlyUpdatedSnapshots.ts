@@ -11,24 +11,33 @@ export type PathMetadata = {
   supabasePath: string;
 };
 
-export type SnapshotMetadata = {
-  imageCount: number;
-  imageFileName: string;
-  key: string;
-  testFileName: string;
-  testName: string;
-  variantsToSupabasePaths: {
-    [variant: string]: string[];
-  };
-};
-
 export type RequestParams = {
   afterDate?: string;
   projectId?: ProjectId;
   projectSlug?: ProjectSlug;
 };
 
-export type ResponseData = SnapshotMetadata[];
+export type SupabasePathToCount = {
+  [supabasePath: string]: number;
+};
+
+export type SupabaseVariantMetadata = {
+  [variant: string]: SupabasePathToCount;
+};
+
+export type ImageFilenameToSupabasePathMetadata = {
+  [imageFilename: string]: SupabaseVariantMetadata;
+};
+
+export type TestNameToImageFilenameMetadata = {
+  [testName: string]: ImageFilenameToSupabasePathMetadata;
+};
+
+export type TestFilenameToTestNameMetadata = {
+  [testFilename: string]: TestNameToImageFilenameMetadata;
+};
+
+export type ResponseData = TestFilenameToTestNameMetadata;
 
 // Projects have Branches have Actions have Snapshots.
 // We ultimately want all recently updated Actions,
@@ -64,51 +73,73 @@ export default async function handler(
       throw error;
     }
 
-    const snapshotMetadataMap = new Map<string, SnapshotMetadata>();
+    const responseData: ResponseData = {};
     data?.forEach((record) => {
       const {
-        delta_image_filename: imageFileName,
-        delta_test_filename: testFileName,
+        delta_image_filename: imageFilename,
+        delta_test_filename: testFilename,
         delta_test_name: testName,
         delta_variant: variant,
         supabase_path: supabasePath,
       } = record;
 
-      const key = `${testFileName}:${testName}:${imageFileName}`;
-
-      let snapshotMetadata = snapshotMetadataMap.get(key);
-      if (snapshotMetadata == null) {
-        snapshotMetadata = {
-          imageCount: 0,
-          imageFileName,
-          key,
-          testFileName,
-          testName,
-          variantsToSupabasePaths: {},
-        };
-        snapshotMetadataMap.set(key, snapshotMetadata);
+      let testFileMetadata = responseData[testFilename];
+      if (testFileMetadata == null) {
+        responseData[testFilename] = testFileMetadata = {};
       }
 
-      let supabasePaths = snapshotMetadata.variantsToSupabasePaths[variant];
-      if (supabasePaths == null) {
-        snapshotMetadata.variantsToSupabasePaths[variant] = supabasePaths = [];
+      let testNameMetadata = testFileMetadata[testName];
+      if (testNameMetadata == null) {
+        testFileMetadata[testName] = testNameMetadata = {};
       }
 
-      if (supabasePaths.indexOf(supabasePath) < 0) {
-        snapshotMetadata.imageCount++;
-        supabasePaths.push(supabasePath);
+      let imageFilenameMetadata = testNameMetadata[imageFilename];
+      if (imageFilenameMetadata == null) {
+        testNameMetadata[imageFilename] = imageFilenameMetadata = {};
       }
+
+      let variantMetadata = imageFilenameMetadata[variant];
+      if (variantMetadata == null) {
+        imageFilenameMetadata[variant] = variantMetadata = {};
+      }
+
+      variantMetadata[supabasePath] = (variantMetadata[supabasePath] ?? 0) + 1;
     });
+
+    // Filter out all tests with only a single snapshot path per variant.
+    // Those are stable for the purposes of this endpoint.
+    for (let testFilename in responseData) {
+      const testFileMetadata = responseData[testFilename];
+      for (let testName in testFileMetadata) {
+        const testNameMetadata = testFileMetadata[testName];
+        for (let imageFilename in testNameMetadata) {
+          const imageFilenameMetadata = testNameMetadata[imageFilename];
+          for (let variant in imageFilenameMetadata) {
+            const variantMetadata = imageFilenameMetadata[variant];
+
+            if (Object.keys(variantMetadata).length === 1) {
+              delete imageFilenameMetadata[variant];
+            }
+          }
+
+          if (Object.keys(imageFilenameMetadata).length === 0) {
+            delete testNameMetadata[imageFilename];
+          }
+        }
+
+        if (Object.keys(testNameMetadata).length === 0) {
+          delete testFileMetadata[testName];
+        }
+      }
+
+      if (Object.keys(testFileMetadata).length === 0) {
+        delete responseData[testFilename];
+      }
+    }
 
     return sendApiResponse<ResponseData>(request, response, {
       httpStatusCode: HTTP_STATUS_CODES.OK,
-      data: Array.from(snapshotMetadataMap.values())
-        .filter(
-          (record) =>
-            record.imageCount >
-            Object.keys(record.variantsToSupabasePaths).length
-        )
-        .sort((a, b) => b.imageCount - a.imageCount),
+      data: responseData,
     });
   } catch (error) {
     return sendApiResponse(request, response, {

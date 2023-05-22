@@ -10,7 +10,7 @@ import Icon from "./Icon";
 
 export default function Expandable({
   content,
-  className = "",
+  className,
   defaultOpen = false,
   header,
 }: {
@@ -61,7 +61,7 @@ export default function Expandable({
   return (
     <>
       <div
-        className={className}
+        className={className ?? "flex flex-row items-center gap-1"}
         onClick={onClick}
         onKeyDown={onKeyDown}
         role="button"

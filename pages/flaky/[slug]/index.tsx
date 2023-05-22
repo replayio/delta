@@ -1,14 +1,18 @@
 import { useRouter } from "next/router";
-import { Suspense, useState } from "react";
-import Icon from "../../../components/Icon";
+import { Suspense } from "react";
+import Expandable from "../../../components/Expandable";
 import { Loader } from "../../../components/Loader";
 import SnapshotImage from "../../../components/SnapshotImage";
 import withRenderOnMount from "../../../components/withRenderOnMount";
 import withSuspenseLoader from "../../../components/withSuspenseLoader";
 import { ProjectSlug } from "../../../lib/types";
 import { frequentlyUpdatedSnapshotsCache } from "../../../suspense/SnapshotCache";
-import classNames from "../../../utils/classNames";
-import { SnapshotMetadata } from "../../api/getMostFrequentlyUpdatedSnapshots";
+import {
+  ImageFilenameToSupabasePathMetadata,
+  SupabasePathToCount,
+  SupabaseVariantMetadata,
+  TestNameToImageFilenameMetadata,
+} from "../../api/getMostFrequentlyUpdatedSnapshots";
 
 export default withRenderOnMount(withSuspenseLoader(Flaky));
 
@@ -38,15 +42,132 @@ function FlakySuspends({
   const metadata = frequentlyUpdatedSnapshotsCache.read(projectSlug, afterDate);
 
   return (
-    <ul className="list-none p-1 inline-flex flex-col items-start">
-      {metadata.map((datum) => (
-        <SnapshotListItem key={datum.key} metadata={datum} />
-      ))}
-    </ul>
+    <div className="flex flex-col items-start">
+      {Array.from(Object.entries(metadata)).map(
+        ([testFilename, testNameToImageFilenameMetadata]) => (
+          <TestFilenameItem
+            key={testFilename}
+            testFilename={testFilename}
+            testNameToImageFilenameMetadata={testNameToImageFilenameMetadata}
+          />
+        )
+      )}
+    </div>
   );
 }
 
-function SnapshotListItem({ metadata }: { metadata: SnapshotMetadata }) {
+function TestFilenameItem({
+  testFilename,
+  testNameToImageFilenameMetadata,
+}: {
+  testFilename: string;
+  testNameToImageFilenameMetadata: TestNameToImageFilenameMetadata;
+}) {
+  return (
+    <Expandable
+      content={
+        <div className="pl-6 flex flex-col items-start gap-1">
+          {Array.from(Object.entries(testNameToImageFilenameMetadata)).map(
+            ([testName, imageFilenameToSupabasePathMetadata]) => (
+              <TestNameItem
+                key={testName}
+                testName={testName}
+                imageFilenameToSupabasePathMetadata={
+                  imageFilenameToSupabasePathMetadata
+                }
+              />
+            )
+          )}
+        </div>
+      }
+      defaultOpen={true}
+      header={<div className="px-1 py-0.5">{testFilename}</div>}
+    />
+  );
+}
+
+function TestNameItem({
+  testName,
+  imageFilenameToSupabasePathMetadata,
+}: {
+  testName: string;
+  imageFilenameToSupabasePathMetadata: ImageFilenameToSupabasePathMetadata;
+}) {
+  return (
+    <>
+      <div className="text-sm">{testName}</div>
+      <div className="flex flex-col items-start gap-1">
+        {Array.from(Object.entries(imageFilenameToSupabasePathMetadata)).map(
+          ([imageFilename, supabaseVariantMetadata]) => (
+            <SupabasePathItem
+              imageFilename={imageFilename}
+              key={imageFilename}
+              supabaseVariantMetadata={supabaseVariantMetadata}
+            />
+          )
+        )}
+      </div>
+    </>
+  );
+}
+
+function SupabasePathItem({
+  imageFilename,
+  supabaseVariantMetadata,
+}: {
+  imageFilename: string;
+  supabaseVariantMetadata: SupabaseVariantMetadata;
+}) {
+  return (
+    <>
+      <div className="text-xs">{imageFilename}</div>
+      <div className="flex flex-col items-start gap-1">
+        {Array.from(Object.entries(supabaseVariantMetadata)).map(
+          ([variant, supabasePathToCount]) => (
+            <VariantItem
+              key={variant}
+              variant={variant}
+              supabasePathToCount={supabasePathToCount}
+            />
+          )
+        )}
+      </div>
+    </>
+  );
+}
+
+function VariantItem({
+  variant,
+  supabasePathToCount,
+}: {
+  variant: string;
+  supabasePathToCount: SupabasePathToCount;
+}) {
+  return (
+    <>
+      <div className="flex flex-row items-center">
+        {Array.from(Object.entries(supabasePathToCount)).map(
+          ([supabasePath, count]) => (
+            <Suspense fallback={<Loader />} key={supabasePath}>
+              <div className="relative">
+                <SnapshotImage
+                  className="shrink w-auto max-h-40 rounded border-x border-y border-slate-300"
+                  path={supabasePath}
+                />
+                <div className="bg-yellow-400/75 flex items-center justify-center h-4 w-4 rounded-full text-xs absolute right-2 bottom-2">
+                  {count}
+                </div>
+              </div>
+            </Suspense>
+          )
+        )}
+      </div>
+    </>
+  );
+}
+
+{
+  /* function SnapshotListItem({ metadata }: { metadata: ResponseData }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -80,9 +201,15 @@ function SnapshotListItem({ metadata }: { metadata: SnapshotMetadata }) {
                 className="inline-flex flex-row gap-1 items-center bg-slate-100 rounded p-1"
                 key={variant}
               >
-                {supabasePaths.map((supabasePath) => (
+                {supabasePaths.map(({ count, supabasePath }) => (
                   <Suspense fallback={<Loader />} key={supabasePath}>
-                    <SnapshotImages supabasePath={supabasePath} />
+                    <li>
+                      <div>{count}</div>
+                      <SnapshotImage
+                        className="shrink w-auto max-h-40 rounded border-x border-y border-slate-300"
+                        path={supabasePath}
+                      />
+                    </li>
                   </Suspense>
                 ))}
                 <li className="px-1 py-0.5 text-center rounded text-xs h-full">
@@ -95,15 +222,5 @@ function SnapshotListItem({ metadata }: { metadata: SnapshotMetadata }) {
       )}
     </li>
   );
-}
-
-function SnapshotImages({ supabasePath }: { supabasePath: string }) {
-  return (
-    <li>
-      <SnapshotImage
-        className="shrink w-auto max-h-40 rounded border-x border-y border-slate-300"
-        path={supabasePath}
-      />
-    </li>
-  );
+} */
 }

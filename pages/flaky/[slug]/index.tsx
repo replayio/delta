@@ -94,8 +94,8 @@ function TestNameItem({
   imageFilenameToSupabasePathMetadata: ImageFilenameToSupabasePathMetadata;
 }) {
   return (
-    <>
-      <div className="text-sm">{testName}</div>
+    <div className="pl-4">
+      <div className="text-sm">{`it("${testName}")`}</div>
       <div className="flex flex-col items-start gap-1">
         {Array.from(Object.entries(imageFilenameToSupabasePathMetadata)).map(
           ([imageFilename, supabaseVariantMetadata]) => (
@@ -107,7 +107,7 @@ function TestNameItem({
           )
         )}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -119,8 +119,8 @@ function SupabasePathItem({
   supabaseVariantMetadata: SupabaseVariantMetadata;
 }) {
   return (
-    <>
-      <div className="text-xs">{imageFilename}</div>
+    <div className="pl-4">
+      <div className="text-sm">{imageFilename}</div>
       <div className="flex flex-col items-start gap-1">
         {Array.from(Object.entries(supabaseVariantMetadata)).map(
           ([variant, supabasePathToCount]) => (
@@ -132,7 +132,7 @@ function SupabasePathItem({
           )
         )}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -144,7 +144,7 @@ function VariantItem({
   supabasePathToCount: SupabasePathToCount;
 }) {
   return (
-    <>
+    <div className="pl-4">
       <div className="flex flex-row items-center">
         {Array.from(Object.entries(supabasePathToCount)).map(
           ([supabasePath, count]) => (
@@ -162,65 +162,6 @@ function VariantItem({
           )
         )}
       </div>
-    </>
+    </div>
   );
-}
-
-{
-  /* function SnapshotListItem({ metadata }: { metadata: ResponseData }) {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <li
-      className="inline-flex flex-col items-start"
-      onClick={() => setExpanded(!expanded)}
-    >
-      <div className="m-1 inline-flex flex-row gap-1">
-        <div className="bg-violet-500 text-white px-1 py-0.5 text-center rounded">
-          <Icon
-            className={classNames(
-              expanded ? "rotate-90" : "",
-              "fill-current h-4 w-4 grow-0 shrink-0 transition-transform"
-            )}
-            type="expandable-closed"
-          />
-        </div>
-        <div className="bg-slate-200 px-1 py-0.5 text-center rounded text-xs">
-          {metadata.testFileName}
-        </div>
-        <div className="text-sm">{metadata.imageFileName}</div>
-        <div className="bg-slate-200 px-1 py-0.5 text-center rounded text-xs">
-          {metadata.imageCount} snapshots
-        </div>
-      </div>
-      {expanded && (
-        <ul className="list-none inline-flex flex-col items-start gap-1">
-          {Array.from(Object.entries(metadata.variantsToSupabasePaths)).map(
-            ([variant, supabasePaths]) => (
-              <ul
-                className="inline-flex flex-row gap-1 items-center bg-slate-100 rounded p-1"
-                key={variant}
-              >
-                {supabasePaths.map(({ count, supabasePath }) => (
-                  <Suspense fallback={<Loader />} key={supabasePath}>
-                    <li>
-                      <div>{count}</div>
-                      <SnapshotImage
-                        className="shrink w-auto max-h-40 rounded border-x border-y border-slate-300"
-                        path={supabasePath}
-                      />
-                    </li>
-                  </Suspense>
-                ))}
-                <li className="px-1 py-0.5 text-center rounded text-xs h-full">
-                  {variant}
-                </li>
-              </ul>
-            )
-          )}
-        </ul>
-      )}
-    </li>
-  );
-} */
 }

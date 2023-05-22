@@ -160,13 +160,18 @@ function BranchDropDownItem({
         branch.github_pr_status !== "open" ? "text-gray-400" : ""
       }`}
       href={`/project/${project.slug}/?branchId=${branch.id}`}
+      title={`PR ${branch.github_pr_number} (${branch.github_pr_status})`}
     >
       <div className="flex flex-row gap-1 items-center w-full">
         {branch.github_pr_status === "closed" && (
-          <Icon className="w-4 h-4 text-red-500" type="closed" />
+          <div className="text-red-500">
+            <Icon type="closed" />
+          </div>
         )}
         {branch.github_pr_status === "merged" && (
-          <Icon className="w-4 h-4 text-green-600" type="merged" />
+          <div className="text-green-600">
+            <Icon type="merged" />
+          </div>
         )}
         {project.organization !== branch.organization && (
           <div className="text-violet-500" title={branch.organization}>

@@ -27,7 +27,6 @@ export default function Dropdown({
           className="inline-flex text-violet-500 w-full justify-center rounded-md items-center py-2 text-md hover:underline focus:outline-none "
         >
           {selected}
-          {/* <ChevronDownIcon className="ml-1 h-5 w-5" aria-hidden="true" /> */}
         </Menu.Button>
       </div>
 

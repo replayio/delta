@@ -40,3 +40,8 @@ h1 {
   font-weight: bold;
   display: block;
 }
+
+
+*[data-context-menu-item][data-test-state="selected"] {
+  background-color: black;
+}

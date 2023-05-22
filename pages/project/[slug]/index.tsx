@@ -1,6 +1,5 @@
 import Image from "next/image";
-import { useRouter } from "next/router";
-import { Fragment, MouseEvent, useMemo } from "react";
+import { Fragment, MouseEvent, useContext, useMemo } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { Header } from "../../../components/Header";
 import Icon from "../../../components/Icon";
@@ -12,12 +11,14 @@ import {
   GithubRunId,
   Project,
   ProjectSlug,
-  Run,
-  RunId,
   SnapshotId,
 } from "../../../lib/types";
 
 import Expandable from "../../../components/Expandable";
+import { Loader } from "../../../components/Loader";
+import withSessionContext, {
+  SessionContext,
+} from "../../../components/SessionContext";
 import withRenderOnMount from "../../../components/withRenderOnMount";
 import withSuspenseLoader from "../../../components/withSuspenseLoader";
 import { SnapshotDiff } from "../../../lib/server/types";
@@ -26,123 +27,76 @@ import { projectCache } from "../../../suspense/ProjectCache";
 import { runsCache } from "../../../suspense/RunCache";
 import { snapshotDiffForRunCache } from "../../../suspense/SnapshotCache";
 
-export default withRenderOnMount(withSuspenseLoader(Page));
+export default withRenderOnMount(withSuspenseLoader(withSessionContext(Page)));
 
 function Page() {
-  const router = useRouter();
   const {
-    branchId: branchIdFromUrl,
-    runId: runIdFromUrl,
-    slug: slugFromUrl,
-    snapshotId: snapshotIdFromUrl,
-  } = router.query as { [key: string]: string };
-
-  let branchId =
-    branchIdFromUrl != null
-      ? (parseInt(branchIdFromUrl) as unknown as BranchId)
-      : null;
-  const projectSlug = slugFromUrl as unknown as ProjectSlug;
-  let runId =
-    runIdFromUrl != null ? (parseInt(runIdFromUrl) as unknown as RunId) : null;
-  let snapshotId =
-    snapshotIdFromUrl != null
-      ? (parseInt(snapshotIdFromUrl) as unknown as SnapshotId)
-      : null;
+    branchIdDeferred,
+    isBranchPending,
+    isRunPending,
+    projectSlug,
+    runIdDeferred,
+    snapshotIdDeferred,
+  } = useContext(SessionContext);
 
   const project = projectCache.read(projectSlug);
-  const branches = branchesCache.read(project.id);
+  const branches = branchesCache
+    .read(project.id)
+    .filter((branch) => branch.name !== project.primary_branch);
 
-  if (!branchId) {
-    branchId = branches?.[0]?.id ?? null;
+  if (
+    branchIdDeferred &&
+    branches.findIndex((branch) => branch.id === branchIdDeferred) === -1
+  ) {
+    const currentBranch = branchCache.read(branchIdDeferred);
+    branches.unshift(currentBranch);
   }
 
-  if (!branchId) {
-    return <SubViewNoOpenBranches />;
-  }
+  const runs = branchIdDeferred != null ? runsCache.read(branchIdDeferred) : [];
+  const run = runs.find((run) => run.id === runIdDeferred);
+  const snapshotDiffs =
+    runIdDeferred != null ? snapshotDiffForRunCache.read(runIdDeferred) : [];
 
-  const currentBranch = branchCache.read(branchId);
-  const runs = runsCache.read(currentBranch.id) ?? [];
-
-  if (!runId) {
-    runId = runs[0]?.id;
-  }
-
-  const currentRun = runId
-    ? runs.find((run) => run.id === runId) ?? null
-    : null;
-
-  const snapshotDiffs = currentRun
-    ? snapshotDiffForRunCache.read(currentRun.id)
-    : [];
-
-  if (!snapshotId) {
-    snapshotId = snapshotDiffs?.[0]?.snapshot?.id ?? null;
-  }
-
-  // Debug logging
-  // if (process.env.NODE_ENV === "development") {
-  //   console.groupCollapsed("<Page>");
-  //   console.log("project:", project);
-  //   console.log("branches:", branches);
-  //   console.log("current branch:", currentBranch);
-  //   console.log("runs:", runs);
-  //   console.log("current run:", currentRun);
-  //   console.log("snapshotDiffs:", snapshotDiffs);
-  //   console.groupEnd();
-  // }
-
-  const shownBranches = branches.filter(
-    (branch) => branch.name !== project.primary_branch
-  );
-
-  if (shownBranches.findIndex((branch) => branch.id === branchId) === -1) {
-    shownBranches.unshift(currentBranch);
-  }
-
-  const isPending = currentRun?.github_status != "completed";
+  const isTransitionPending = isBranchPending || isRunPending;
+  const isWorkflowPending = run?.github_status != "completed";
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <Header
-        branches={shownBranches}
-        currentBranch={currentBranch}
-        currentRun={currentRun}
-        project={project}
-        runs={runs}
-      />
+      <Header />
 
-      {currentRun && isPending ? (
-        <SubViewRunPending project={project} runId={currentRun.github_run_id} />
-      ) : shownBranches.length == 0 ? (
+      {isTransitionPending ? (
+        <Loader />
+      ) : run && isWorkflowPending ? (
+        <SubViewRunPending githubRunId={run.github_run_id} project={project} />
+      ) : branches.length == 0 ? (
         <SubViewNoOpenBranches />
-      ) : snapshotDiffs?.length == 0 ? (
+      ) : snapshotDiffs.length == 0 ? (
         <SubViewNoChanges />
-      ) : (
+      ) : branchIdDeferred != null && run != null ? (
         <SubViewLoadedData
-          branchId={branchId}
-          currentSnapshotId={snapshotId}
-          currentRun={currentRun}
+          branchId={branchIdDeferred}
+          currentSnapshotId={snapshotIdDeferred}
           projectSlug={projectSlug}
           snapshotDiffs={snapshotDiffs}
         />
-      )}
+      ) : null}
     </div>
   );
 }
 
 function SubViewRunPending({
+  githubRunId,
   project,
-  runId,
 }: {
+  githubRunId: GithubRunId;
   project: Project;
-  runId: GithubRunId;
 }) {
   return (
     <div className="flex justify-center items-center mt-10 italic underline text-violet-600">
       <a
         target="_blank"
         rel="noreferrer"
-        href={`https://github.com/${project.organization}/${project.repository}/actions/runs/${runId}`}
+        href={`https://github.com/${project.organization}/${project.repository}/actions/runs/${githubRunId}`}
       >
         Workflow running...
       </a>
@@ -162,13 +116,11 @@ type TestFileAndTestNames = {
 function SubViewLoadedData({
   branchId,
   currentSnapshotId,
-  currentRun,
   projectSlug,
   snapshotDiffs,
 }: {
   branchId: BranchId;
-  currentSnapshotId: SnapshotId;
-  currentRun: Run | null;
+  currentSnapshotId: SnapshotId | null;
   projectSlug: ProjectSlug;
   snapshotDiffs: SnapshotDiff[];
 }) {
@@ -267,13 +219,7 @@ function SubViewLoadedData({
                           <div className="bg-white">
                             {snapshotDiffs.map((snapshotDiff) => (
                               <SnapshotRow
-                                branchId={branchId}
                                 key={snapshotDiff.snapshot.id}
-                                isSelected={
-                                  snapshotDiff.snapshot.id === currentSnapshotId
-                                }
-                                projectSlug={projectSlug}
-                                runId={currentRun?.id ?? null}
                                 snapshotDiff={snapshotDiff}
                               />
                             ))}

@@ -7,14 +7,16 @@ import withSuspenseLoader from "./withSuspenseLoader";
 
 export const ApproveButton = withSuspenseLoader(function ApproveButton({
   branch,
+  isPending: isPendingExternal,
   project,
   run,
 }: {
   branch: Branch;
+  isPending: boolean;
   project: Project;
   run: Run;
 }) {
-  const [isPending, setIsPending] = useState(false);
+  const [isPendingInternal, setIsPending] = useState(false);
   const [hasApproval, setHasApproval] = useState<boolean>(
     run.delta_has_user_approval
   );
@@ -53,9 +55,11 @@ export const ApproveButton = withSuspenseLoader(function ApproveButton({
   return (
     <div className="flex items-center">
       <button
-        disabled={isPending}
+        disabled={isPendingExternal || isPendingInternal}
         onClick={onClick}
-        className="text-white bg-violet-500 py-1 px-3 rounded border-transparent hover:bg-violet-600"
+        className={`text-white bg-violet-500 py-1 px-3 rounded border-transparent hover:bg-violet-600 ${
+          isPendingExternal || isPendingInternal ? "opacity-50" : ""
+        }`}
       >
         {hasApproval ? "Reject" : "Approve"}
       </button>

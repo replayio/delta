@@ -1,31 +1,20 @@
-import Link from "next/link";
+import { useContext } from "react";
 import { SnapshotDiff } from "../lib/server/types";
-import { BranchId, ProjectSlug, RunId } from "../lib/types";
+import { SessionContext } from "./SessionContext";
 
-export function SnapshotRow({
-  branchId,
-  isSelected,
-  projectSlug,
-  runId,
-  snapshotDiff,
-}: {
-  branchId: BranchId | null;
-  isSelected: boolean;
-  projectSlug: ProjectSlug;
-  runId: RunId | null;
-  snapshotDiff: SnapshotDiff;
-}) {
+export function SnapshotRow({ snapshotDiff }: { snapshotDiff: SnapshotDiff }) {
+  const { snapshotIdDefault, transitionSnapshot } = useContext(SessionContext);
   return (
-    <Link
+    <div
       className={`py-1 pr-2 pl-6 text-xs truncate cursor-pointer text-ellipsis truncate shrink-0 block font-light text-violet-900 ${
-        isSelected ? "bg-violet-100" : "hover:bg-violet-100"
+        snapshotDiff.snapshot.id === snapshotIdDefault
+          ? "bg-violet-100"
+          : "hover:bg-violet-100"
       }`}
-      href={encodeURI(
-        `/project/${projectSlug}?branchId=${branchId}&runId=${runId}&snapshotId=${snapshotDiff.snapshot.id}&`
-      )}
+      onClick={() => transitionSnapshot(snapshotDiff.snapshot.id)}
       title={snapshotDiff.snapshot.delta_image_filename}
     >
       {snapshotDiff.snapshot.delta_image_filename}
-    </Link>
+    </div>
   );
 }

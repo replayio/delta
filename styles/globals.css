@@ -41,7 +41,6 @@ h1 {
   display: block;
 }
 
-
 *[data-context-menu-item][data-test-state="selected"] {
   background-color: black;
 }

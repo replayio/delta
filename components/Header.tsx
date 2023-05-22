@@ -41,7 +41,7 @@ export function Header() {
         <Toggle />
       </div>
 
-      <div className="flex-1 flex justify-end items-center gap-2 text-violet-400">
+      <div className="flex-1 flex justify-end items-center gap-2 ">
         <RunDropDownMenu />
         <a
           className="fill-violet-500 hover:fill-violet-600 "

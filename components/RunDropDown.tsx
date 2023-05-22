@@ -24,12 +24,16 @@ export function RunDropDownMenu() {
     { alignTo: "auto-target" }
   );
 
+  if (isRunPending) {
+    return (
+      <div className="py-2 text-md opacity-50 cursor-default">Loading...</div>
+    );
+  }
+
   return (
     <>
       <div
-        className={`text-violet-500 py-2 text-md hover:underline focus:outline-none ${
-          isRunPending ? "opacity-50" : ""
-        }`}
+        className="text-violet-500 py-2 text-md hover:underline focus:outline-none cursor-pointer"
         onClick={onClick}
         onKeyDown={onKeyDown}
         tabIndex={0}

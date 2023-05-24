@@ -1,15 +1,18 @@
 import { useRouter } from "next/router";
 import { Suspense } from "react";
 import Expandable from "../../../components/Expandable";
+import Icon from "../../../components/Icon";
 import { Loader } from "../../../components/Loader";
 import SnapshotImage from "../../../components/SnapshotImage";
 import withRenderOnMount from "../../../components/withRenderOnMount";
 import withSuspenseLoader from "../../../components/withSuspenseLoader";
 import { ProjectSlug } from "../../../lib/types";
+import { projectCache } from "../../../suspense/ProjectCache";
 import { frequentlyUpdatedSnapshotsCache } from "../../../suspense/SnapshotCache";
 import {
   ImageFilenameToSupabasePathMetadata,
-  SupabasePathToTimestamps,
+  RunMetadata,
+  SupabasePathToMetadata,
   SupabaseVariantMetadata,
   TestNameToImageFilenameMetadata,
 } from "../../api/getMostFrequentlyUpdatedSnapshots";
@@ -47,6 +50,7 @@ function FlakySuspends({
         ([testFilename, testNameToImageFilenameMetadata]) => (
           <TestFilenameItem
             key={testFilename}
+            projectSlug={projectSlug}
             testFilename={testFilename}
             testNameToImageFilenameMetadata={testNameToImageFilenameMetadata}
           />
@@ -57,9 +61,11 @@ function FlakySuspends({
 }
 
 function TestFilenameItem({
+  projectSlug,
   testFilename,
   testNameToImageFilenameMetadata,
 }: {
+  projectSlug: ProjectSlug;
   testFilename: string;
   testNameToImageFilenameMetadata: TestNameToImageFilenameMetadata;
 }) {
@@ -71,6 +77,7 @@ function TestFilenameItem({
             ([testName, imageFilenameToSupabasePathMetadata]) => (
               <TestNameItem
                 key={testName}
+                projectSlug={projectSlug}
                 testName={testName}
                 imageFilenameToSupabasePathMetadata={
                   imageFilenameToSupabasePathMetadata
@@ -87,9 +94,11 @@ function TestFilenameItem({
 }
 
 function TestNameItem({
+  projectSlug,
   testName,
   imageFilenameToSupabasePathMetadata,
 }: {
+  projectSlug: ProjectSlug;
   testName: string;
   imageFilenameToSupabasePathMetadata: ImageFilenameToSupabasePathMetadata;
 }) {
@@ -102,6 +111,7 @@ function TestNameItem({
             <SupabasePathItem
               imageFilename={imageFilename}
               key={imageFilename}
+              projectSlug={projectSlug}
               supabaseVariantMetadata={supabaseVariantMetadata}
             />
           )
@@ -113,9 +123,11 @@ function TestNameItem({
 
 function SupabasePathItem({
   imageFilename,
+  projectSlug,
   supabaseVariantMetadata,
 }: {
   imageFilename: string;
+  projectSlug: ProjectSlug;
   supabaseVariantMetadata: SupabaseVariantMetadata;
 }) {
   return (
@@ -123,11 +135,12 @@ function SupabasePathItem({
       <div className="text-sm">{imageFilename}</div>
       <div className="flex flex-col items-start gap-1">
         {Array.from(Object.entries(supabaseVariantMetadata)).map(
-          ([variant, supabasePathToTimestamps]) => (
+          ([variant, supabasePathToMetadata]) => (
             <VariantItem
               key={variant}
+              projectSlug={projectSlug}
               variant={variant}
-              supabasePathToTimestamps={supabasePathToTimestamps}
+              supabasePathToMetadata={supabasePathToMetadata}
             />
           )
         )}
@@ -138,18 +151,24 @@ function SupabasePathItem({
 
 function VariantItem({
   variant,
-  supabasePathToTimestamps,
+  projectSlug,
+  supabasePathToMetadata,
 }: {
   variant: string;
-  supabasePathToTimestamps: SupabasePathToTimestamps;
+  projectSlug: ProjectSlug;
+  supabasePathToMetadata: SupabasePathToMetadata;
 }) {
   return (
     <div className="pl-4">
       <div className="flex flex-row items-start gap-1">
-        {Array.from(Object.entries(supabasePathToTimestamps)).map(
-          ([supabasePath, timestamps]) => (
+        {Array.from(Object.entries(supabasePathToMetadata)).map(
+          ([supabasePath, runMetadata]) => (
             <Suspense fallback={<Loader />} key={supabasePath}>
-              <Snapshot timestamps={timestamps} supabasePath={supabasePath} />
+              <Snapshot
+                projectSlug={projectSlug}
+                runMetadata={runMetadata}
+                supabasePath={supabasePath}
+              />
             </Suspense>
           )
         )}
@@ -159,12 +178,16 @@ function VariantItem({
 }
 
 function Snapshot({
-  timestamps,
+  projectSlug,
+  runMetadata,
   supabasePath,
 }: {
-  timestamps: string[];
+  projectSlug: ProjectSlug;
+  runMetadata: RunMetadata[];
   supabasePath: string;
 }) {
+  const project = projectCache.read(projectSlug);
+
   return (
     <div>
       <SnapshotImage
@@ -172,17 +195,21 @@ function Snapshot({
         path={supabasePath}
       />
       <div className="flex flex-col items-start gap-1 mt-1">
-        {timestamps.map((timestamp, index) => {
+        {runMetadata.map(({ githubRunId, timestamp }, index) => {
           const date = new Date(timestamp);
           return (
-            <div
-              className="flex flex-row item-between text-xs w-full gap-1 p-1 bg-yellow-200 rounded"
+            <a
+              className="flex flex-row item-between text-xs w-full gap-1 p-1 bg-yellow-100 hover:bg-yellow-200 rounded"
+              href={`https://github.com/${project.organization}/${project.repository}/actions/runs/${githubRunId}`}
               key={index}
+              rel="noreferrer"
+              target="_blank"
             >
-              <div className="truncate">{date.toLocaleDateString()}</div>
-              <div className="grow"></div>
-              <div className="truncate">{date.toLocaleTimeString()}</div>
-            </div>
+              <div className="truncate grow">
+                {date.toLocaleDateString()}, {date.toLocaleTimeString()}
+              </div>
+              <Icon type="external" />
+            </a>
           );
         })}
       </div>

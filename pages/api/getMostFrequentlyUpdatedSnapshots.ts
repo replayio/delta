@@ -17,12 +17,17 @@ export type RequestParams = {
   projectSlug?: ProjectSlug;
 };
 
-export type SupabasePathToTimestamps = {
-  [supabasePath: string]: string[];
+export type RunMetadata = {
+  githubRunId: number;
+  timestamp: string;
+};
+
+export type SupabasePathToMetadata = {
+  [supabasePath: string]: RunMetadata[];
 };
 
 export type SupabaseVariantMetadata = {
-  [variant: string]: SupabasePathToTimestamps;
+  [variant: string]: SupabasePathToMetadata;
 };
 
 export type ImageFilenameToSupabasePathMetadata = {
@@ -81,6 +86,7 @@ export default async function handler(
         delta_test_filename: testFilename,
         delta_test_name: testName,
         delta_variant: variant,
+        github_run_id: githubRunId,
         supabase_path: supabasePath,
       } = record;
 
@@ -109,7 +115,10 @@ export default async function handler(
         variantMetadata[supabasePath] = dates = [];
       }
 
-      dates.push(createdAt);
+      dates.push({
+        githubRunId,
+        timestamp: createdAt,
+      });
     });
 
     // Filter out all tests with only a single snapshot path per variant.

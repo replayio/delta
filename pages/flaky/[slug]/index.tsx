@@ -9,7 +9,7 @@ import { ProjectSlug } from "../../../lib/types";
 import { frequentlyUpdatedSnapshotsCache } from "../../../suspense/SnapshotCache";
 import {
   ImageFilenameToSupabasePathMetadata,
-  SupabasePathToCount,
+  SupabasePathToTimestamps,
   SupabaseVariantMetadata,
   TestNameToImageFilenameMetadata,
 } from "../../api/getMostFrequentlyUpdatedSnapshots";
@@ -123,11 +123,11 @@ function SupabasePathItem({
       <div className="text-sm">{imageFilename}</div>
       <div className="flex flex-col items-start gap-1">
         {Array.from(Object.entries(supabaseVariantMetadata)).map(
-          ([variant, supabasePathToCount]) => (
+          ([variant, supabasePathToTimestamps]) => (
             <VariantItem
               key={variant}
               variant={variant}
-              supabasePathToCount={supabasePathToCount}
+              supabasePathToTimestamps={supabasePathToTimestamps}
             />
           )
         )}
@@ -138,29 +138,53 @@ function SupabasePathItem({
 
 function VariantItem({
   variant,
-  supabasePathToCount,
+  supabasePathToTimestamps,
 }: {
   variant: string;
-  supabasePathToCount: SupabasePathToCount;
+  supabasePathToTimestamps: SupabasePathToTimestamps;
 }) {
   return (
     <div className="pl-4">
-      <div className="flex flex-row items-center">
-        {Array.from(Object.entries(supabasePathToCount)).map(
-          ([supabasePath, count]) => (
+      <div className="flex flex-row items-start gap-1">
+        {Array.from(Object.entries(supabasePathToTimestamps)).map(
+          ([supabasePath, timestamps]) => (
             <Suspense fallback={<Loader />} key={supabasePath}>
-              <div className="relative">
-                <SnapshotImage
-                  className="shrink w-auto max-h-40 rounded border-x border-y border-slate-300"
-                  path={supabasePath}
-                />
-                <div className="bg-yellow-400/75 flex items-center justify-center h-4 w-4 rounded-full text-xs absolute right-2 bottom-2">
-                  {count}
-                </div>
-              </div>
+              <Snapshot timestamps={timestamps} supabasePath={supabasePath} />
             </Suspense>
           )
         )}
+      </div>
+    </div>
+  );
+}
+
+function Snapshot({
+  timestamps,
+  supabasePath,
+}: {
+  timestamps: string[];
+  supabasePath: string;
+}) {
+  return (
+    <div>
+      <SnapshotImage
+        className="shrink w-auto max-h-40 rounded border-x border-y border-slate-300"
+        path={supabasePath}
+      />
+      <div className="flex flex-col items-start gap-1 mt-1">
+        {timestamps.map((timestamp, index) => {
+          const date = new Date(timestamp);
+          return (
+            <div
+              className="flex flex-row item-between text-xs w-full gap-1 p-1 bg-yellow-200 rounded"
+              key={index}
+            >
+              <div className="truncate">{date.toLocaleDateString()}</div>
+              <div className="grow"></div>
+              <div className="truncate">{date.toLocaleTimeString()}</div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

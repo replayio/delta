@@ -1,10 +1,13 @@
 /**
 
+DROP FUNCTION recently_updated_snapshot_data_for_project;
+
 CREATE FUNCTION recently_updated_snapshot_data_for_project(
     target_project_id int8,
     after_created_at timestamp
 )
 RETURNS TABLE (
+    created_at timestamptz,
     supabase_path varchar,
     delta_variant varchar,
     delta_test_filename varchar,
@@ -14,6 +17,7 @@ RETURNS TABLE (
 BEGIN
     RETURN QUERY
     SELECT
+        snapshot_variants.created_at,
         snapshot_variants.supabase_path,
         snapshot_variants.delta_variant,
         snapshots.delta_test_filename,
@@ -47,6 +51,7 @@ import { supabase } from "../../initSupabase";
 import { retryOnError } from "../supabase";
 
 export type RecentlyUpdatedSnapshotData = {
+  created_at: string;
   delta_image_filename: string;
   delta_test_filename: string;
   delta_test_name: string;

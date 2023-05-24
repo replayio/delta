@@ -17,12 +17,12 @@ export type RequestParams = {
   projectSlug?: ProjectSlug;
 };
 
-export type SupabasePathToCount = {
-  [supabasePath: string]: number;
+export type SupabasePathToTimestamps = {
+  [supabasePath: string]: string[];
 };
 
 export type SupabaseVariantMetadata = {
-  [variant: string]: SupabasePathToCount;
+  [variant: string]: SupabasePathToTimestamps;
 };
 
 export type ImageFilenameToSupabasePathMetadata = {
@@ -76,6 +76,7 @@ export default async function handler(
     const responseData: ResponseData = {};
     data?.forEach((record) => {
       const {
+        created_at: createdAt,
         delta_image_filename: imageFilename,
         delta_test_filename: testFilename,
         delta_test_name: testName,
@@ -103,7 +104,12 @@ export default async function handler(
         imageFilenameMetadata[variant] = variantMetadata = {};
       }
 
-      variantMetadata[supabasePath] = (variantMetadata[supabasePath] ?? 0) + 1;
+      let dates = variantMetadata[supabasePath];
+      if (dates == null) {
+        variantMetadata[supabasePath] = dates = [];
+      }
+
+      dates.push(createdAt);
     });
 
     // Filter out all tests with only a single snapshot path per variant.

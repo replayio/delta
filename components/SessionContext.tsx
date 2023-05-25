@@ -211,7 +211,9 @@ function Defaults({
   let newSnapshotId = snapshotId;
   if (snapshotId == null) {
     const snapshotDiffs = snapshotDiffForRunCache.read(newRunId!);
-    newSnapshotId = snapshotDiffs[0].snapshot.id;
+    if (snapshotDiffs.length > 0) {
+      newSnapshotId = snapshotDiffs[0].snapshot.id;
+    }
   }
 
   if (

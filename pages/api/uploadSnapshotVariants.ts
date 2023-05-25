@@ -21,6 +21,7 @@ type RequestQueryParams = {
 type RequestBody = {
   metadata: {
     imageFilename: string;
+    recordingId: string | null;
     testFilename: string;
     testName: string;
   };
@@ -44,7 +45,7 @@ export default async function handler(
     runId: githubRunId,
   } = request.query as Partial<RequestQueryParams>;
   const { metadata, variants } = request.body as Partial<RequestBody>;
-  const { imageFilename, testFilename, testName } = metadata ?? {};
+  const { imageFilename, recordingId, testFilename, testName } = metadata ?? {};
   if (
     !actor ||
     !branchName ||
@@ -78,6 +79,7 @@ export default async function handler(
       delta_test_filename: testFilename,
       delta_test_name: testName,
       github_run_id: githubRunId,
+      replay_recording_id: recordingId ?? null,
       run_id: run.id,
     });
 

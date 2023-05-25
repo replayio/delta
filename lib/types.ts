@@ -64,6 +64,9 @@ export type Snapshot = {
   delta_image_filename: string;
   delta_test_filename: string;
   delta_test_name: string;
+
+  // Replay
+  replay_recording_id: string | null;
 };
 export type SnapshotId = Snapshot["id"];
 

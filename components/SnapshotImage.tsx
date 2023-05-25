@@ -23,8 +23,12 @@ export default function SnapshotImage({
       alt="Snapshot image"
       className={className}
       height={height}
-      src={`data:image/png;base64,${base64String}`}
+      src={base64StringToImageSource(base64String)}
       width={width}
     />
   );
+}
+
+export function base64StringToImageSource(base64String: string) {
+  return `data:image/png;base64,${base64String}`;
 }

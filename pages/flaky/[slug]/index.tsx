@@ -3,12 +3,15 @@ import { Suspense } from "react";
 import Expandable from "../../../components/Expandable";
 import Icon from "../../../components/Icon";
 import { Loader } from "../../../components/Loader";
-import SnapshotImage from "../../../components/SnapshotImage";
+import SnapshotImage, {
+  base64StringToImageSource,
+} from "../../../components/SnapshotImage";
 import withRenderOnMount from "../../../components/withRenderOnMount";
 import withSuspenseLoader from "../../../components/withSuspenseLoader";
 import { ProjectSlug } from "../../../lib/types";
 import { projectCache } from "../../../suspense/ProjectCache";
 import { frequentlyUpdatedSnapshotsCache } from "../../../suspense/SnapshotCache";
+import { snapshotImageCache } from "../../../suspense/SnapshotVariantCache";
 import {
   ImageFilenameToSupabasePathMetadata,
   RunMetadata,
@@ -188,12 +191,37 @@ function Snapshot({
 }) {
   const project = projectCache.read(projectSlug);
 
+  const showFullImage = async () => {
+    const { base64String, height, width } = await snapshotImageCache.readAsync(
+      supabasePath
+    );
+
+    const tab = window.open("about:blank");
+    if (tab) {
+      const image = tab.document.createElement("img");
+      image.height = height;
+      image.src = base64StringToImageSource(base64String);
+      image.width = width;
+
+      tab.document.body.style.backgroundColor = "grey";
+      tab.document.body.appendChild(image);
+    }
+  };
+
   return (
-    <div>
-      <SnapshotImage
-        className="shrink w-auto max-h-40 rounded border-x border-y border-slate-300"
-        path={supabasePath}
-      />
+    <div className="flex flex-col gap-1">
+      <div className="relative">
+        <SnapshotImage
+          className="shrink w-auto max-h-40 rounded border-x border-y border-slate-300"
+          path={supabasePath}
+        />
+        <div
+          className="absolute right-2 bottom-2 hover:bg-yellow-300 bg-yellow-300/75 p-1 rounded cursor-pointer"
+          onClick={showFullImage}
+        >
+          <Icon className="w-4 h-4" type="inspect" />
+        </div>
+      </div>
       <div className="flex flex-col items-start gap-1 mt-1">
         {runMetadata.map(({ githubRunId, timestamp }, index) => {
           const date = new Date(timestamp);

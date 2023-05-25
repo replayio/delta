@@ -73,7 +73,21 @@ export async function handleWorkflowRunCompletedEvent(
     );
   } else {
     const primaryBranch = await getPrimaryBranchForProject(project);
-    if (branch.id !== primaryBranch.id) {
+    if (branch.id === primaryBranch.id) {
+      await updateCheck(
+        project.organization,
+        project.repository,
+        run.github_check_id,
+        {
+          conclusion: "success",
+          output: {
+            summary: "No changes",
+            title: "Completed",
+          },
+          status: "completed",
+        }
+      );
+    } else {
       const primaryBranchRun = await getMostRecentSuccessfulRunForBranch(
         primaryBranch.id
       );

@@ -210,36 +210,55 @@ function Snapshot({
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="relative">
+      <div className="bg-gray-400 rounded">
         <SnapshotImage
-          className="shrink w-auto max-h-40 rounded border-x border-y border-slate-300"
+          className="w-auto max-h-40 rounded border-x border-y border-slate-300 mx-auto"
           path={supabasePath}
         />
-        <div
-          className="absolute right-2 bottom-2 hover:bg-yellow-300 bg-yellow-300/75 p-1 rounded cursor-pointer"
-          onClick={showFullImage}
-        >
-          <Icon className="w-4 h-4" type="inspect" />
-        </div>
       </div>
-      <div className="flex flex-col items-start gap-1 mt-1">
-        {runMetadata.map(({ githubRunId, timestamp }, index) => {
-          const date = new Date(timestamp);
-          return (
-            <a
-              className="flex flex-row item-between text-xs w-full gap-1 p-1 bg-yellow-100 hover:bg-yellow-200 rounded"
-              href={`https://github.com/${project.organization}/${project.repository}/actions/runs/${githubRunId}`}
-              key={index}
-              rel="noreferrer"
-              target="_blank"
-            >
-              <div className="truncate grow">
-                {date.toLocaleDateString()}, {date.toLocaleTimeString()}
+      <div className="flex flex-col items-start gap-1 shrink">
+        {runMetadata.map(
+          ({ githubRunId, replayRecordingId, timestamp }, index) => {
+            const date = new Date(timestamp);
+
+            return (
+              <div
+                className="flex flex-row items-center text-xs w-full gap-1 p-1 pl-2 bg-blue-100 rounded"
+                key={index}
+              >
+                <div className="truncate grow text-blue-600 lowercase">
+                  {date.toLocaleDateString()}, {date.toLocaleTimeString()}
+                </div>
+                <a
+                  className="text-blue-600 hover:text-blue-700"
+                  href={`https://github.com/${project.organization}/${project.repository}/actions/runs/${githubRunId}`}
+                  rel="noreferrer"
+                  target="_blank"
+                  title="View GitHub run logs"
+                >
+                  <Icon className="h-4 w-4" type="logs" />
+                </a>
+                {replayRecordingId && (
+                  <a
+                    className="text-blue-600 hover:text-blue-700"
+                    href={`https://app.replay.io/recording/${replayRecordingId}`}
+                    rel="noreferrer"
+                    target="_blank"
+                    title="View Replay recording"
+                  >
+                    <Icon className="h-4 w-4" type="play" />
+                  </a>
+                )}
+                <div onClick={showFullImage} title="View full-size image">
+                  <Icon
+                    className="text-blue-600 hover:text-blue-700 cursor-pointer h-4 w-4"
+                    type="inspect"
+                  />
+                </div>
               </div>
-              <Icon type="external" />
-            </a>
-          );
-        })}
+            );
+          }
+        )}
       </div>
     </div>
   );

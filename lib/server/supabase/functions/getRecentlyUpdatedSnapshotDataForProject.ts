@@ -13,7 +13,8 @@ RETURNS TABLE (
     delta_test_filename varchar,
     delta_test_name varchar,
     delta_image_filename varchar,
-    github_run_id int8
+    github_run_id int8,
+    replay_recording_id varchar
 ) AS $$
 BEGIN
     RETURN QUERY
@@ -24,7 +25,8 @@ BEGIN
         snapshots.delta_test_filename,
         snapshots.delta_test_name,
         snapshots.delta_image_filename,
-        snapshots.github_run_id
+        snapshots.github_run_id,
+        snapshots.replay_recording_id
     FROM snapshot_variants
     INNER JOIN snapshots on snapshots.id = snapshot_variants.snapshot_id
     WHERE run_id IN (
@@ -59,6 +61,7 @@ export type RecentlyUpdatedSnapshotData = {
   delta_test_name: string;
   delta_variant: string;
   github_run_id: number;
+  replay_recording_id: string;
   supabase_path: string;
 };
 

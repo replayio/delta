@@ -19,6 +19,7 @@ export type RequestParams = {
 
 export type RunMetadata = {
   githubRunId: number;
+  replayRecordingId: string;
   timestamp: string;
 };
 
@@ -87,6 +88,7 @@ export default async function handler(
         delta_test_name: testName,
         delta_variant: variant,
         github_run_id: githubRunId,
+        replay_recording_id: replayRecordingId,
         supabase_path: supabasePath,
       } = record;
 
@@ -117,6 +119,7 @@ export default async function handler(
 
       dates.push({
         githubRunId,
+        replayRecordingId,
         timestamp: createdAt,
       });
     });

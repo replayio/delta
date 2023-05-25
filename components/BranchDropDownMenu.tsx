@@ -26,7 +26,7 @@ export function BranchDropDownMenu() {
     branches.map((branch) => (
       <BranchDropDownItem branch={branch} key={branch.id} project={project} />
     )),
-    { alignTo: "auto-target" }
+    { alignTo: "auto-target", className: "max-w-xs" }
   );
 
   if (isBranchPending) {
@@ -90,7 +90,9 @@ function BranchDropDownItem({
             </div>
           )}
           <div className="truncate grow">{branch.name}</div>
-          {run && <RunCount runId={run.id} />}
+          {branch.github_pr_status === "open" && run && (
+            <RunCount runId={run.id} />
+          )}
         </div>
       </div>
     </ContextMenuItem>

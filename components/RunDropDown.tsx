@@ -21,7 +21,7 @@ export function RunDropDownMenu() {
     onKeyDown,
   } = useContextMenu(
     runs.map((run) => <RunDropDownItem key={run.id} run={run} />),
-    { alignTo: "auto-target" }
+    { alignTo: "auto-target", className: "max-w-xs" }
   );
 
   if (isRunPending) {

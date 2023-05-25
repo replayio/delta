@@ -4976,10 +4976,10 @@ uri-js@^4.2.2:
   dependencies:
     punycode "^2.1.0"
 
-use-context-menu@^0.4.6:
-  version "0.4.6"
-  resolved "https://registry.yarnpkg.com/use-context-menu/-/use-context-menu-0.4.6.tgz#a66544cdf336e87eb4d29c6df8a4d2ad6576b607"
-  integrity sha512-motkoGjDu6g7Bp0fYzWO9sCIeqgnEwY6alcppiQJLgAvGatxsgB9UUPF6WqsWd6SsQ07EYkCK+og37/FDWPdnA==
+use-context-menu@^0.4.7:
+  version "0.4.7"
+  resolved "https://registry.yarnpkg.com/use-context-menu/-/use-context-menu-0.4.7.tgz#5d949c93256989c136f51958aad1b01522958d10"
+  integrity sha512-mlmG4yS833U0sHQnDIC6XgeiJlFwyX4AZUJxGpKSiEiN+ngevJBuZmYoQ6r4K9aCnJ+7OpvabuBQMGE1P0yS8Q==
 
 use-sync-external-store@^1.2.0:
   version "1.2.0"

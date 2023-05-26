@@ -1,5 +1,10 @@
 import { useAtom } from "jotai";
-import { unstable_Offscreen as Offscreen, Suspense, useState } from "react";
+import {
+  unstable_Offscreen as Offscreen,
+  Suspense,
+  useMemo,
+  useState,
+} from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
 import { comparisonModeAtom } from "../lib/client/state";
@@ -11,8 +16,10 @@ import {
   SnapshotVariantDiff,
   SnapshotVariantDiffChanged,
   isSnapshotVariantDiffAdded,
+  isSnapshotVariantDiffChanged,
   isSnapshotVariantDiffRemoved,
 } from "../lib/server/types";
+import { Project, Snapshot } from "../lib/types";
 import { base64ImageCache } from "../suspense/ImageCache";
 import { snapshotImageCache } from "../suspense/SnapshotVariantCache";
 import ImageSlider from "./ImageSlider";
@@ -22,12 +29,32 @@ import { SnapshotImageSlider } from "./SnapshotSliderImage";
 
 const HTMLImage = "img";
 
-export function Snapshot({ snapshotDiff }: { snapshotDiff: SnapshotDiff }) {
+export function Snapshot({
+  project,
+  snapshotDiff,
+}: {
+  project: Project;
+  snapshotDiff: SnapshotDiff;
+}) {
   const [mode] = useAtom(comparisonModeAtom);
 
   const [sliderPercentage, setSliderPercentage] = useState(50);
 
   const variants = Object.keys(snapshotDiff.snapshotVariantDiffs);
+
+  const hasNewSnapshot = useMemo(() => {
+    for (let variant in snapshotDiff.snapshotVariantDiffs) {
+      const snapshotVariant = snapshotDiff.snapshotVariantDiffs[variant];
+      if (
+        isSnapshotVariantDiffAdded(snapshotVariant) ||
+        isSnapshotVariantDiffChanged(snapshotVariant)
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [snapshotDiff]);
 
   return (
     <div className="flex flex-col items-center grow p-2 gap-2">
@@ -38,20 +65,29 @@ export function Snapshot({ snapshotDiff }: { snapshotDiff: SnapshotDiff }) {
         {variants.map((variant) => (
           <SnapshotVariant
             key={variant}
+            project={project}
             sliderPercentage={sliderPercentage}
+            snapshot={snapshotDiff.snapshot}
             snapshotVariantDiff={snapshotDiff.snapshotVariantDiffs[variant]}
           />
         ))}
       </div>
+      {hasNewSnapshot && (
+        <SnapshotLinks project={project} snapshot={snapshotDiff.snapshot} />
+      )}
     </div>
   );
 }
 
 function SnapshotVariant({
+  project,
   sliderPercentage,
+  snapshot,
   snapshotVariantDiff,
 }: {
+  project: Project;
   sliderPercentage: number;
+  snapshot: Snapshot;
   snapshotVariantDiff: SnapshotVariantDiff;
 }) {
   const [mode] = useAtom(comparisonModeAtom);
@@ -218,5 +254,42 @@ function SubViewSlider({
         />
       </Suspense>
     </ErrorBoundary>
+  );
+}
+
+function SnapshotLinks({
+  project,
+  snapshot,
+}: {
+  project: Project;
+  snapshot: Snapshot;
+}) {
+  return (
+    <div className="flex flex-row items-center gap-2">
+      {snapshot.github_run_id && (
+        <a
+          className="flex flex-row items-center gap-1 text-blue-600 hover:text-blue-700 bg-blue-100 py-1 px-2 rounded"
+          href={`https://github.com/${project.organization}/${project.repository}/actions/runs/${snapshot.github_run_id}`}
+          rel="noreferrer"
+          target="_blank"
+          title="View GitHub run logs"
+        >
+          <Icon type="logs" />
+          GitHub run
+        </a>
+      )}
+      {snapshot.replay_recording_id && (
+        <a
+          className="flex flex-row items-center gap-1 text-blue-600 hover:text-blue-700 bg-blue-100 py-1 px-2 rounded"
+          href={`https://app.replay.io/recording/${snapshot.replay_recording_id}`}
+          rel="noreferrer"
+          target="_blank"
+          title="View Replay recording"
+        >
+          <Icon type="play" />
+          Replay
+        </a>
+      )}
+    </div>
   );
 }

@@ -33,6 +33,7 @@ export function mergeSnapshotAndSnapshotVariants(
     const key = getSnapshotKey(record.snapshot);
     const value = merged[key];
     if (value) {
+      value.snapshot = record.snapshot;
       value.variants.new = record.snapshotVariants;
     } else {
       merged[key] = {

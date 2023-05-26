@@ -260,7 +260,11 @@ function SubViewLoadedData({
         <Panel order={2}>
           <div className="w-full h-full flex flex-col flex-grow overflow-y-auto overflow-x-hidden items-center">
             {index >= 0 && (
-              <Snapshot key={index} snapshotDiff={snapshotDiffs[index]} />
+              <Snapshot
+                key={index}
+                project={project}
+                snapshotDiff={snapshotDiffs[index]}
+              />
             )}
           </div>
         </Panel>

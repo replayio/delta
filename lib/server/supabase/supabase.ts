@@ -102,40 +102,40 @@ export async function assertStorageValue<Type>(
 
 export async function maybeRetry<Type>(
   runQuery: () => PromiseLike<Type>,
-  shouldRetry: (result: Type) => boolean
+  throwOnBadResult: (result: Type) => void
 ): Promise<Type> {
-  const callerStackTrace = Error().stack;
-  let result: Type;
-  try {
-    result = await runQuery();
-    if (!shouldRetry(result)) {
+  let didRetry = false;
+
+  while (true) {
+    try {
+      const result = await runQuery();
+
+      throwOnBadResult(result);
+
       return result;
+    } catch (error) {
+      console.error(error);
+
+      if (didRetry) {
+        throw error;
+      } else {
+        console.log("Retrying...");
+      }
     }
-    console.error("received error, retrying", result, callerStackTrace);
-  } catch (error) {
-    console.error("caught error, retrying", error, callerStackTrace);
-  }
-  try {
-    result = await runQuery();
-    if (!shouldRetry(result)) {
-      return result;
-    }
-    console.error("received error, giving up", result);
-    return result;
-  } catch (error) {
-    console.error("caught error, giving up", error);
-    throw error;
   }
 }
 
 export async function retryOnError<Type extends { error: any }>(
   runQuery: () => PromiseLike<Type>
 ): Promise<Type> {
-  return maybeRetry(
-    runQuery,
-    (result) =>
-      !!result.error &&
-      result.error.message !==
+  return maybeRetry(runQuery, ({ error }) => {
+    if (
+      !!error &&
+      !error.message.includes(
         "JSON object requested, multiple (or no) rows returned"
-  );
+      )
+    ) {
+      throw error;
+    }
+  });
 }

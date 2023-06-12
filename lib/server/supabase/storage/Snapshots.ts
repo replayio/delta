@@ -73,7 +73,9 @@ export async function uploadSnapshot(
       // Retry if there's been an error,
       // but not if the error was because the resource already exists.
       // https://postgrest.org/en/latest/errors.html#http-status-codes
-      return !!error && !error.message.includes("The resource already exists");
+      if (!!error && !error.message.includes("The resource already exists")) {
+        throw error;
+      }
     }
   );
 

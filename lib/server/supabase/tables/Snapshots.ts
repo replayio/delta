@@ -1,6 +1,30 @@
 import { RunId, Snapshot, SnapshotId, SnapshotVariant } from "../../../types";
 import { supabase } from "../../initSupabase";
-import { assertQueryResponse, assertQuerySingleResponse } from "../supabase";
+import {
+  assertQueryMaybeSingleResponse,
+  assertQueryResponse,
+  assertQuerySingleResponse,
+} from "../supabase";
+
+export async function getSnapshot(
+  runId: RunId,
+  testFileName: string,
+  testName: string,
+  testImageFilename: string
+) {
+  return assertQueryMaybeSingleResponse<Snapshot>(
+    () =>
+      supabase
+        .from("snapshots")
+        .select("*")
+        .eq("run_id", runId)
+        .eq("delta_test_filename", testFileName)
+        .eq("delta_test_name", testName)
+        .eq("delta_image_filename", testImageFilename)
+        .single(),
+    `Could not find Snapshots for Run "${runId}" `
+  );
+}
 
 export async function getSnapshotForId(snapshotId: SnapshotId) {
   return assertQuerySingleResponse<Snapshot>(

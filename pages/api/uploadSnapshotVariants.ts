@@ -1,24 +1,28 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import { createHash } from "crypto";
+import { diffBase64Images } from "../../lib/server/diff";
 import {
   downloadSnapshot,
   uploadSnapshot,
 } from "../../lib/server/supabase/storage/Snapshots";
+import { getPrimaryBranchForProject } from "../../lib/server/supabase/tables/Branches";
+import { getProjectForRun } from "../../lib/server/supabase/tables/Projects";
 import {
   getMostRecentSuccessfulRunForBranch,
   getRunForGithubRunId,
-  getRunForId,
 } from "../../lib/server/supabase/tables/Runs";
-import { insertSnapshotVariant } from "../../lib/server/supabase/tables/SnapshotVariants";
-import { insertSnapshot } from "../../lib/server/supabase/tables/Snapshots";
-import { GithubRunId, ProjectSlug, RunId } from "../../lib/types";
+import {
+  getSnapshotVariantsForSnapshot,
+  insertSnapshotVariant,
+} from "../../lib/server/supabase/tables/SnapshotVariants";
+import {
+  getSnapshot,
+  insertSnapshot,
+} from "../../lib/server/supabase/tables/Snapshots";
+import { GithubRunId, ProjectSlug } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
-import { getPrimaryBranchForProject } from "../../lib/server/supabase/tables/Branches";
-import { getSnapshotAndSnapshotVariantsForRun } from "../../lib/server/supabase/utils/getSnapshotAndSnapshotVariantsForRun";
-import { getProjectForRun } from "../../lib/server/supabase/tables/Projects";
-import { diffBase64Images } from "../../lib/server/diff";
 
 type Base64String = string;
 type RequestQueryParams = {
@@ -89,18 +93,23 @@ export default async function handler(
       primaryBranch.id
     );
 
-    const oldSnapshotAndSnapshotVariants = primaryBranchRun
-      ? await getSnapshotAndSnapshotVariantsForRun(primaryBranchRun.id)
+    console.group(
+      `Finding most recent snapshots for branch "${primaryBranch.name}" and run ${primaryBranchRun?.id}`
+    );
+
+    const oldSnapshot = primaryBranchRun
+      ? await getSnapshot(
+          primaryBranchRun.id,
+          testFilename,
+          testName,
+          imageFilename
+        )
+      : null;
+    const oldSnapshotVariants = oldSnapshot
+      ? await getSnapshotVariantsForSnapshot(oldSnapshot.id)
       : [];
 
     console.group(`Inserting Snapshot for Project ${projectSlug}`);
-
-    const prevSnapshotAndVariants = oldSnapshotAndSnapshotVariants.find(
-      ({ snapshot }) =>
-        testName === snapshot.delta_test_name &&
-        testFilename === snapshot.delta_test_filename &&
-        imageFilename === snapshot.delta_image_filename
-    );
 
     const newSnapshot = await insertSnapshot({
       delta_image_filename: imageFilename,
@@ -123,7 +132,9 @@ export default async function handler(
       // It's possible for the same image to produce multiple base64 representations
       // To avoid these false positives, we should do a verification diff before uploading
       // See stackoverflow.com/questions/30429168/is-a-base64-encoded-string-unique
-      const prevVariant = prevSnapshotAndVariants?.snapshotVariants[variant];
+      const prevVariant = oldSnapshotVariants.find(
+        (snapshotVariant) => snapshotVariant.delta_variant === variant
+      );
       if (prevVariant) {
         if (path === prevVariant.supabase_path) {
           supabasePath = path;

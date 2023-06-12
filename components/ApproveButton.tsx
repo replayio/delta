@@ -1,7 +1,6 @@
 import { useState } from "react";
 
 import { Branch, Project, Run } from "../lib/types";
-import { snapshotDiffCountForRunCache } from "../suspense/SnapshotCache";
 import { updateBranchStatus } from "../utils/ApiClient";
 import withSuspenseLoader from "./withSuspenseLoader";
 
@@ -24,15 +23,9 @@ export const ApproveButton = withSuspenseLoader(function ApproveButton({
   if (run.github_status === "pending") {
     return (
       <div className="text-white bg-violet-300 py-1 px-3 rounded border-transparent">
-        Updating
+        Updating...
       </div>
     );
-  }
-
-  const count = snapshotDiffCountForRunCache.read(run.id);
-  const requiresApproval = count > 0;
-  if (!requiresApproval) {
-    return null;
   }
 
   const onClick = async () => {

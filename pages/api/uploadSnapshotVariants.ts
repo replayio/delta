@@ -1,13 +1,24 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import { createHash } from "crypto";
-import { uploadSnapshot } from "../../lib/server/supabase/storage/Snapshots";
-import { getRunForGithubRunId } from "../../lib/server/supabase/tables/Runs";
+import {
+  downloadSnapshot,
+  uploadSnapshot,
+} from "../../lib/server/supabase/storage/Snapshots";
+import {
+  getMostRecentSuccessfulRunForBranch,
+  getRunForGithubRunId,
+  getRunForId,
+} from "../../lib/server/supabase/tables/Runs";
 import { insertSnapshotVariant } from "../../lib/server/supabase/tables/SnapshotVariants";
 import { insertSnapshot } from "../../lib/server/supabase/tables/Snapshots";
-import { GithubRunId, ProjectSlug } from "../../lib/types";
+import { GithubRunId, ProjectSlug, RunId } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
+import { getPrimaryBranchForProject } from "../../lib/server/supabase/tables/Branches";
+import { getSnapshotAndSnapshotVariantsForRun } from "../../lib/server/supabase/utils/getSnapshotAndSnapshotVariantsForRun";
+import { getProjectForRun } from "../../lib/server/supabase/tables/Projects";
+import { diffBase64Images } from "../../lib/server/diff";
 
 type Base64String = string;
 type RequestQueryParams = {
@@ -71,10 +82,27 @@ export default async function handler(
 
   try {
     const run = await getRunForGithubRunId(githubRunId);
+    const project = await getProjectForRun(run.id);
+
+    const primaryBranch = await getPrimaryBranchForProject(project);
+    const primaryBranchRun = await getMostRecentSuccessfulRunForBranch(
+      primaryBranch.id
+    );
+
+    const oldSnapshotAndSnapshotVariants = primaryBranchRun
+      ? await getSnapshotAndSnapshotVariantsForRun(primaryBranchRun.id)
+      : [];
 
     console.group(`Inserting Snapshot for Project ${projectSlug}`);
 
-    const snapshot = await insertSnapshot({
+    const prevSnapshotAndVariants = oldSnapshotAndSnapshotVariants.find(
+      ({ snapshot }) =>
+        testName === snapshot.delta_test_name &&
+        testFilename === snapshot.delta_test_filename &&
+        imageFilename === snapshot.delta_image_filename
+    );
+
+    const newSnapshot = await insertSnapshot({
       delta_image_filename: imageFilename,
       delta_test_filename: testFilename,
       delta_test_name: testName,
@@ -89,20 +117,43 @@ export default async function handler(
       const sha = createHash("sha256").update(base64).digest("hex");
       const path = `${projectSlug}/${sha}.png`;
 
-      console.groupCollapsed(
-        `Uploading snapshot variant "${variant}" to path "${path}"`
-      );
-      console.log(base64);
-      console.groupEnd();
+      let supabasePath: string | null = null;
 
-      await uploadSnapshot(path, base64);
+      // Images are de-duped using paths derived from a base64 representation
+      // It's possible for the same image to produce multiple base64 representations
+      // To avoid these false positives, we should do a verification diff before uploading
+      // See stackoverflow.com/questions/30429168/is-a-base64-encoded-string-unique
+      const prevVariant = prevSnapshotAndVariants?.snapshotVariants[variant];
+      if (prevVariant) {
+        if (path === prevVariant.supabase_path) {
+          supabasePath = path;
+        } else {
+          const prevBase64 = await downloadSnapshot(prevVariant.supabase_path);
+          const diff = await diffBase64Images(prevBase64, base64);
+          if (diff.png === null) {
+            supabasePath = prevVariant.supabase_path;
+          }
+        }
+      }
 
-      console.log(`Inserting SnapshotVariant for Snapshot ${snapshot.id}`);
+      if (supabasePath === null) {
+        console.groupCollapsed(
+          `Uploading snapshot variant "${variant}" to path "${path}"`
+        );
+        console.log(base64);
+        console.groupEnd();
+
+        supabasePath = path;
+
+        await uploadSnapshot(path, base64);
+      }
+
+      console.log(`Inserting SnapshotVariant for Snapshot ${newSnapshot.id}`);
 
       await insertSnapshotVariant({
         delta_variant: variant,
-        snapshot_id: snapshot.id,
-        supabase_path: path,
+        snapshot_id: newSnapshot.id,
+        supabase_path: supabasePath,
       });
     }
 

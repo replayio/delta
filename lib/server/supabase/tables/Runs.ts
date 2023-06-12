@@ -1,20 +1,23 @@
 import { BranchId, GithubRunId, Run, RunId } from "../../../types";
 import { supabase } from "../../initSupabase";
-import { assertQueryResponse, assertQuerySingleResponse } from "../supabase";
+import {
+  assertQueryMaybeSingleResponse,
+  assertQueryResponse,
+  assertQuerySingleResponse,
+} from "../supabase";
 
 export async function getMostRecentSuccessfulRunForBranch(branchId: BranchId) {
-  const runs = await assertQuerySingleResponse<Run[]>(
+  return assertQueryMaybeSingleResponse<Run>(
     () =>
       supabase
         .from("runs")
         .select("*")
         .eq("branch_id", branchId)
         .eq("github_conclusion", "success")
-        .order("created_at", { ascending: false }),
+        .order("created_at", { ascending: false })
+        .single(),
     `Could not find Runs for Branch "${branchId}"`
   );
-
-  return runs[0] ?? null;
 }
 
 export async function getRunForId(runId: RunId) {

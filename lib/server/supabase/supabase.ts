@@ -14,17 +14,6 @@ export const createError = (error: string): ResponseError => ({
   error,
 });
 
-// Runs query and throws if it fails
-export async function assertQuery(
-  runQuery: () => PromiseLike<PostgrestResponse<unknown>>,
-  failureMessage: string
-): Promise<void> {
-  const result = await retryOnError(runQuery);
-  if (result.error) {
-    throw createErrorFromPostgrestError(result.error, failureMessage);
-  }
-}
-
 // Returns a set of records of type <Type> or throws
 export async function assertQueryResponse<Type>(
   runQuery: () => PromiseLike<PostgrestResponse<Type>>,
@@ -35,6 +24,21 @@ export async function assertQueryResponse<Type>(
     const error = result.error
       ? createErrorFromPostgrestError(result.error, failureMessage)
       : new Error(failureMessage);
+
+    throw error;
+  }
+
+  return result.data;
+}
+
+// Returns a single record of type <Type> or throws
+export async function assertQueryMaybeSingleResponse<Type>(
+  runQuery: () => PromiseLike<PostgrestSingleResponse<Type>>,
+  failureMessage: string
+): Promise<Type | null> {
+  const result = await retryOnError(runQuery);
+  if (result.error) {
+    const error = createErrorFromPostgrestError(result.error, failureMessage);
 
     throw error;
   }

@@ -1,5 +1,5 @@
-import Image from "next/image";
 import { snapshotImageCache } from "../suspense/SnapshotVariantCache";
+import Base64Image from "./Base64Image";
 
 export default function SnapshotImage({
   className,
@@ -19,16 +19,12 @@ export default function SnapshotImage({
   // }
 
   return (
-    <Image
-      alt="Snapshot image"
+    <Base64Image
+      base64String={base64String}
       className={className}
       height={height}
-      src={base64StringToImageSource(base64String)}
+      title="Snapshot image"
       width={width}
     />
   );
-}
-
-export function base64StringToImageSource(base64String: string) {
-  return `data:image/png;base64,${base64String}`;
 }

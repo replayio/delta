@@ -1,11 +1,10 @@
 import { useRouter } from "next/router";
 import { Suspense } from "react";
+import { base64StringToImageSource } from "../../../components/Base64Image";
 import Expandable from "../../../components/Expandable";
 import Icon from "../../../components/Icon";
 import { Loader } from "../../../components/Loader";
-import SnapshotImage, {
-  base64StringToImageSource,
-} from "../../../components/SnapshotImage";
+import SnapshotImage from "../../../components/SnapshotImage";
 import withRenderOnMount from "../../../components/withRenderOnMount";
 import withSuspenseLoader from "../../../components/withSuspenseLoader";
 import { ProjectSlug } from "../../../lib/types";

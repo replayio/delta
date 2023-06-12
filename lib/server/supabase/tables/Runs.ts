@@ -15,7 +15,8 @@ export async function getMostRecentSuccessfulRunForBranch(branchId: BranchId) {
         .eq("branch_id", branchId)
         .eq("github_conclusion", "success")
         .order("created_at", { ascending: false })
-        .single(),
+        .limit(1)
+        .maybeSingle(),
     `Could not find Runs for Branch "${branchId}"`
   );
 }

@@ -21,7 +21,7 @@ export async function getSnapshot(
         .eq("delta_test_filename", testFileName)
         .eq("delta_test_name", testName)
         .eq("delta_image_filename", testImageFilename)
-        .single(),
+        .maybeSingle(),
     `Could not find Snapshots for Run "${runId}" `
   );
 }

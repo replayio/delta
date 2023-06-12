@@ -26,9 +26,9 @@ export default async function handler(
   try {
     const imageA = await downloadSnapshot(pathA);
     const imageB = await downloadSnapshot(pathB);
-    const diff = await diffBase64Images(imageA, imageB);
+    const { changed, png } = await diffBase64Images(imageA, imageB);
 
-    let data = diff.png ? diff.png.toString("base64") : null;
+    const data = changed && png ? png.toString("base64") : null;
 
     return sendApiResponse<ResponseData>(request, response, {
       httpStatusCode: HTTP_STATUS_CODES.OK,

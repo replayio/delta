@@ -140,8 +140,8 @@ export default async function handler(
           supabasePath = path;
         } else {
           const prevBase64 = await downloadSnapshot(prevVariant.supabase_path);
-          const diff = await diffBase64Images(prevBase64, base64);
-          if (diff.png === null) {
+          const { changed } = await diffBase64Images(prevBase64, base64);
+          if (!changed) {
             supabasePath = prevVariant.supabase_path;
           }
         }

@@ -1,10 +1,19 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import { getRecentlyUpdatedSnapshotDataForProject } from "../../lib/server/supabase/functions/getRecentlyUpdatedSnapshotDataForProject";
-import { getProjectForSlug } from "../../lib/server/supabase/tables/Projects";
-import { ProjectId, ProjectSlug } from "../../lib/types";
+import {
+  getProjectForId,
+  getProjectForSlug,
+} from "../../lib/server/supabase/tables/Projects";
+import { ProjectId, ProjectSlug, SnapshotVariant } from "../../lib/types";
 import { DELTA_ERROR_CODE, HTTP_STATUS_CODES } from "./constants";
 import { sendApiMissingParametersResponse, sendApiResponse } from "./utils";
+import { getPrimaryBranchForProject } from "../../lib/server/supabase/tables/Branches";
+import { getMostRecentSuccessfulRunForBranch } from "../../lib/server/supabase/tables/Runs";
+import { getSnapshot } from "../../lib/server/supabase/tables/Snapshots";
+import { getSnapshotVariantsForSnapshot } from "../../lib/server/supabase/tables/SnapshotVariants";
+import { downloadSnapshot } from "../../lib/server/supabase/storage/Snapshots";
+import { diffBase64Images } from "../../lib/server/diff";
 
 export type PathMetadata = {
   count: number;
@@ -66,6 +75,12 @@ export default async function handler(
     const project = await getProjectForSlug(projectSlug!);
     projectId = project.id;
   }
+
+  const project = await getProjectForId(projectId!);
+  const primaryBranch = await getPrimaryBranchForProject(project);
+  const primaryBranchRun = await getMostRecentSuccessfulRunForBranch(
+    primaryBranch.id
+  );
 
   // Find all recent snapshots for this project.
   try {
@@ -132,11 +147,62 @@ export default async function handler(
         const testNameMetadata = testFileMetadata[testName];
         for (let imageFilename in testNameMetadata) {
           const imageFilenameMetadata = testNameMetadata[imageFilename];
+
+          let oldSnapshotVariants: SnapshotVariant[] | null = null;
+
           for (let variant in imageFilenameMetadata) {
             const variantMetadata = imageFilenameMetadata[variant];
 
             if (Object.keys(variantMetadata).length === 1) {
               delete imageFilenameMetadata[variant];
+            } else {
+              // TODO [FE-1478]
+              // This whole block can be removed once we are properly filtering out duplicates
+              if (primaryBranchRun) {
+                if (oldSnapshotVariants === null) {
+                  const oldSnapshot = primaryBranchRun
+                    ? await getSnapshot(
+                        primaryBranchRun.id,
+                        testFilename,
+                        testName,
+                        imageFilename
+                      )
+                    : null;
+
+                  oldSnapshotVariants = oldSnapshot
+                    ? await getSnapshotVariantsForSnapshot(oldSnapshot.id)
+                    : [];
+                }
+
+                const prevVariant = oldSnapshotVariants.find(
+                  (snapshotVariant) => snapshotVariant.delta_variant === variant
+                );
+                const prevBase64 = prevVariant
+                  ? await downloadSnapshot(prevVariant.supabase_path)
+                  : null;
+
+                if (prevBase64) {
+                  let duplicateCount = 0;
+                  let totalCount = 0;
+
+                  for (let supabasePath in variantMetadata) {
+                    totalCount++;
+
+                    const newBase64 = await downloadSnapshot(supabasePath);
+                    const { changed } = await diffBase64Images(
+                      prevBase64,
+                      newBase64
+                    );
+                    if (!changed) {
+                      duplicateCount++;
+                    }
+                  }
+
+                  if (totalCount === duplicateCount) {
+                    delete imageFilenameMetadata[variant];
+                  }
+                }
+              }
             }
           }
 

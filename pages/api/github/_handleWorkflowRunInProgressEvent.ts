@@ -1,12 +1,15 @@
 import type { WorkflowRunInProgressEvent } from "@octokit/webhooks-types";
 import { getDeltaBranchUrl } from "../../../lib/delta";
-import { createCheck } from "../../../lib/server/github/Checks";
+import { createCheck, updateCheck } from "../../../lib/server/github/Checks";
+import { POSTGRESQL_ERROR_CODES } from "../../../lib/server/supabase/constants";
 import { getBranchForProjectAndOrganizationAndBranchName } from "../../../lib/server/supabase/tables/Branches";
 import { getProjectForOrganizationAndRepository } from "../../../lib/server/supabase/tables/Projects";
-import { insertRun } from "../../../lib/server/supabase/tables/Runs";
+import {
+  getRunsForBranch,
+  insertRun,
+} from "../../../lib/server/supabase/tables/Runs";
 import { GithubCheckId, GithubRunId } from "../../../lib/types";
 import { getParamsFromWorkflowRunEvent } from "./_getParamsFromWorkflowRunEvent";
-import { POSTGRESQL_ERROR_CODES } from "../../../lib/server/supabase/constants";
 
 export async function handleWorkflowRunInProgressEvent(
   event: WorkflowRunInProgressEvent
@@ -35,15 +38,39 @@ export async function handleWorkflowRunInProgressEvent(
   }
 
   const sha = event.workflow_run.head_commit.id;
-  const check = await createCheck(projectOrganization, projectRepository, {
-    details_url: getDeltaBranchUrl(project, branch.id),
-    head_sha: sha,
-    output: {
-      summary: "In progress...",
-      title: "Tests are running",
-    },
-    status: "in_progress",
-  });
+
+  // This handler may be called multiple times (for PRs with multiple commits)
+  // In that case, we only want to create a GitHub check once
+  // So if we find a pre-existing run, re-use its check ID
+  // else if this is the first run for the PR, create a new check
+  const runs = await getRunsForBranch(branch.id);
+
+  let checkId: GithubCheckId;
+  if (runs.length > 0) {
+    const run = runs[0];
+
+    checkId = run.github_check_id;
+
+    await updateCheck(project.organization, project.repository, checkId, {
+      output: {
+        summary: "In progress...",
+        title: "Tests are running",
+      },
+      status: "in_progress",
+    });
+  } else {
+    const check = await createCheck(projectOrganization, projectRepository, {
+      details_url: getDeltaBranchUrl(project, branch.id),
+      head_sha: sha,
+      output: {
+        summary: "In progress...",
+        title: "Tests are running",
+      },
+      status: "in_progress",
+    });
+
+    checkId = check.id as unknown as GithubCheckId;
+  }
 
   const actor = event.sender.login;
   const githubRunId = event.workflow_run.id as unknown as GithubRunId;
@@ -53,7 +80,7 @@ export async function handleWorkflowRunInProgressEvent(
       branch_id: branch.id,
       delta_has_user_approval: false,
       github_actor: actor,
-      github_check_id: check.id as unknown as GithubCheckId,
+      github_check_id: checkId,
       github_conclusion: null,
       github_run_id: githubRunId,
       github_status: "pending",

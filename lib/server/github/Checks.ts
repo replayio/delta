@@ -35,7 +35,7 @@ export async function updateCheck(
   projectRepository: string,
   checkRunId: GithubCheckId,
   checkRun: {
-    conclusion: CheckRun["conclusion"];
+    conclusion?: CheckRun["conclusion"];
     output: {
       summary: string;
       title: string;

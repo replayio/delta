@@ -120,6 +120,7 @@ export async function maybeRetry<Type>(
         throw error;
       } else {
         console.log("Retrying...");
+        didRetry = true;
       }
     }
   }

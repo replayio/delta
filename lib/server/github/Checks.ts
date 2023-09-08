@@ -27,6 +27,8 @@ export async function createCheck(
     }
   );
 
+  console.log(`Created GitHub check run with id ${response.data.id}`);
+
   return response.data as CheckRun;
 }
 

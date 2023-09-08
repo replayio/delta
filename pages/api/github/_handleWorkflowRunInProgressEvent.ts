@@ -4,21 +4,25 @@ import { createCheck } from "../../../lib/server/github/Checks";
 import { POSTGRESQL_ERROR_CODES } from "../../../lib/server/supabase/constants";
 import { getBranchForProjectAndOrganizationAndBranchName } from "../../../lib/server/supabase/tables/Branches";
 import { getProjectForOrganizationAndRepository } from "../../../lib/server/supabase/tables/Projects";
-import { insertRun } from "../../../lib/server/supabase/tables/Runs";
+import { getRunForGithubRunId, insertRun } from "../../../lib/server/supabase/tables/Runs";
 import { GithubCheckId, GithubRunId } from "../../../lib/types";
 import { getParamsFromWorkflowRunEvent } from "./_getParamsFromWorkflowRunEvent";
 
 export async function handleWorkflowRunInProgressEvent(
   event: WorkflowRunInProgressEvent
 ): Promise<boolean> {
-  console.log(`Received workflow_run in_progress event ${JSON.stringify(event)}`);
-
   const { branchName, organization, projectOrganization, projectRepository } =
     getParamsFromWorkflowRunEvent(event);
 
   if (!branchName || !organization || !projectOrganization) {
     throw Error(`Missing required parameters event parameters`);
   }
+
+  const githubRunId = event.workflow_run.id as unknown as GithubRunId;
+  try {
+    await getRunForGithubRunId(githubRunId);
+    return false;
+  } catch {}
 
   const project = await getProjectForOrganizationAndRepository(
     projectOrganization,
@@ -51,7 +55,6 @@ export async function handleWorkflowRunInProgressEvent(
   const checkId = check.id as unknown as GithubCheckId;
 
   const actor = event.sender.login;
-  const githubRunId = event.workflow_run.id as unknown as GithubRunId;
 
   try {
     await insertRun({

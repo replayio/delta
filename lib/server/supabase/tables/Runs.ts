@@ -59,10 +59,7 @@ export async function getRunForGithubRunId(githubRunId: GithubRunId) {
 
 export async function insertRun(data: Omit<Run, "created_at" | "id">) {
   return assertQuerySingleResponse<Run>(
-    () => {
-      console.log(`Trying to insert run with id ${data.github_run_id} and check_id ${data.github_check_id}`);
-      return supabase.from("runs").insert(data).single();
-    },
+    () => supabase.from("runs").insert(data).single(),
     `Could not insert Run`
   );
 }

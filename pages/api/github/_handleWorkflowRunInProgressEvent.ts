@@ -11,7 +11,7 @@ import { getParamsFromWorkflowRunEvent } from "./_getParamsFromWorkflowRunEvent"
 export async function handleWorkflowRunInProgressEvent(
   event: WorkflowRunInProgressEvent
 ): Promise<boolean> {
-  console.log(`Received workflow_run in_progress event ${event}`);
+  console.log(`Received workflow_run in_progress event ${JSON.stringify(event)}`);
 
   const { branchName, organization, projectOrganization, projectRepository } =
     getParamsFromWorkflowRunEvent(event);

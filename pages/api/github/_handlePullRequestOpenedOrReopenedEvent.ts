@@ -55,5 +55,5 @@ export async function handlePullRequestOpenedOrReopenedEvent(
     });
   }
 
-  return true;
+  return false;
 }

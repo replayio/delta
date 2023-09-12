@@ -38,5 +38,5 @@ export async function handlePullRequestClosedEvent(
     github_pr_status: status,
   });
 
-  return true;
+  return false;
 }

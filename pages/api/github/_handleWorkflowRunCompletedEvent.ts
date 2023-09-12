@@ -146,5 +146,5 @@ export async function handleWorkflowRunCompletedEvent(
     }
   }
 
-  return true;
+  return false;
 }

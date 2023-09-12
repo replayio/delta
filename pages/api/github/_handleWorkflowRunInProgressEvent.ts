@@ -72,5 +72,5 @@ export async function handleWorkflowRunInProgressEvent(
     }
   }
 
-  return true;
+  return false;
 }

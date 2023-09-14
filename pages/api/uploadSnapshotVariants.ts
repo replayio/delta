@@ -86,6 +86,20 @@ export default async function handler(
 
   try {
     const run = await getRunForGithubRunId(githubRunId);
+
+    const snapshot = await getSnapshot(
+      run.id,
+      testFilename,
+      testName,
+      imageFilename
+    );
+    if (snapshot) {
+      return sendApiResponse(request, response, {
+        data: null,
+        httpStatusCode: HTTP_STATUS_CODES.OK,
+      });
+    }
+
     const project = await getProjectForRun(run.id);
 
     const primaryBranch = await getPrimaryBranchForProject(project);

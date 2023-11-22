@@ -184,6 +184,8 @@ export default async function handler(
 
     console.groupEnd();
 
+    console.log("Done!");
+
     return sendApiResponse(request, response, {
       data: null,
       httpStatusCode: HTTP_STATUS_CODES.OK,
